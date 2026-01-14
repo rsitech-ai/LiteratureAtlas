@@ -16,14 +16,18 @@ from __future__ import annotations
 
 import argparse
 import datetime as dt
+import difflib
 import json
+import logging
 import math
 import pathlib
 import re
-import difflib
 from collections import Counter, defaultdict
 from dataclasses import dataclass
-from typing import List, Dict, Any
+from typing import Any
+
+# Configure module-level logger
+_logger = logging.getLogger(__name__)
 
 try:
     import duckdb  # pip install duckdb>=1.0.0
@@ -49,7 +53,7 @@ except Exception:
     linear_sum_assignment = None
 try:
     from sklearn.cluster import KMeans
-    from sklearn.decomposition import TruncatedSVD, NMF, PCA
+    from sklearn.decomposition import NMF, PCA, TruncatedSVD
     from sklearn.feature_extraction.text import TfidfVectorizer
     from sklearn.manifold import trustworthiness
     from sklearn.neighbors import NearestNeighbors
@@ -927,13 +931,11 @@ def compute_factor_loadings(
     vocab = np.array(tfidf.get_feature_names_out())
 
     # If tags are too sparse, fall back to dense labels
-    nmf_components = []
     factor_labels: list[str] = []
     if tfidf_mat.shape[0] >= 3 and tfidf_mat.shape[1] >= 4:
         nmf = NMF(n_components=min(n_factors, tfidf_mat.shape[1], tfidf_mat.shape[0]), init="nndsvda", random_state=0, max_iter=300)
-        W = nmf.fit_transform(tfidf_mat)
+        nmf.fit(tfidf_mat)
         H = nmf.components_
-        nmf_components = H
         for row in H:
             top_idx = row.argsort()[-4:][::-1]
             labels = [vocab[i] for i in top_idx if row[i] > 0]
@@ -982,7 +984,7 @@ def factor_exposures_from_reads(loadings: list[dict[str, Any]], df_papers: pd.Da
       4) fallback to publication year
     """
     # Build earliest event year per paper_id
-    event_year: Dict[str, int] = {}
+    event_year: dict[str, int] = {}
     for evt in user_events:
         pid = evt.get("paper_id")
         ts = evt.get("timestamp")
@@ -1288,7 +1290,7 @@ def cluster_stability_multi_seed_kmeans(
         labels = km.fit_predict(Zs)
         run_centroids = km.cluster_centers_.astype(np.float32)
         mapping = _align_clusters_by_centroid(base_centroids, run_centroids)
-        aligned = np.array([mapping.get(int(l), int(l)) for l in labels], dtype=np.int32)
+        aligned = np.array([mapping.get(int(lbl), int(lbl)) for lbl in labels], dtype=np.int32)
         counts[np.arange(len(paper_ids)), aligned] += 1
 
     p = counts / float(runs_eff)
@@ -1569,7 +1571,7 @@ def drift_contribution(df_papers: pd.DataFrame, Z: np.ndarray, drift_vectors: di
 
 
 def drift_volatility(drift_entries: list[dict[str, Any]]) -> list[dict[str, Any]]:
-    by_cluster: Dict[int, list[float]] = {}
+    by_cluster: dict[int, list[float]] = {}
     for d in drift_entries:
         cid = d.get("cluster_id")
         if cid is None:
@@ -1888,7 +1890,6 @@ def clustering_coefficients(nodes: list[int], edges: list[dict[str, Any]]) -> di
             coeff[v] = 0.0
             continue
         links = 0
-        neigh_set = adj[v]
         for i in range(d):
             a = neigh[i]
             for j in range(i + 1, d):
@@ -2139,7 +2140,6 @@ def match_in_corpus_citations(
             candidates.update(inv.get(t, set()))
         best_pid: str | None = None
         best = 0.0
-        best_shared = 0
         for pid in candidates:
             ptoks = paper_title_tokens.get(pid, set())
             shared = len(toks.intersection(ptoks))
@@ -2153,7 +2153,6 @@ def match_in_corpus_citations(
                     if abs(int(yg) - int(paper_year[pid])) > 1:
                         continue
                 best = score
-                best_shared = shared
                 best_pid = pid
         if best_pid is None or best < min_jaccard:
             continue
@@ -2819,9 +2818,6 @@ def methods_datasets_adoption(
         by_paper.setdefault(str(pid), []).append(c)
 
     per_paper: list[dict[str, Any]] = []
-    all_methods: list[tuple[str, int]] = []
-    all_datasets: list[tuple[str, int]] = []
-    all_metrics: list[tuple[str, int]] = []
 
     counts_methods: dict[tuple[int, int], int] = {}
     counts_datasets: dict[tuple[int, int], int] = {}
@@ -3665,11 +3661,17 @@ def write_summary(analytics_dir: pathlib.Path, summary: dict[str, Any]):
     out_path = analytics_dir / "analytics.json"
     analytics_dir.mkdir(parents=True, exist_ok=True)
     out_path.write_text(json.dumps(summary, indent=2))
-    print(f"[analytics] Wrote summary to {out_path}")
+    _logger.info("Wrote summary to %s", out_path)
 
 # ---------- Main entry ----------
 
 def main():
+    # Configure logging for CLI usage
+    logging.basicConfig(
+        level=logging.INFO,
+        format="[%(name)s] %(message)s",
+    )
+
     parser = argparse.ArgumentParser(description="Rebuild analytics DuckDB + JSON outputs.")
     parser.add_argument("--base", help="Repo root (defaults to script parent)", default=None)
     parser.add_argument("--root", dest="base", help="Alias for --base", default=None)
@@ -3684,7 +3686,7 @@ def main():
     if not papers_dir.exists():
         raise SystemExit(f"No papers found at {papers_dir}. Run the Swift app ingestion first.")
 
-    print(f"[analytics] Loading papers from {papers_dir}")
+    _logger.info("Loading papers from %s", papers_dir)
     paper_rows, embedding_lists, trading_rows = load_papers(papers_dir)
     if not paper_rows:
         raise SystemExit("No papers with embeddings to load.")
@@ -3698,7 +3700,7 @@ def main():
     # Whiten embeddings for isotropic distance metrics
     Z_whitened, pca_model = whiten_embeddings(embeddings)
 
-    print(f"[analytics] Loaded {len(df_papers)} papers; building DuckDB at {db_path}")
+    _logger.info("Loaded %d papers; building DuckDB at %s", len(df_papers), db_path)
     chunks = load_chunks(paths["chunks_path"])
     user_events = load_user_events(paths["output"])
     claim_edge_snapshot = load_claim_edge_snapshot(paths["output"])
