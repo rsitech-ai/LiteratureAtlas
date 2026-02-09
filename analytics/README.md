@@ -36,7 +36,7 @@ pip install -r analytics/requirements.txt
 # or with uv:
 # uv venv && uv pip install -r analytics/requirements.txt
 ```
-- duckdb>=1.0.0, numpy>=1.26, pandas>=2.0, scikit-learn>=1.5
+- duckdb>=1.0.0, numpy>=1.26, pandas>=2.0, scikit-learn>=1.5, pyarrow>=14.0.0
 
 ## Script options (rebuild_analytics.py)
 - `--base / --root` : repo root (default: script parent).

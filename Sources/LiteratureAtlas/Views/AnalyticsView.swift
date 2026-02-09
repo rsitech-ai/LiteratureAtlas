@@ -1451,7 +1451,29 @@ struct AnalyticsView: View {
                     }
                     .buttonStyle(.bordered)
                     .disabled(model.analyticsRebuildInFlight)
+                    Text("Rebuild also runs output/topic health checks.")
+                        .font(.caption2)
+                        .foregroundStyle(.secondary)
                     if let msg = model.analyticsRebuildMessage {
+                        Text(msg)
+                            .font(.caption2)
+                            .foregroundStyle(.secondary)
+                    }
+                }
+                HStack {
+                    Button {
+                        model.runAnalyticsHealthChecksViaPython()
+                    } label: {
+                        if model.analyticsHealthCheckInFlight {
+                            ProgressView().controlSize(.small)
+                            Text("Running checks…")
+                        } else {
+                            Label("Run health checks", systemImage: "checkmark.shield")
+                        }
+                    }
+                    .buttonStyle(.bordered)
+                    .disabled(model.analyticsHealthCheckInFlight || model.analyticsRebuildInFlight)
+                    if let msg = model.analyticsHealthCheckMessage {
                         Text(msg)
                             .font(.caption2)
                             .foregroundStyle(.secondary)
@@ -1502,6 +1524,20 @@ struct AnalyticsView: View {
                             }
                         ),
                         minHeight: 180
+                    )
+                }
+                if let output = model.analyticsHealthCheckOutput,
+                   !output.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty {
+                    InteractiveLogPanel(
+                        title: "Last health-check log",
+                        text: Binding(
+                            get: { model.analyticsHealthCheckOutput ?? "" },
+                            set: { newValue in
+                                let trimmed = newValue.trimmingCharacters(in: .whitespacesAndNewlines)
+                                model.analyticsHealthCheckOutput = trimmed.isEmpty ? nil : newValue
+                            }
+                        ),
+                        minHeight: 160
                     )
                 }
 #endif
