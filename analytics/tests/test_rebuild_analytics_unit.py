@@ -1,9 +1,21 @@
+import json
+import tempfile
 import unittest
+from pathlib import Path
 
+import duckdb
 import numpy as np
 import pandas as pd
 
-from analytics.rebuild_analytics import cluster_stability_multi_seed_kmeans, paper_layout_quality_metrics
+from analytics.rebuild_analytics import (
+    cluster_stability_multi_seed_kmeans,
+    compute_factor_loadings,
+    load_chunks,
+    load_papers,
+    paper_layout_quality_metrics,
+    persist_duckdb,
+    write_embeddings_whitened_parquet,
+)
 
 
 class RebuildAnalyticsUnitTests(unittest.TestCase):
@@ -44,6 +56,112 @@ class RebuildAnalyticsUnitTests(unittest.TestCase):
         self.assertEqual(len(per_paper), 4)
         # Confidence should be non-trivial for obvious clusters.
         self.assertGreaterEqual(float(per_paper[0].get("cluster_confidence", 0.0)), 0.6)
+
+    def test_load_papers_skips_malformed_and_missing_id_files(self):
+        with tempfile.TemporaryDirectory() as tmp:
+            papers_dir = Path(tmp)
+
+            valid = {
+                "id": "paper-1",
+                "title": "Valid Paper",
+                "embedding": [0.1, 0.2, 0.3],
+                "summary": "ok",
+            }
+            (papers_dir / "valid.paper.json").write_text(json.dumps(valid), encoding="utf-8")
+            (papers_dir / "broken.paper.json").write_text('{"id": "oops"', encoding="utf-8")
+            (papers_dir / "missing_id.paper.json").write_text(
+                json.dumps({"embedding": [1.0, 2.0], "title": "no id"}),
+                encoding="utf-8",
+            )
+
+            rows, embeddings, trading_rows = load_papers(papers_dir)
+
+            self.assertEqual(len(rows), 1)
+            self.assertEqual(len(embeddings), 1)
+            self.assertEqual(len(trading_rows), 1)
+            self.assertEqual(rows[0].paper_id, "paper-1")
+
+    def test_load_chunks_handles_malformed_and_non_dict_entries(self):
+        with tempfile.TemporaryDirectory() as tmp:
+            chunks_path = Path(tmp) / "chunks.json"
+            chunks_path.write_text('{"bad": true', encoding="utf-8")
+            self.assertEqual(load_chunks(chunks_path), [])
+
+            chunks_path.write_text(
+                json.dumps(
+                    [
+                        {"paperID": "p1", "embedding": [0.1, 0.2]},
+                        {"paperID": "p2", "embedding": []},
+                        {"paperID": "p3"},
+                        "not-a-dict",
+                    ]
+                ),
+                encoding="utf-8",
+            )
+
+            chunks = load_chunks(chunks_path)
+            self.assertEqual(len(chunks), 1)
+            self.assertEqual(chunks[0]["paperID"], "p1")
+
+    def test_compute_factor_loadings_handles_empty_tag_vocabulary(self):
+        embeddings = np.array(
+            [
+                [0.1, 0.2, 0.3, 0.4],
+                [0.2, 0.1, 0.4, 0.3],
+            ],
+            dtype=np.float32,
+        )
+        paper_ids = ["p1", "p2"]
+        tag_texts = ["", ""]
+
+        factors, loadings, labels = compute_factor_loadings(
+            embeddings,
+            paper_ids,
+            tag_texts,
+            n_factors=3,
+        )
+
+        self.assertEqual(len(loadings), 2)
+        self.assertEqual([row["paper_id"] for row in loadings], paper_ids)
+        self.assertGreaterEqual(len(factors), 1)
+        self.assertEqual(labels, ["Factor 1", "Factor 2", "Factor 3"])
+
+    def test_write_embeddings_whitened_parquet_uses_duckdb_path(self):
+        with tempfile.TemporaryDirectory() as tmp:
+            out_path = Path(tmp) / "embeddings_whitened.parquet"
+            paper_ids = ["p1", "p2"]
+            embeddings = np.array([[0.1, 0.2], [0.3, 0.4]], dtype=np.float32)
+
+            write_embeddings_whitened_parquet(paper_ids, embeddings, out_path)
+
+            self.assertTrue(out_path.exists())
+            self.assertGreater(out_path.stat().st_size, 0)
+
+    def test_persist_duckdb_handles_empty_claims_and_methods(self):
+        with tempfile.TemporaryDirectory() as tmp:
+            db_path = Path(tmp) / "atlas.duckdb"
+            df_papers = pd.DataFrame(
+                [
+                    {
+                        "paper_id": "p1",
+                        "claims": None,
+                        "method_pipeline": None,
+                    }
+                ]
+            )
+            embeddings = np.array([[0.1, 0.2, 0.3]], dtype=np.float32)
+
+            persist_duckdb(db_path, df_papers, embeddings, chunks=[])
+
+            con = duckdb.connect(str(db_path))
+            try:
+                claims_count = con.execute("SELECT COUNT(*) FROM claims").fetchone()[0]
+                methods_count = con.execute("SELECT COUNT(*) FROM methods").fetchone()[0]
+            finally:
+                con.close()
+
+            self.assertEqual(claims_count, 0)
+            self.assertEqual(methods_count, 0)
 
 
 if __name__ == "__main__":

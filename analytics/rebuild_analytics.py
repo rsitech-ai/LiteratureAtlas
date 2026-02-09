@@ -122,13 +122,42 @@ class PaperRow:
     has_backtest_audit: bool | None
 
 
+def _read_json_file(path: pathlib.Path) -> Any | None:
+    """Best-effort JSON loader used for local artifacts.
+
+    We intentionally skip malformed/corrupt files instead of aborting the
+    whole rebuild so one bad artifact does not block analytics for the rest.
+    """
+    try:
+        raw = path.read_text(encoding="utf-8")
+    except Exception as exc:
+        _logger.warning("Failed to read %s: %s", path, exc)
+        return None
+    try:
+        return json.loads(raw)
+    except json.JSONDecodeError as exc:
+        _logger.warning("Skipping malformed JSON in %s: %s", path, exc)
+        return None
+
+
 def load_papers(papers_dir: pathlib.Path) -> tuple[list[PaperRow], list[list[float]], list[dict[str, Any]]]:
     rows: list[PaperRow] = []
     embeddings: list[list[float]] = []
     trading_rows: list[dict[str, Any]] = []
     for path in sorted(papers_dir.glob("*.paper.json")):
-        data = json.loads(path.read_text())
+        data = _read_json_file(path)
+        if not isinstance(data, dict):
+            continue
+
+        paper_id = data.get("id")
+        if not isinstance(paper_id, str) or not paper_id.strip():
+            _logger.warning("Skipping %s because it is missing a valid 'id'", path)
+            continue
+
         emb = data.get("embedding") or []
+        if not isinstance(emb, list):
+            _logger.warning("Skipping %s because 'embedding' is not a list", path)
+            continue
         if not emb:
             continue
         year = data.get("year")
@@ -187,7 +216,7 @@ def load_papers(papers_dir: pathlib.Path) -> tuple[list[PaperRow], list[list[flo
         primary_k50 = data.get("primary_cluster_k50")
         rows.append(
             PaperRow(
-                paper_id=data["id"],
+                paper_id=paper_id,
                 title=data.get("title", ""),
                 original_filename=data.get("originalFilename", path.name),
                 file_path=data.get("filePath", str(path)),
@@ -225,7 +254,7 @@ def load_papers(papers_dir: pathlib.Path) -> tuple[list[PaperRow], list[list[flo
 
         trading_rows.append(
             {
-                "paper_id": data["id"],
+                "paper_id": paper_id,
                 "year": year,
                 "cluster_id": cluster_id,
                 "trading_tags": trading_tags,
@@ -249,10 +278,10 @@ def load_papers(papers_dir: pathlib.Path) -> tuple[list[PaperRow], list[list[flo
 def load_chunks(chunks_path: pathlib.Path) -> list[dict[str, Any]]:
     if not chunks_path.exists():
         return []
-    data = json.loads(chunks_path.read_text())
+    data = _read_json_file(chunks_path)
     if not isinstance(data, list):
         return []
-    return [chunk for chunk in data if chunk.get("embedding")]
+    return [chunk for chunk in data if isinstance(chunk, dict) and chunk.get("embedding")]
 
 
 def load_user_events(output_root: pathlib.Path) -> list[dict[str, Any]]:
@@ -282,10 +311,7 @@ def load_claim_edge_snapshot(output_root: pathlib.Path) -> dict[str, Any] | None
     path = output_root / "analytics" / "claim_edges.json"
     if not path.exists():
         return None
-    try:
-        data = json.loads(path.read_text())
-    except Exception:
-        return None
+    data = _read_json_file(path)
     if isinstance(data, dict) and isinstance(data.get("edges"), list):
         return data
     return None
@@ -920,19 +946,26 @@ def compute_factor_loadings(
 
     # ----- Dense semantic components (PCA/SVD) -----
     X_emb = embeddings - embeddings.mean(axis=0, keepdims=True)
-    svd = TruncatedSVD(n_components=min(n_factors, X_emb.shape[1] - 1), random_state=0)
+    n_components = max(1, min(n_factors, X_emb.shape[1], len(paper_ids)))
+    svd = TruncatedSVD(n_components=n_components, random_state=0)
     dense_scores = svd.fit_transform(X_emb)
     dense_comps = svd.components_
 
     # ----- Tag-driven components (TF-IDF + NMF for labels) -----
     tag_texts = [t if isinstance(t, str) else "" for t in tag_texts]
     tfidf = TfidfVectorizer(max_features=600, ngram_range=(1, 2), min_df=1)
-    tfidf_mat = tfidf.fit_transform(tag_texts)
-    vocab = np.array(tfidf.get_feature_names_out())
+    tfidf_mat = None
+    vocab = np.array([])
+    try:
+        tfidf_mat = tfidf.fit_transform(tag_texts)
+        vocab = np.array(tfidf.get_feature_names_out())
+    except ValueError:
+        # Empty vocabulary is common for tiny corpora or all-empty tags; fall back to generic labels.
+        tfidf_mat = None
 
     # If tags are too sparse, fall back to dense labels
     factor_labels: list[str] = []
-    if tfidf_mat.shape[0] >= 3 and tfidf_mat.shape[1] >= 4:
+    if tfidf_mat is not None and tfidf_mat.shape[0] >= 3 and tfidf_mat.shape[1] >= 4:
         nmf = NMF(n_components=min(n_factors, tfidf_mat.shape[1], tfidf_mat.shape[0]), init="nndsvda", random_state=0, max_iter=300)
         nmf.fit(tfidf_mat)
         H = nmf.components_
@@ -3603,33 +3636,39 @@ def persist_duckdb(
     # Claims
     claims_rows: list[dict[str, Any]] = []
     for _, row in df_papers.iterrows():
-        for claim in row.claims or []:
+        claims = row.get("claims")
+        if not isinstance(claims, list):
+            continue
+        for claim in claims:
+            if not isinstance(claim, dict):
+                continue
             claims_rows.append(
                 {
                     "claim_id": claim.get("id"),
                     "paper_id": row.paper_id,
                     "statement": claim.get("statement"),
                     "assumptions": claim.get("assumptions"),
-                    "year": claim.get("year") or row.year,
+                    "year": claim.get("year") or row.get("year"),
                     "strength": claim.get("strength"),
                 }
             )
-    claim_df = pd.DataFrame(claims_rows)
+    claim_df = pd.DataFrame(claims_rows) if claims_rows else pd.DataFrame(columns=["claim_id", "paper_id", "statement", "assumptions", "year", "strength"])
     con.register("df_claims", claim_df)
     con.execute("CREATE OR REPLACE TABLE claims AS SELECT * FROM df_claims")
 
     # Methods
     method_rows: list[dict[str, Any]] = []
     for _, row in df_papers.iterrows():
-        if not row.method_pipeline:
+        method_pipeline = row.get("method_pipeline")
+        if not isinstance(method_pipeline, dict):
             continue
         method_rows.append(
             {
                 "paper_id": row.paper_id,
-                "pipeline_json": json.dumps(row.method_pipeline),
+                "pipeline_json": json.dumps(method_pipeline),
             }
         )
-    method_df = pd.DataFrame(method_rows)
+    method_df = pd.DataFrame(method_rows) if method_rows else pd.DataFrame(columns=["paper_id", "pipeline_json"])
     con.register("df_methods", method_df)
     con.execute("CREATE OR REPLACE TABLE methods AS SELECT * FROM df_methods")
 
@@ -3654,6 +3693,20 @@ def persist_duckdb(
             con.execute(f"CREATE OR REPLACE TABLE {name} AS SELECT * FROM {view}")
             con.execute(f"COPY {name} TO '{out_dir / f'{name}.parquet'}' (FORMAT PARQUET, CODEC 'ZSTD')")
     con.close()
+
+
+def write_embeddings_whitened_parquet(paper_ids: list[str], embeddings_whitened: np.ndarray, out_path: pathlib.Path) -> None:
+    """Persist whitened embeddings as Parquet using DuckDB (no pyarrow dependency)."""
+    out_path.parent.mkdir(parents=True, exist_ok=True)
+    emb_df = pd.DataFrame({"paper_id": paper_ids, "embedding_z": [row.tolist() for row in embeddings_whitened]})
+
+    path_sql = str(out_path).replace("'", "''")
+    con = duckdb.connect()
+    try:
+        con.register("df_embeddings_whitened", emb_df)
+        con.execute(f"COPY df_embeddings_whitened TO '{path_sql}' (FORMAT PARQUET, CODEC 'ZSTD')")
+    finally:
+        con.close()
 
 # ---------- Summary export ----------
 
@@ -3937,9 +3990,9 @@ def main():
                 metrics_by_id[pid]["ingestion_flags"] = flags
     paper_metrics = list(metrics_by_id.values())
 
-    # Export whitened embeddings parquet for notebooks/Swift if needed
+    # Export whitened embeddings parquet for notebooks/Swift if needed.
     emb_whitened_path = paths["analytics_dir"] / "embeddings_whitened.parquet"
-    pd.DataFrame({"paper_id": df_papers.paper_id, "embedding_z": list(Z_whitened)}).to_parquet(emb_whitened_path, compression="zstd")
+    write_embeddings_whitened_parquet(df_papers.paper_id.tolist(), Z_whitened, emb_whitened_path)
 
     # Prepare novelty list (top outliers by cluster distance)
     novelty_sorted = sorted(
