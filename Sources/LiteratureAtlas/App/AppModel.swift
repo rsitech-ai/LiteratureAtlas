@@ -46,6 +46,9 @@ final class AppModel: ObservableObject {
     @Published var analyticsRebuildInFlight: Bool = false
     @Published var analyticsRebuildMessage: String? = nil
     @Published var analyticsRebuildOutput: String? = nil
+    @Published var analyticsHealthCheckInFlight: Bool = false
+    @Published var analyticsHealthCheckMessage: String? = nil
+    @Published var analyticsHealthCheckOutput: String? = nil
     @Published var analyticsDepsInstallInFlight: Bool = false
     @Published var analyticsDepsInstallMessage: String? = nil
     @Published var analyticsDepsInstallOutput: String? = nil
@@ -203,6 +206,22 @@ final class AppModel: ObservableObject {
         return Array(freq.sorted { $0.value > $1.value }.prefix(limit).map { $0.key })
     }
 
+    private func heuristicTakeaways(from summary: String, maxItems: Int = 5) -> [String] {
+        let lines = summary
+            .split(whereSeparator: \.isNewline)
+            .map { $0.trimmingCharacters(in: .whitespacesAndNewlines) }
+            .filter { !$0.isEmpty }
+        if !lines.isEmpty {
+            return Array(lines.prefix(maxItems))
+        }
+
+        let pieces = summary
+            .split(separator: ".")
+            .map { $0.trimmingCharacters(in: .whitespacesAndNewlines) }
+            .filter { !$0.isEmpty }
+        return Array(pieces.prefix(maxItems))
+    }
+
     private func normalizeEmbedding(_ vector: [Float]) -> [Float] {
         guard !vector.isEmpty else { return [] }
         if canonicalEmbeddingDim == nil {
@@ -306,6 +325,8 @@ final class AppModel: ObservableObject {
     }
 
     private func runIngestion(folderURL: URL) async {
+        let smokeFastMode = ProcessInfo.processInfo.environment["LITERATURE_ATLAS_SMOKE_FAST"] == "1"
+
         defer {
             isIngesting = false
             ingestionTask = nil
@@ -368,32 +389,52 @@ final class AppModel: ObservableObject {
                 let title = pdfProcessor.inferTitle(for: pdfURL, text: text)
                 var year = pdfProcessor.inferYear(from: pdfURL)
 
-                ingestionLog += "\n  Summarizing with on-device model (chunked)..."
-                let summaryOutput = try await summarizer.summarize(title: title, text: text)
-                let summary = summaryOutput.summary
-                ingestionLog += "\n  Summary length: \(summary.count). Chunks: \(summaryOutput.chunksUsed) (max chars used: \(summaryOutput.maxChunkCharsUsed))."
-
-                // Section summaries (rough slicing)
-                let thirds = max(1, text.count / 3)
-                let introText = String(text.prefix(thirds))
-                let methodText = text.count > thirds ? String(text.dropFirst(thirds).prefix(thirds)) : introText
-                let resultsText = text.count > 2 * thirds ? String(text.dropFirst(2 * thirds)) : methodText
-
-                let introSummary = try? await summarizer.summarizeSection(title: title, sectionName: "Introduction", text: introText)
-                let methodSummary = try? await summarizer.summarizeSection(title: title, sectionName: "Methods", text: methodText)
-                let resultsSummary = try? await summarizer.summarizeSection(title: title, sectionName: "Results", text: resultsText)
-                let takeaways = try? await summarizer.generateTakeaways(title: title, text: summary)
-                let keywords = extractKeywords(title: title, summary: summary)
+                let summary: String
+                let introSummary: String?
+                let methodSummary: String?
+                let resultsSummary: String?
+                let takeaways: [String]?
+                let keywords: [String]
 
                 // Preserve existing trading lens if regeneration fails.
                 var tradingLens: PaperTradingLens? = existingPaper?.tradingLens
                 var tradingScores: TradingLensScores? = existingPaper?.tradingScores ?? existingPaper?.tradingLens?.scores
-                do {
-                    tradingLens = try await tradingLensActor.scorecard(title: title, keywords: keywords, summary: summary, takeaways: takeaways)
-                    tradingScores = tradingLens?.scores
-                    ingestionLog += "\n  Trading lens generated."
-                } catch {
-                    ingestionLog += "\n  Trading lens failed: \(error.localizedDescription)"
+
+                if smokeFastMode {
+                    summary = String(text.prefix(1200)).trimmingCharacters(in: .whitespacesAndNewlines)
+                    let fallback = summary.isEmpty ? "Summary unavailable." : summary
+                    introSummary = String(fallback.prefix(500))
+                    methodSummary = nil
+                    resultsSummary = nil
+                    let heuristic = heuristicTakeaways(from: fallback)
+                    takeaways = heuristic.isEmpty ? nil : heuristic
+                    keywords = extractKeywords(title: title, summary: fallback)
+                    ingestionLog += "\n  Smoke-fast mode: skipped on-device LLM calls."
+                } else {
+                    ingestionLog += "\n  Summarizing with on-device model (chunked)..."
+                    let summaryOutput = try await summarizer.summarize(title: title, text: text)
+                    summary = summaryOutput.summary
+                    ingestionLog += "\n  Summary length: \(summary.count). Chunks: \(summaryOutput.chunksUsed) (max chars used: \(summaryOutput.maxChunkCharsUsed))."
+
+                    // Section summaries (rough slicing)
+                    let thirds = max(1, text.count / 3)
+                    let introText = String(text.prefix(thirds))
+                    let methodText = text.count > thirds ? String(text.dropFirst(thirds).prefix(thirds)) : introText
+                    let resultsText = text.count > 2 * thirds ? String(text.dropFirst(2 * thirds)) : methodText
+
+                    introSummary = try? await summarizer.summarizeSection(title: title, sectionName: "Introduction", text: introText)
+                    methodSummary = try? await summarizer.summarizeSection(title: title, sectionName: "Methods", text: methodText)
+                    resultsSummary = try? await summarizer.summarizeSection(title: title, sectionName: "Results", text: resultsText)
+                    takeaways = try? await summarizer.generateTakeaways(title: title, text: summary)
+                    keywords = extractKeywords(title: title, summary: summary)
+
+                    do {
+                        tradingLens = try await tradingLensActor.scorecard(title: title, keywords: keywords, summary: summary, takeaways: takeaways)
+                        tradingScores = tradingLens?.scores
+                        ingestionLog += "\n  Trading lens generated."
+                    } catch {
+                        ingestionLog += "\n  Trading lens failed: \(error.localizedDescription)"
+                    }
                 }
                 // Heuristic claim/assumption extraction for later evidence graph.
                 let preliminaryPaperID = existingPaper?.id ?? UUID()
@@ -416,10 +457,15 @@ final class AppModel: ObservableObject {
                 }
 
                 let fingerprint = "\(title)\n\(summary)"
-                var embedding = normalizeEmbedding(await embedder.encode(for: fingerprint) ?? [])
+                var embedding: [Float] = []
+                if !smokeFastMode {
+                    embedding = normalizeEmbedding(await embedder.encode(for: fingerprint) ?? [])
+                }
                 if embedding.isEmpty {
                     embedding = normalizeEmbedding(fallbackEmbedding(for: fingerprint))
-                    ingestionLog += "\n  Embedding unavailable; using fallback hashing embedding (dim=\(embedding.count))."
+                    ingestionLog += smokeFastMode
+                        ? "\n  Smoke-fast mode: using fallback hashing embedding (dim=\(embedding.count))."
+                        : "\n  Embedding unavailable; using fallback hashing embedding (dim=\(embedding.count))."
                 } else {
                     ingestionLog += "\n  Embedding dimension: \(embedding.count)."
                 }
@@ -511,11 +557,41 @@ final class AppModel: ObservableObject {
     private func savePaperJSON(_ paper: Paper) throws -> URL {
         let baseName = paper.title.isEmpty ? paper.originalFilename : paper.title
         let safeName = baseName.replacingOccurrences(of: "/", with: "-")
-        let url = outputRoot.appendingPathComponent("papers", isDirectory: true).appendingPathComponent(safeName + ".paper.json")
+        let papersDir = outputRoot.appendingPathComponent("papers", isDirectory: true)
+        let legacyURL = papersDir.appendingPathComponent(safeName + ".paper.json")
+        let idToken = paper.id.uuidString.uppercased()
+        let url = papersDir.appendingPathComponent("\(safeName) [\(idToken)].paper.json")
+        let fm = FileManager.default
+
+        var legacyBelongsToSamePaper = false
+        if legacyURL != url, fm.fileExists(atPath: legacyURL.path),
+           let legacyData = try? Data(contentsOf: legacyURL),
+           let legacyPaper = try? JSONDecoder().decode(Paper.self, from: legacyData) {
+            legacyBelongsToSamePaper = (legacyPaper.id == paper.id || legacyPaper.filePath == paper.filePath)
+        }
+
+        // Migrate legacy title-only files to the id-based naming to avoid silent overwrites when titles collide.
+        if legacyBelongsToSamePaper,
+           !fm.fileExists(atPath: url.path) {
+            do {
+                try fm.moveItem(at: legacyURL, to: url)
+            } catch {
+                // Best-effort migration only; write below remains source of truth.
+                logger.error("[Ingest] Failed to migrate legacy paper JSON filename: \(error.localizedDescription, privacy: .public)")
+            }
+        }
+
         let encoder = JSONEncoder()
         encoder.outputFormatting = [.prettyPrinted]
         let data = try encoder.encode(paper)
         try data.write(to: url, options: .atomic)
+
+        if legacyBelongsToSamePaper,
+           fm.fileExists(atPath: legacyURL.path) {
+            // Remove stale legacy duplicate after successful write.
+            try? fm.removeItem(at: legacyURL)
+        }
+
         return url
     }
 
@@ -534,10 +610,14 @@ final class AppModel: ObservableObject {
     }
 
     private func buildChunks(for text: String, paperID: UUID) async -> [PaperChunk] {
+        let smokeFastMode = ProcessInfo.processInfo.environment["LITERATURE_ATLAS_SMOKE_FAST"] == "1"
         let segments = chunk(text: text, maxChars: 1800, overlap: 200, maxChunks: 20)
         var results: [PaperChunk] = []
         for (idx, segment) in segments.enumerated() {
-            var vec = normalizeEmbedding(await embedder.encode(for: segment) ?? [])
+            var vec: [Float] = []
+            if !smokeFastMode {
+                vec = normalizeEmbedding(await embedder.encode(for: segment) ?? [])
+            }
             if vec.isEmpty {
                 vec = normalizeEmbedding(fallbackEmbedding(for: segment))
             }
@@ -590,6 +670,10 @@ final class AppModel: ObservableObject {
 
     func testChunkSegments(text: String, maxChars: Int, overlap: Int, maxChunks: Int) -> [String] {
         chunk(text: text, maxChars: maxChars, overlap: overlap, maxChunks: maxChunks)
+    }
+
+    func testExportObsidianVaultArtifacts(force: Bool) {
+        exportObsidianVaultArtifacts(force: force)
     }
 #endif
 
@@ -1091,12 +1175,60 @@ final class AppModel: ObservableObject {
     }
 
 #if os(macOS)
+    private struct AnalyticsHealthCheckOutcome {
+        let passed: Bool
+        let output: String
+        let interpreter: String
+    }
+
+    nonisolated private static func runAnalyticsHealthChecks(cwd repoRoot: URL) -> AnalyticsHealthCheckOutcome {
+        let fm = FileManager.default
+        let scripts: [(label: String, path: URL, args: [String])] = [
+            ("output_audit", repoRoot.appendingPathComponent("scripts/audit_output_artifacts.py"), []),
+            ("topic_reliability", repoRoot.appendingPathComponent("scripts/topic_focus_audit.py"), ["--base", repoRoot.path]),
+        ]
+
+        var passed = true
+        var interpreter = "python3"
+        var logs: [String] = []
+
+        for script in scripts {
+            guard fm.fileExists(atPath: script.path.path) else {
+                passed = false
+                logs.append("[\(script.label)] missing script: \(script.path.path)")
+                continue
+            }
+
+            let result = runPython(arguments: [script.path.path] + script.args, cwd: repoRoot)
+            switch result {
+            case .success(let (status, output, interpreterLabel)):
+                interpreter = interpreterLabel
+                let trimmed = output.trimmingCharacters(in: .whitespacesAndNewlines)
+                logs.append("[\(script.label)] exit \(status)\n\(trimmed)")
+                if status != 0 {
+                    passed = false
+                }
+            case .failure(let error):
+                passed = false
+                logs.append("[\(script.label)] failed to run: \(error.localizedDescription)")
+            }
+        }
+
+        return AnalyticsHealthCheckOutcome(
+            passed: passed,
+            output: logs.joined(separator: "\n\n"),
+            interpreter: interpreter
+        )
+    }
+
     /// Runs the Python analytics rebuild script (analytics/rebuild_analytics.py) from the repo root.
     func rebuildAnalyticsViaPython() {
         guard !analyticsRebuildInFlight else { return }
         analyticsRebuildInFlight = true
         analyticsRebuildMessage = "Running analytics rebuild…"
         analyticsRebuildOutput = nil
+        analyticsHealthCheckMessage = nil
+        analyticsHealthCheckOutput = nil
 
         let repoRoot = outputRoot.deletingLastPathComponent()
         let script = repoRoot.appendingPathComponent("analytics/rebuild_analytics.py")
@@ -1106,24 +1238,54 @@ final class AppModel: ObservableObject {
         Task.detached { [weak self] in
             let args = ["--base", repoRoot.path]
             let result: Result<(Int32, String, String), Error> = AppModel.runPython(arguments: [script.path] + args, cwd: repoRoot)
+            var healthOutcome: AnalyticsHealthCheckOutcome? = nil
+            if case .success(let (status, _, _)) = result, status == 0 {
+                healthOutcome = AppModel.runAnalyticsHealthChecks(cwd: repoRoot)
+            }
             await MainActor.run { [weak self] in
                 guard let self else { return }
                 self.analyticsRebuildInFlight = false
                 switch result {
                 case .success(let (status, output, interpreter)):
-                    let tail = output.trimmingCharacters(in: .whitespacesAndNewlines)
+                    var combinedOutput = output.trimmingCharacters(in: .whitespacesAndNewlines)
+                    if let healthOutcome {
+                        let healthLog = healthOutcome.output.trimmingCharacters(in: .whitespacesAndNewlines)
+                        if !healthLog.isEmpty {
+                            if !combinedOutput.isEmpty {
+                                combinedOutput += "\n\n[health-checks]\n"
+                            }
+                            combinedOutput += healthLog
+                        }
+                        self.analyticsHealthCheckOutput = healthLog.isEmpty ? nil : String(healthLog.suffix(8_000))
+                        self.analyticsHealthCheckMessage = healthOutcome.passed
+                            ? "Health checks passed (\(healthOutcome.interpreter))."
+                            : "Health checks failed (\(healthOutcome.interpreter))."
+                    } else {
+                        self.analyticsHealthCheckOutput = nil
+                        self.analyticsHealthCheckMessage = status == 0 ? "Health checks skipped." : "Health checks skipped due rebuild failure."
+                    }
+
+                    let tail = combinedOutput
                     self.analyticsRebuildOutput = String(tail.suffix(8_000))
                     if status == 0 {
-                        self.analyticsRebuildMessage = "Analytics rebuilt (\(interpreter))."
-                    } else if output.contains("ModuleNotFoundError") || output.contains("No module named") {
+                        if let healthOutcome {
+                            self.analyticsRebuildMessage = healthOutcome.passed
+                                ? "Analytics rebuilt + health checks passed (\(interpreter))."
+                                : "Analytics rebuilt but health checks failed (\(interpreter))."
+                        } else {
+                            self.analyticsRebuildMessage = "Analytics rebuilt (\(interpreter))."
+                        }
+                    } else if combinedOutput.contains("ModuleNotFoundError") || combinedOutput.contains("No module named") {
                         self.analyticsRebuildMessage = "Missing Python packages (click “Install Python deps”). (\(interpreter))"
                     } else {
                         self.analyticsRebuildMessage = "Rebuild failed (exit \(status), \(interpreter))."
                     }
-                    self.ingestionLog += "\n[analytics] \(output)"
+                    self.ingestionLog += "\n[analytics] \(combinedOutput)"
                     self.reloadAnalyticsSummary()
                 case .failure(let error):
                     self.analyticsRebuildMessage = "Failed to run analytics script: \(error.localizedDescription)"
+                    self.analyticsHealthCheckMessage = "Health checks skipped due rebuild failure."
+                    self.analyticsHealthCheckOutput = nil
                 }
             }
         }
@@ -1134,6 +1296,8 @@ final class AppModel: ObservableObject {
         analyticsRebuildInFlight = true
         analyticsRebuildMessage = "Recomputing analytics…"
         analyticsRebuildOutput = nil
+        analyticsHealthCheckMessage = nil
+        analyticsHealthCheckOutput = nil
 
         let repoRoot = outputRoot.deletingLastPathComponent()
         let script = repoRoot.appendingPathComponent("analytics/rebuild_analytics.py")
@@ -1142,25 +1306,76 @@ final class AppModel: ObservableObject {
 
         Task.detached { [weak self] in
             let result: Result<(Int32, String, String), Error> = AppModel.runPython(arguments: [script.path] + args, cwd: repoRoot)
+            var healthOutcome: AnalyticsHealthCheckOutcome? = nil
+            if case .success(let (status, _, _)) = result, status == 0 {
+                healthOutcome = AppModel.runAnalyticsHealthChecks(cwd: repoRoot)
+            }
             await MainActor.run { [weak self] in
                 guard let self else { return }
                 self.analyticsRebuildInFlight = false
                 switch result {
                 case .success(let (status, output, interpreter)):
-                    let tail = output.trimmingCharacters(in: .whitespacesAndNewlines)
+                    var combinedOutput = output.trimmingCharacters(in: .whitespacesAndNewlines)
+                    if let healthOutcome {
+                        let healthLog = healthOutcome.output.trimmingCharacters(in: .whitespacesAndNewlines)
+                        if !healthLog.isEmpty {
+                            if !combinedOutput.isEmpty {
+                                combinedOutput += "\n\n[health-checks]\n"
+                            }
+                            combinedOutput += healthLog
+                        }
+                        self.analyticsHealthCheckOutput = healthLog.isEmpty ? nil : String(healthLog.suffix(8_000))
+                        self.analyticsHealthCheckMessage = healthOutcome.passed
+                            ? "Health checks passed (\(healthOutcome.interpreter))."
+                            : "Health checks failed (\(healthOutcome.interpreter))."
+                    } else {
+                        self.analyticsHealthCheckOutput = nil
+                        self.analyticsHealthCheckMessage = status == 0 ? "Health checks skipped." : "Health checks skipped due rebuild failure."
+                    }
+
+                    let tail = combinedOutput
                     self.analyticsRebuildOutput = String(tail.suffix(8_000))
                     if status == 0 {
-                        self.analyticsRebuildMessage = "Analytics recomputed (\(interpreter))."
-                    } else if output.contains("ModuleNotFoundError") || output.contains("No module named") {
+                        if let healthOutcome {
+                            self.analyticsRebuildMessage = healthOutcome.passed
+                                ? "Analytics recomputed + health checks passed (\(interpreter))."
+                                : "Analytics recomputed but health checks failed (\(interpreter))."
+                        } else {
+                            self.analyticsRebuildMessage = "Analytics recomputed (\(interpreter))."
+                        }
+                    } else if combinedOutput.contains("ModuleNotFoundError") || combinedOutput.contains("No module named") {
                         self.analyticsRebuildMessage = "Missing Python packages (click “Install Python deps”). (\(interpreter))"
                     } else {
                         self.analyticsRebuildMessage = "Rebuild failed (exit \(status), \(interpreter))."
                     }
-                    self.ingestionLog += "\n[analytics] \(output)"
+                    self.ingestionLog += "\n[analytics] \(combinedOutput)"
                     self.reloadAnalyticsSummary()
                 case .failure(let error):
                     self.analyticsRebuildMessage = "Failed to run analytics script: \(error.localizedDescription)"
+                    self.analyticsHealthCheckMessage = "Health checks skipped due rebuild failure."
+                    self.analyticsHealthCheckOutput = nil
                 }
+            }
+        }
+    }
+
+    func runAnalyticsHealthChecksViaPython() {
+        guard !analyticsRebuildInFlight, !analyticsHealthCheckInFlight else { return }
+        analyticsHealthCheckInFlight = true
+        analyticsHealthCheckMessage = "Running analytics health checks…"
+        analyticsHealthCheckOutput = nil
+
+        let repoRoot = outputRoot.deletingLastPathComponent()
+        Task.detached { [weak self] in
+            let outcome = AppModel.runAnalyticsHealthChecks(cwd: repoRoot)
+            await MainActor.run { [weak self] in
+                guard let self else { return }
+                self.analyticsHealthCheckInFlight = false
+                let trimmed = outcome.output.trimmingCharacters(in: .whitespacesAndNewlines)
+                self.analyticsHealthCheckOutput = trimmed.isEmpty ? nil : String(trimmed.suffix(8_000))
+                self.analyticsHealthCheckMessage = outcome.passed
+                    ? "Health checks passed (\(outcome.interpreter))."
+                    : "Health checks failed (\(outcome.interpreter))."
             }
         }
     }

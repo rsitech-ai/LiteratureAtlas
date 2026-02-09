@@ -1,25 +1,20 @@
 # TODO
 
 ## Tasks
-- [x] Fix Python ruff linting issues (DoD: `ruff check` passes)
-- [x] Convert print() to logging module (DoD: no print() in analytics code)
-- [x] Add pytest configuration to pyproject.toml (DoD: `pytest` discovers tests)
-- [x] Add ruff configuration to pyproject.toml (DoD: config present)
-- [x] Review Swift code for issues (DoD: `swift build` and `swift test` pass)
-- [x] Review Rust FFI code (DoD: `cargo clippy` and `cargo test` pass)
-- [x] Run all tests to verify (DoD: 47 tests pass)
-- [x] Memory update: document commands and conventions (DoD: MEMORY.md updated)
+- [x] Integrate analytics health checks into app rebuild flow (DoD: rebuild triggers output + topic audits automatically)
+- [x] Add app state + UI visibility for health-check status/logs (DoD: Analytics view shows message and log panel)
+- [x] Add manual app trigger for health checks (DoD: button in Analytics backend card works)
+- [x] Verify app/CLI sync with regression tests + smoke run (DoD: swift test + python tests + `scripts/run_example_smoke.sh --count 10` pass)
+- [x] Memory update: record app-sync behavior (DoD: MEMORY.md updated)
 
 ## In progress
-(none)
+- none
 
 ## Done
-- [x] Fix unused imports (`List`, `Dict` from typing)
-- [x] Fix unused variables (`W`, `nmf_components`, `neigh_set`, `best_shared`, `all_methods`, `all_datasets`, `all_metrics`)
-- [x] Fix ambiguous variable name (`l` → `lbl`)
-- [x] Fix deprecated type hints (`Dict[...]` → `dict[...]`)
-- [x] Add logging.basicConfig() in main()
-- [x] Add dev dependencies section to pyproject.toml
-- [x] Create MEMORY.md with durable knowledge
-- [x] Create PLAN.md with audit documentation
-- [x] Create TODO.md with task tracking
+- [x] Refresh `PLAN.md` for integration + sample-run scope
+- [x] Added `LITERATURE_ATLAS_SMOKE_FAST` env mode for deterministic ingestion smoke path
+- [x] Tuned smoke-run primary-topic threshold to `ceil(40% of sample)` to avoid small-sample false negatives
+- [x] Verified two separate random 10-paper smoke runs pass end-to-end
+- [x] Root-caused full-corpus drop from 115 -> 114 to paper JSON title-collision overwrite (`My Articles`)
+- [x] Fixed `savePaperJSON` to use id-suffixed filenames and safe legacy migration/removal for matching papers only
+- [x] Ran full corpus ingest into repo `Output/` and validated analytics + ANN + audits (all pass)

@@ -58,6 +58,7 @@
   - Data is written to `Output/` beside the repo; folders (`papers`, `chunks`, `clusters`, `analytics`, `reports`, `obsidian/papers`) are created automatically.
   - Prompt templates live in `Prompts/` (override path via `LITERATURE_ATLAS_PROMPTS_DIR`); edit them to iterate on prompts without touching Swift code.
   - On macOS, the Analytics screen can install Python deps and run the rebuild; it prefers a repo-local `.venv` when present.
+  - App-side analytics rebuild/recompute actions also run output + topic health checks and surface the latest health-check status/log in the Analytics backend card.
   - Override the Python interpreter used by the app via `LITERATURE_ATLAS_PYTHON` (e.g. `.venv/bin/python3`).
   - Analytics script flags: `--base /path/to/repo`, `--db <path>`, `--counterfactual-cutoffs 2010 2015 2020` (see `analytics/rebuild_analytics.py`).
   - The Swift target links against `analytics/ffi/target/release`; ensure the library exists before running `swift run`/`swift build`.
@@ -89,6 +90,8 @@
 - **CLI usage quick reference**
   - Rebuild analytics: `python analytics/rebuild_analytics.py [--base PATH] [--counterfactual-cutoffs ...]`
   - ANN edges (Rust): `cargo run --manifest-path analytics/rust/Cargo.toml --release -- --emb Output/analytics/paper_embeddings.parquet --out Output/analytics/ann_edges.json --k 8`
+  - Topic reliability audit: `.venv/bin/python scripts/topic_focus_audit.py --base .`
+  - 10-paper integrated smoke run: `scripts/run_example_smoke.sh --count 10`
 
 ## 7. Testing & QA
 - Swift tests (macOS 26+/Swift 6 required):
@@ -99,6 +102,10 @@
 - Python analytics checks:
   - End-to-end rebuild: `python analytics/rebuild_analytics.py`
   - Unit tests: `python -m unittest discover -s analytics/tests`
+  - Topic reliability gate: `.venv/bin/python scripts/topic_focus_audit.py --base .` (non-zero exit means no reliable/searchable topic slice passed thresholds)
+- Full sample ingest+validate smoke run:
+  - `scripts/run_example_smoke.sh --count 10`
+  - Samples random PDFs from `examples/`, ingests them via an opt-in test path, and runs analytics + artifact/topic audits on an isolated temp output root.
 - Rust crates have minimal logic and can be checked with `cargo test` (none defined) or `cargo fmt --check` if desired.
 
 ## 8. Module-Level Documentation (Compact)
