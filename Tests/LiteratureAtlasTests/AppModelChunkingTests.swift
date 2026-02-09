@@ -49,4 +49,17 @@ final class AppModelChunkingTests: XCTestCase {
 
         XCTAssertEqual(chunks.count, 3, "Should stop at maxChunks even if more text remains")
     }
+
+    func testChunkingStillProgressesWhenOverlapIsTooLarge() async {
+        let model = await MainActor.run { AppModel(skipInitialLoad: true) }
+        let text = (0..<30).map { "w\($0)" }.joined(separator: " ")
+
+        let chunks = await MainActor.run {
+            model.testChunkSegments(text: text, maxChars: 24, overlap: 24, maxChunks: 200)
+        }
+
+        XCTAssertFalse(chunks.isEmpty)
+        XCTAssertGreaterThan(Set(chunks).count, 1, "Chunking should advance even when overlap >= maxChars")
+        XCTAssertTrue(chunks.last?.contains("w29") == true, "Chunking should eventually reach the end of input text")
+    }
 }

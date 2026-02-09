@@ -1,12 +1,12 @@
-// swift-tools-version: 6.2
+// swift-tools-version: 6.1
 
 import PackageDescription
 
 let package = Package(
     name: "LiteratureAtlas",
     platforms: [
-        .macOS(.v26),
-        .iOS(.v26)
+        .macOS("26.0"),
+        .iOS("26.0")
     ],
     products: [
         .executable(name: "LiteratureAtlas", targets: ["LiteratureAtlas"])

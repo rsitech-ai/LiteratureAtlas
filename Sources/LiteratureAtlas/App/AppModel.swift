@@ -634,6 +634,7 @@ final class AppModel: ObservableObject {
 
         var chunks: [String] = []
         var start = trimmed.startIndex
+        let normalizedOverlap = max(0, overlap)
 
         while start < trimmed.endIndex && chunks.count < maxChunks {
             let hardEnd = trimmed.index(start, offsetBy: maxChars, limitedBy: trimmed.endIndex) ?? trimmed.endIndex
@@ -646,13 +647,28 @@ final class AppModel: ObservableObject {
                 }
             }
 
+            if end <= start {
+                end = hardEnd
+            }
+            if end <= start { break }
+
             let slice = trimmed[start..<end]
             chunks.append(String(slice))
 
             if end == trimmed.endIndex { break }
 
-            let advance = trimmed.index(end, offsetBy: -overlap, limitedBy: trimmed.startIndex) ?? trimmed.startIndex
-            start = advance
+            let chunkLen = trimmed.distance(from: start, to: end)
+            let effectiveOverlap = min(normalizedOverlap, max(0, chunkLen - 1))
+            let rawAdvance = max(1, chunkLen - effectiveOverlap)
+
+            // When overlap is too large, force enough forward progress to use remaining
+            // chunk budget efficiently and still reach the tail of the text.
+            let remainingBudget = max(1, maxChunks - chunks.count + 1)
+            let charsRemaining = trimmed.distance(from: start, to: trimmed.endIndex)
+            let minAdvanceForBudget = max(1, (charsRemaining + remainingBudget - 1) / remainingBudget)
+
+            let advance = min(chunkLen, max(rawAdvance, minAdvanceForBudget))
+            start = trimmed.index(start, offsetBy: advance)
         }
 
         return chunks
