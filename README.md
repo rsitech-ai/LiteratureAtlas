@@ -1,29 +1,29 @@
 # LiteratureAtlas
 
 ## 1. Project Title & One-Sentence Tagline
-- **LiteratureAtlas** — on-device SwiftUI atlas that ingests your research PDFs, summarizes them locally, clusters the ideas, and serves interactive maps, Q&A, and analytics without sending data to the cloud.
+- **LiteratureAtlas** — macOS-first SwiftUI atlas that ingests research PDFs and Markdown notes, compiles traceable local knowledge artifacts, clusters ideas, and serves interactive maps, Q&A, and analytics.
 
 ## 2. High-Level Overview
-- The app reads PDFs, uses Apple’s on-device `LanguageModelSession` and `NLContextualEmbedding` to summarize and embed text, then builds a multi-scale “knowledge galaxy” for exploration.
+- The app reads PDFs and Markdown sources, extracts citation-aware sections, uses Apple’s on-device `LanguageModelSession` for compilation/summarization, and builds a multi-scale “knowledge galaxy” for exploration.
 - A local analytics pipeline (Python + DuckDB + optional Rust helpers) computes topic trends, novelty, centrality, drift, factor exposures, and recommendations consumed by the SwiftUI dashboard.
 - Primary stack: **Swift 6 + SwiftUI + PDFKit + NaturalLanguage + FoundationModels** for the app, **Python 3.10+ + DuckDB + pandas/numpy + scikit-learn** for analytics, and **Rust (cargo)** for ANN/graph acceleration.
 
 ## 3. Architecture & Key Components
-- **Data flow**: PDF ingestion → on-device summarization & chunk embeddings → JSON in `Output/papers` & `Output/chunks` → clustering & galaxy layout → optional Python/Rust analytics → `analytics.json` reloaded by the app → interactive views (Map, Q&A, Analytics).
+- **Data flow**: document ingestion (PDF + Markdown) → citation-aware extraction → compiler pass + chunk embeddings → JSON in `Output/papers`, `Output/documents`, and `Output/chunks` → compiled Markdown + graph export → clustering & galaxy layout → optional Python/Rust analytics → `analytics.json` reloaded by the app → interactive views (Map, Q&A, Analytics).
 - **Swift app (`Sources/LiteratureAtlas/`)**
   - `App/AppModel.swift`: central state machine for ingestion, clustering, RAG Q&A, recommendations, analytics reloads, and event logging.
   - `Services/`: 
-    - `PDFProcessor.swift` (PDF text/metadata extraction), `EmbeddingService.swift` (sentence embeddings + KMeans), `VectorIndex.swift` (in-process similarity search fallback), `LLMActors.swift` (summaries, cluster naming, Q&A), `ClaimGraph.swift` (claim extraction/relations/stress tests), `TemporalAnalytics.swift` (novelty, drift, panel/debate simulators), `AnalyticsStore.swift` (loads Python-generated `analytics.json`), `AtlasFFI.swift` (HNSW/graph FFI loader).
+    - `PDFProcessor.swift` + `MarkdownProcessor.swift` (mixed-corpus extraction + anchors), `DocumentCompilerProvider.swift` (on-device/OpenAI compiler seam), `CompiledKnowledgeExporter.swift` (document/topic/entity Markdown), `DocumentGraphExporter.swift` (typed graph JSON), `EmbeddingService.swift` (sentence embeddings + KMeans), `VectorIndex.swift` (in-process similarity search fallback), `LLMActors.swift` (cluster naming, Q&A), `ClaimGraph.swift` (claim extraction/relations/stress tests), `TemporalAnalytics.swift` (novelty, drift, panel/debate simulators), `AnalyticsStore.swift` (loads Python-generated `analytics.json`), `AtlasFFI.swift` (HNSW/graph FFI loader).
   - `Views/`: `IngestView`, `MapView`, `QuestionView`, `AnalyticsView`, `PaperDetailView`, `GlobalProgressOverlay`, etc.
 - **Analytics backend (`analytics/`)**
   - `rebuild_analytics.py`: loads app outputs, writes `Output/atlas.duckdb`, Parquet snapshots, and `Output/analytics/analytics.json` (baseline metrics plus quality/stability/lifecycle/bridges/citations/claims/methods/workflow/hygiene sections).
   - `requirements.txt` / `pyproject.toml`: Python dependencies.
-  - `rust/`: CLI that builds ANN edges from Parquet embeddings using Polars (see `analytics/rust/src/main.rs`).
   - `ffi/`: Rust `cdylib/staticlib` exposing HNSW search and basic graph analytics to Swift (`analytics/ffi/src/lib.rs`, headers in `analytics/ffi/include/`).
-- **Data**: all persistent artifacts live under `Output/` (papers, chunks, clusters, analytics parquet/JSON, DuckDB) to keep the app self-contained.
+- **Data**: all persistent artifacts live under `Output/` (papers, documents, chunks, compiled Markdown, graph, clusters, analytics parquet/JSON, DuckDB) to keep the app self-contained.
 
 ## 4. Features
-- Local PDF ingestion with first-pages text extraction, title/year inference, and on-device bullet summaries (no network calls) — `IngestView`, `PDFProcessor`, `LLMActors.PaperSummarizerActor`.
+- Mixed PDF + Markdown ingestion with citation anchors, checksums, unified document records, and compiler-backed summaries — `IngestView`, `PDFProcessor`, `MarkdownProcessor`, `AppModel`.
+- First-class compiled knowledge artifacts: per-document notes, topic briefs, entity pages, and typed graph export under `Output/compiled` and `Output/graph`.
 - Chunked embeddings for RAG and Q&A; fallback hashing embeddings if on-device model is unavailable — `AppModel.buildChunks`, `EmbeddingService`.
 - Multi-scale clustering and force-directed layout (“Knowledge Galaxy”) with lenses for time, methods, data regime, and personal interest — `AppModel.buildMultiScaleGalaxy`, `MapView`.
 - Claim graph construction, relation inference (supports/extends/contradicts), assumption stress tests, and blueprint generation for methods — `ClaimGraph.swift`, `IngestView` cards.
@@ -31,13 +31,13 @@
 - Corpus-level synthesis: generate an executive “corpus briefing” from the current topic hierarchy (cached to `Output/reports/`) — `AppModel.generateCorpusBriefing`, `LLMActors.CorpusBriefingActor`.
 - Topic dossiers: generate a structured briefing for any selected cluster (cached to `Output/reports/`) — `AppModel.loadOrGenerateTopicDossier`, `LLMActors.TopicDossierActor`.
 - Analytics dashboard fed by Python outputs: topic trends, novelty/consensus, drift, factors, influence + newer trust/stability/lifecycle/bridge/citation/workflow signals — `AnalyticsView`, `analytics/rebuild_analytics.py`.
-- Optional Rust acceleration: HNSW ANN + graph metrics via `analytics/ffi` (linked into the Swift target) and a standalone Polars-based ANN graph builder in `analytics/rust`.
+- Optional Rust acceleration: HNSW ANN + graph metrics via `analytics/ffi` (linked into the Swift target).
 - Event logging to `Output/analytics/user_events.jsonl` for later aggregation (questions asked, answers ready, papers opened).
 
 ## 5. Getting Started
 - **Prerequisites**
 - Swift toolchain 6.0+, Xcode 16+ recommended; macOS 26 (or iOS/iPadOS 26) with on-device FoundationModels + NLContextualEmbedding support.
-  - Rust toolchain (stable) for `analytics/ffi` and `analytics/rust` builds.
+  - Rust toolchain (stable) for `analytics/ffi` builds.
   - Python 3.10+ with `pip` or `uv`; dependencies in `analytics/requirements.txt`.
   - Apple Silicon strongly recommended for on-device models.
 - **Installation**
@@ -46,8 +46,6 @@
   cd LiteratureAtlas
   # Build Rust FFI used by the Swift target (produces libatlas_ffi.{dylib,a} in analytics/ffi/target/release)
   cargo build --manifest-path analytics/ffi/Cargo.toml --release
-  # Optional: build Rust ANN CLI
-  cargo build --manifest-path analytics/rust/Cargo.toml --release
   # Python env for analytics
   python -m venv .venv && source .venv/bin/activate
   pip install -r analytics/requirements.txt
@@ -55,8 +53,11 @@
   swift build
   ```
 - **Configuration**
-  - Data is written to `Output/` beside the repo; folders (`papers`, `chunks`, `clusters`, `analytics`, `reports`, `obsidian/papers`) are created automatically.
+  - Data is written to `Output/` beside the repo; folders (`papers`, `documents`, `chunks`, `compiled`, `graph`, `clusters`, `analytics`, `reports`, `obsidian/papers`) are created automatically.
   - Prompt templates live in `Prompts/` (override path via `LITERATURE_ATLAS_PROMPTS_DIR`); edit them to iterate on prompts without touching Swift code.
+  - Compiler backend selection:
+    - current production mode is on-device compilation only
+    - `LITERATURE_ATLAS_COMPILER_PROVIDER=openai` is ignored and falls back to on-device compilation because a supported standalone OAuth/Codex auth flow is not available here
   - On macOS, the Analytics screen can install Python deps and run the rebuild; it prefers a repo-local `.venv` when present.
   - App-side analytics rebuild/recompute actions also run output + topic health checks and surface the latest health-check status/log in the Analytics backend card.
   - Override the Python interpreter used by the app via `LITERATURE_ATLAS_PYTHON` (e.g. `.venv/bin/python3`).
@@ -70,7 +71,7 @@
   # With FFI already built
   swift run LiteratureAtlas
   ```
-  - Launches the SwiftUI app; use “Select Folder of PDFs” in the Ingest tab to start processing.
+  - Launches the SwiftUI app; use “Select Folder of Documents” in the Ingest tab to process PDFs and Markdown notes.
 - **iPadOS**
 - Open the package in Xcode 16+, select an iOS/iPadOS 26+ device/simulator with Apple Intelligence support, and run the `LiteratureAtlas` target. Ensure `analytics/ffi` is built for the target architecture.
 - **Analytics pipeline (optional but recommended)**
@@ -78,9 +79,6 @@
   source .venv/bin/activate  # if using venv
   python analytics/rebuild_analytics.py            # rebuild DuckDB + analytics.json from Output/
   python analytics/rebuild_analytics.py --base ..  # if running from a subdir
-  cargo run --manifest-path analytics/rust/Cargo.toml --release -- \
-    --emb Output/analytics/paper_embeddings.parquet \
-    --out Output/analytics/ann_edges.json --k 8
   ```
 - **Production / release build**
   ```bash
@@ -89,7 +87,6 @@
   ```
 - **CLI usage quick reference**
   - Rebuild analytics: `python analytics/rebuild_analytics.py [--base PATH] [--counterfactual-cutoffs ...]`
-  - ANN edges (Rust): `cargo run --manifest-path analytics/rust/Cargo.toml --release -- --emb Output/analytics/paper_embeddings.parquet --out Output/analytics/ann_edges.json --k 8`
   - Topic reliability audit: `.venv/bin/python scripts/topic_focus_audit.py --base .`
   - 10-paper integrated smoke run: `scripts/run_example_smoke.sh --count 10`
 
@@ -106,23 +103,25 @@
 - Full sample ingest+validate smoke run:
   - `scripts/run_example_smoke.sh --count 10`
   - Samples random PDFs from `examples/`, ingests them via an opt-in test path, and runs analytics + artifact/topic audits on an isolated temp output root.
-- Rust crates have minimal logic and can be checked with `cargo test` (none defined) or `cargo fmt --check` if desired.
+- The Rust FFI crate can be checked with `cargo test --manifest-path analytics/ffi/Cargo.toml` (none defined) or `cargo fmt --check` if desired.
 
 ## 8. Module-Level Documentation (Compact)
 - `AppModel` — orchestrates ingestion, embeddings, clustering, RAG Q&A, analytics reloads, recommendations, flashcards, and event logging.
 - `Services/`
-  - `PDFProcessor` (text/title/year/page extraction), `EmbeddingService` (NLContextualEmbedding + KMeans), `VectorIndex` (cosine search), `LLMActors` (summary/Q&A actors), `ClaimGraph` (claims, relations, stress tests), `TemporalAnalytics` (novelty, drift, simulations), `AnalyticsStore` (decode `analytics.json`), `AtlasFFI` (Rust HNSW bindings).
+  - `PDFProcessor` + `MarkdownProcessor` (document extraction + citation anchors), `DocumentCompilerProvider` (compiler seam, currently local-only), `CompiledKnowledgeExporter` (document/topic/entity markdown), `DocumentGraphExporter` (typed graph snapshot), `EmbeddingService` (NLContextualEmbedding + KMeans), `VectorIndex` (cosine search), `LLMActors` (Q&A and synthesis actors), `ClaimGraph` (claims, relations, stress tests), `TemporalAnalytics` (novelty, drift, simulations), `AnalyticsStore` (decode `analytics.json`), `AtlasFFI` (Rust HNSW bindings).
 - `Views/`
   - `IngestView` (ingestion/logs/planner/claims), `MapView` (galaxy with lenses, zoom, bridging), `QuestionView` (RAG Q&A + evidence), `AnalyticsView` (trends, drift, factor exposures, counterfactuals), `PaperDetailView` (notes/tags/status).
 - `analytics/rebuild_analytics.py` — DuckDB load + novelty/centrality/drift/factors/recs export; writes Parquet snapshots and `analytics.json`.
 - `analytics/ffi` — HNSW ANN and graph utilities exposed to Swift via `include/atlas_ffi.h`.
-- `analytics/rust` — standalone ANN graph CLI writing `ann_edges.json`.
 - `examples/` — sample PDFs for local testing; `Output/` holds generated artifacts and sample precomputed data.
 
 ## 9. Data & Storage
 - `Output/papers/*.paper.json` — per-paper metadata, summaries, embeddings, claims, method pipeline, timestamps.
+- `Output/documents/*.document.json` — unified per-document records for PDFs and Markdown sources.
 - `Output/obsidian/papers/*.md` — Obsidian-friendly per-paper notes (auto-managed block + a preserved `## Notes` section).
 - `Output/chunks/chunks.json` — chunk-level text + embeddings for RAG.
+- `Output/compiled/documents/*.md`, `Output/compiled/topics/*.md`, `Output/compiled/entities/*.md` — compiled knowledge-base artifacts generated from the current corpus.
+- `Output/graph/corpus_graph.json` — typed document/topic/entity/compiled-note graph for visualization and downstream tooling.
 - `Output/clusters/*.json` — cached cluster layouts/snapshots.
 - `Output/atlas.duckdb` — DuckDB database built by analytics script; Parquet snapshots in `Output/analytics/*.parquet`.
 - `Output/analytics/analytics.json` — compact analytics payload the app reloads (baseline metrics plus quality/stability/lifecycle/bridges/citations/claims/methods/workflow/hygiene sections).
@@ -137,7 +136,7 @@
 - iOS builds default to the Swift fallback (no FFI). To enable FFI on iOS, add iOS linker settings and define `ATLAS_FFI_LINKED` for iOS in `Package.swift` after building a static library.
 
 ## 11. Security & Permissions
-- All processing is offline: PDFs stay local, summaries/embeddings use on-device models, and analytics run locally.
+- All processing is offline: PDFs and Markdown sources stay local, compilation/summaries use on-device models, and analytics run locally.
 - The app confines writes to the repo-relative `Output/` directory and uses security-scoped resource access when importing folders.
 
 ## 12. Roadmap / TODO

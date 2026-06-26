@@ -560,7 +560,7 @@ actor QuestionAnswerActor {
         Evidence:
         {{evidence_context}}
 
-        Write 3-5 concise paragraphs. Cite papers by title when appropriate. If the evidence is insufficient, say so explicitly.
+        Write 3-5 concise paragraphs. Cite papers by title and citation label inline when appropriate, for example: [Paper Title, p. 3] or [Paper Title, Methods • lines 10-18]. If the evidence is insufficient, say so explicitly.
         """
         instructions = PromptStore.loadText("question_answerer.instructions.md", fallback: fallbackInstructions)
         topPapersTemplate = PromptStore.loadText("question_answerer.top_papers.prompt.md", fallback: fallbackTopPapersTemplate)
@@ -616,8 +616,9 @@ actor QuestionAnswerActor {
             var context = ""
             for (idx, ev) in evidence.prefix(12).enumerated() {
                 let snippet = LLMText.clip(LLMText.collapseWhitespace(String(ev.chunk.text.prefix(perSnippetChars * 2))), maxChars: perSnippetChars)
+                let citationLabel = ev.citationLabel ?? "No citation anchor"
                 let entry = """
-                Evidence \(idx + 1) — \(ev.paperTitle) (score \(String(format: "%.3f", ev.score))):
+                Evidence \(idx + 1) — \(ev.paperTitle) (score \(String(format: "%.3f", ev.score)); citation: \(citationLabel)):
                 \(snippet)
                 """
                 let chunk = entry + "\n\n"

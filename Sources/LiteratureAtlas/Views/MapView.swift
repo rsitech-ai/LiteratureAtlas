@@ -137,6 +137,33 @@ private enum PaperStatusFilter: String, CaseIterable, Identifiable {
     }
 }
 
+private enum PaperSourceFilter: String, CaseIterable, Identifiable {
+    case all
+    case pdf
+    case markdown
+
+    var id: String { rawValue }
+
+    var label: String {
+        switch self {
+        case .all: return "All sources"
+        case .pdf: return "PDF only"
+        case .markdown: return "Markdown only"
+        }
+    }
+
+    func matches(_ paper: Paper) -> Bool {
+        switch self {
+        case .all:
+            return true
+        case .pdf:
+            return paper.sourceKind == .pdf
+        case .markdown:
+            return paper.sourceKind == .markdown
+        }
+    }
+}
+
 private enum PaperSort: String, CaseIterable, Identifiable {
     case recommended
     case recency
@@ -239,6 +266,7 @@ struct MapView: View {
     @State private var paperSearchQuery: String = ""
     @State private var paperSort: PaperSort = .recommended
     @State private var paperStatusFilter: PaperStatusFilter = .all
+    @State private var paperSourceFilter: PaperSourceFilter = .all
     @State private var selectedTradingTags: Set<String> = []
     @State private var selectedAssetClasses: Set<String> = []
     @State private var selectedHorizons: Set<String> = []
@@ -405,6 +433,7 @@ struct MapView: View {
 	                                driftVector: activePaperDriftVector,
 	                                searchQuery: $paperSearchQuery,
 	                                statusFilter: $paperStatusFilter,
+                                    sourceFilter: $paperSourceFilter,
 	                                sort: $paperSort,
 	                                selectedTradingTags: $selectedTradingTags,
 	                                selectedAssetClasses: $selectedAssetClasses,
@@ -998,6 +1027,7 @@ private struct PaperMapAndSidebar: View {
     let driftVector: (dx: Double, dy: Double)?
 	    @Binding var searchQuery: String
 	    @Binding var statusFilter: PaperStatusFilter
+        @Binding var sourceFilter: PaperSourceFilter
 	    @Binding var sort: PaperSort
 	    @Binding var selectedTradingTags: Set<String>
 	    @Binding var selectedAssetClasses: Set<String>
@@ -1104,6 +1134,9 @@ private struct PaperMapAndSidebar: View {
         var base = papers
         if statusFilter != .all {
             base = base.filter { statusFilter.matches($0) }
+        }
+        if sourceFilter != .all {
+            base = base.filter { sourceFilter.matches($0) }
         }
 
 	        if !lowered.isEmpty {
@@ -1320,10 +1353,11 @@ private struct PaperMapAndSidebar: View {
 
                         Spacer()
 
-	                        if !searchQuery.isEmpty || statusFilter != .all || sort != .recommended || hasAnyTradingFilter || colorBy != .novelty {
+	                        if !searchQuery.isEmpty || statusFilter != .all || sourceFilter != .all || sort != .recommended || hasAnyTradingFilter || colorBy != .novelty {
 	                            Button("Reset") {
 	                                searchQuery = ""
 	                                statusFilter = .all
+                                    sourceFilter = .all
 	                                sort = .recommended
 	                                selectedTradingTags = []
 	                                selectedAssetClasses = []
@@ -1339,6 +1373,13 @@ private struct PaperMapAndSidebar: View {
 
                     Picker("Status", selection: $statusFilter) {
                         ForEach(PaperStatusFilter.allCases) { filter in
+                            Text(filter.label).tag(filter)
+                        }
+                    }
+                    .pickerStyle(.segmented)
+
+                    Picker("Source", selection: $sourceFilter) {
+                        ForEach(PaperSourceFilter.allCases) { filter in
                             Text(filter.label).tag(filter)
                         }
                     }

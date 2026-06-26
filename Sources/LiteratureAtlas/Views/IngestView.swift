@@ -24,7 +24,7 @@ struct IngestView: View {
                                 Button {
                                     showFolderPicker = true
                                 } label: {
-                                    Label("Select Folder of PDFs", systemImage: "folder")
+                                    Label("Select Folder of Documents", systemImage: "folder")
                                     .frame(maxWidth: .infinity)
                                 }
                                 .buttonStyle(.borderedProminent)
@@ -48,6 +48,10 @@ struct IngestView: View {
                                 .animation(.easeInOut, value: model.ingestionProgress)
                             HStack {
                                 Text("\(model.ingestionCompletedCount)/\(max(1, model.ingestionTotalCount)) files")
+                                Spacer()
+                                if !model.sourceKindCounts.isEmpty {
+                                    Text(model.sourceKindCounts.map { "\($0.key.label): \($0.value)" }.sorted().joined(separator: " • "))
+                                }
                                 Spacer()
                                 if !model.ingestionCurrentFile.isEmpty {
                                     Text("Now: \(model.ingestionCurrentFile)")
@@ -134,9 +138,9 @@ struct IngestView: View {
             VStack(alignment: .leading, spacing: 8) {
                 HStack {
                     VStack(alignment: .leading, spacing: 4) {
-                        Text("Step 1 - Ingest PDFs")
+                        Text("Step 1 - Ingest Documents")
                             .font(.title.bold())
-                        Text("Summarize first pages on-device, embed with NLContextualEmbedding, and write JSON + Obsidian-ready Markdown notes into the repo Output folder (no data leaves the app).")
+                        Text("Ingest PDFs and Markdown files, build traceable summaries with citation anchors, and write JSON + compiled Markdown artifacts into the repo Output folder.")
                             .foregroundStyle(.secondary)
                             .fixedSize(horizontal: false, vertical: true)
                     }
@@ -177,7 +181,7 @@ struct IngestView: View {
         HStack(spacing: 12) {
             statusPill(title: model.isIngesting ? "Ingesting" : "Idle", color: model.isIngesting ? .mint : .gray)
             statusPill(title: model.isClustering ? "Clustering" : "Not clustering", color: model.isClustering ? .blue : .gray.opacity(0.8))
-            statusPill(title: "Papers: \(model.papers.count)", color: .purple.opacity(0.8))
+            statusPill(title: "Documents: \(model.papers.count)", color: .purple.opacity(0.8))
         }
     }
 

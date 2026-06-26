@@ -4,6 +4,7 @@
 
 # Derived data / caches
 Output/
+.superpowers/
 
 # Python
 .venv/

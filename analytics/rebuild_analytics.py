@@ -89,6 +89,7 @@ def resolve_paths(base_arg: str | None) -> dict[str, pathlib.Path]:
 @dataclass
 class PaperRow:
     paper_id: str
+    source_kind: str | None
     title: str
     original_filename: str
     file_path: str
@@ -120,6 +121,8 @@ class PaperRow:
     one_line_verdict: str | None
     has_strategy_blueprint: bool | None
     has_backtest_audit: bool | None
+    citation_anchor_count: int | None
+    compiled_artifact_count: int | None
 
 
 def _read_json_file(path: pathlib.Path) -> Any | None:
@@ -144,7 +147,12 @@ def load_papers(papers_dir: pathlib.Path) -> tuple[list[PaperRow], list[list[flo
     rows: list[PaperRow] = []
     embeddings: list[list[float]] = []
     trading_rows: list[dict[str, Any]] = []
-    for path in sorted(papers_dir.glob("*.paper.json")):
+    candidate_paths = sorted(papers_dir.glob("*.paper.json"))
+    documents_dir = papers_dir.parent / "documents"
+    if documents_dir.exists():
+        candidate_paths.extend(sorted(documents_dir.glob("*.document.json")))
+
+    for path in candidate_paths:
         data = _read_json_file(path)
         if not isinstance(data, dict):
             continue
@@ -210,6 +218,8 @@ def load_papers(papers_dir: pathlib.Path) -> tuple[list[PaperRow], list[list[flo
 
         has_blueprint = bool(data.get("strategy_blueprint"))
         has_audit = bool(data.get("backtest_audit"))
+        citation_anchor_count = len(data.get("citationAnchors") or [])
+        compiled_artifact_count = len(data.get("compiledArtifacts") or [])
 
         # Future multi-scale fields
         primary_k10 = data.get("primary_cluster_k10") or cluster_id
@@ -217,6 +227,7 @@ def load_papers(papers_dir: pathlib.Path) -> tuple[list[PaperRow], list[list[flo
         rows.append(
             PaperRow(
                 paper_id=paper_id,
+                source_kind=data.get("sourceKind"),
                 title=data.get("title", ""),
                 original_filename=data.get("originalFilename", path.name),
                 file_path=data.get("filePath", str(path)),
@@ -248,6 +259,8 @@ def load_papers(papers_dir: pathlib.Path) -> tuple[list[PaperRow], list[list[flo
                 one_line_verdict=one_line_verdict,
                 has_strategy_blueprint=has_blueprint,
                 has_backtest_audit=has_audit,
+                citation_anchor_count=citation_anchor_count,
+                compiled_artifact_count=compiled_artifact_count,
             )
         )
         embeddings.append(emb)

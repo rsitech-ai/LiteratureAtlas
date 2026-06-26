@@ -10,11 +10,11 @@ struct QuestionView: View {
             VStack(alignment: .leading, spacing: 12) {
                 Text("Step 3 - Question-driven map")
                     .font(.title2.bold())
-                Text("Ask high-level questions like \"What are the main approaches to X?\". The app retrieves the best chunks across papers, then lets the on-device model synthesize a mini-survey.")
+                Text("Ask high-level questions like \"What are the main approaches to X?\". The app retrieves compiled document-note evidence first, then raw source chunks, and synthesizes a cited answer.")
                     .foregroundStyle(.secondary)
 
                 if model.papers.isEmpty {
-                    Text("You need some ingested papers first.")
+                        Text("You need some ingested documents first.")
                         .foregroundStyle(.secondary)
                     Spacer()
                 } else {
@@ -71,7 +71,7 @@ struct QuestionView: View {
 
                     if !model.questionTopPapers.isEmpty {
                         Divider().padding(.vertical, 4)
-                        Text("Most relevant papers")
+                        Text("Most relevant documents")
                             .font(.headline)
                         ScrollView {
                             VStack(alignment: .leading, spacing: 8) {
@@ -105,6 +105,11 @@ struct QuestionView: View {
                                         Text(String(format: "Chunk score: %.3f", ev.score))
                                             .font(.caption2)
                                             .foregroundStyle(.secondary)
+                                        if let citation = ev.citationLabel {
+                                            Text(citation)
+                                                .font(.caption2)
+                                                .foregroundStyle(.secondary)
+                                        }
                                         Text(ev.chunk.text)
                                             .font(.caption)
                                             .lineLimit(6)

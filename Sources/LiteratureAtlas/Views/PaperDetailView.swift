@@ -37,6 +37,20 @@ struct PaperDetailView: View {
             VStack(alignment: .leading, spacing: 16) {
                 header
 
+                documentMetadataCard
+
+                if let latest = latestPaper(),
+                   let artifacts = latest.compiledArtifacts,
+                   !artifacts.isEmpty {
+                    compiledArtifactsCard(artifacts)
+                }
+
+                if let latest = latestPaper(),
+                   let anchors = latest.citationAnchors,
+                   !anchors.isEmpty {
+                    citationsCard(anchors)
+                }
+
                 GlassCard {
                     VStack(alignment: .leading, spacing: 8) {
                         Text("Summary").font(.headline)
@@ -499,12 +513,23 @@ struct PaperDetailView: View {
                         .foregroundStyle(.secondary)
                 }
 
-                Button {
-                    openPDF(at: paper.fileURL)
-                } label: {
-                    Label("Open PDF", systemImage: "doc.richtext")
+                HStack {
+                    Button {
+                        openFile(at: paper.fileURL)
+                    } label: {
+                        Label(paper.sourceKind == .markdown ? "Open Markdown source" : "Open PDF source", systemImage: paper.sourceKind == .markdown ? "doc.text" : "doc.richtext")
+                    }
+                    .buttonStyle(.bordered)
+
+                    if let firstArtifact = latestPaper()?.compiledArtifacts?.first {
+                        Button {
+                            openPath(firstArtifact.path)
+                        } label: {
+                            Label("Open compiled note", systemImage: "text.document")
+                        }
+                        .buttonStyle(.bordered)
+                    }
                 }
-                .buttonStyle(.bordered)
             }
         }
         .sheet(item: $createdStrategyProject) { project in
@@ -522,12 +547,94 @@ struct PaperDetailView: View {
         }
     }
 
-    private func openPDF(at url: URL) {
+    private var documentMetadataCard: some View {
+        let latest = latestPaper() ?? paper
+        return GlassCard {
+            VStack(alignment: .leading, spacing: 8) {
+                Text("Document metadata").font(.headline)
+                LabeledContent("Source kind", value: latest.sourceKind.label)
+                LabeledContent("Extract status", value: latest.extractStatus?.label ?? "Unknown")
+                LabeledContent("Checksum", value: latest.sourceChecksum.map { String($0.prefix(12)) } ?? "Unknown")
+                LabeledContent("Citation anchors", value: "\(latest.citationAnchors?.count ?? 0)")
+                LabeledContent("Compiled artifacts", value: "\(latest.compiledArtifacts?.count ?? 0)")
+                if let modifiedAt = latest.sourceModifiedAt {
+                    LabeledContent("Source modified", value: relativeDate(modifiedAt))
+                }
+            }
+        }
+    }
+
+    private func compiledArtifactsCard(_ artifacts: [CompiledArtifactRef]) -> some View {
+        GlassCard {
+            VStack(alignment: .leading, spacing: 8) {
+                Text("Compiled artifacts").font(.headline)
+                ForEach(Array(artifacts.prefix(6).enumerated()), id: \.offset) { _, artifact in
+                    VStack(alignment: .leading, spacing: 4) {
+                        HStack {
+                            Text(artifact.kind.label)
+                                .font(.subheadline.weight(.semibold))
+                            Spacer()
+                            Button {
+                                openPath(artifact.path)
+                            } label: {
+                                Label("Open", systemImage: "arrow.up.forward.app")
+                            }
+                            .buttonStyle(.bordered)
+                        }
+                        Text(URL(fileURLWithPath: artifact.path).lastPathComponent)
+                            .font(.caption)
+                            .foregroundStyle(.secondary)
+                        Text("Generated \(artifactTimestamp(for: artifact).map(relativeDate) ?? "unknown")")
+                            .font(.caption2)
+                            .foregroundStyle(.secondary)
+                    }
+                    if artifact.path != artifacts.prefix(6).last?.path {
+                        Divider().opacity(0.3)
+                    }
+                }
+            }
+        }
+    }
+
+    private func citationsCard(_ anchors: [CitationAnchor]) -> some View {
+        GlassCard {
+            VStack(alignment: .leading, spacing: 8) {
+                Text("Citation anchors").font(.headline)
+                Text("Compiled summaries and answers should resolve back to these source anchors.")
+                    .font(.caption)
+                    .foregroundStyle(.secondary)
+                ForEach(Array(anchors.prefix(8).enumerated()), id: \.offset) { _, anchor in
+                    Text("• \(anchor.displayLabel)")
+                        .font(.footnote)
+                        .frame(maxWidth: .infinity, alignment: .leading)
+                }
+                if anchors.count > 8 {
+                    Text("+ \(anchors.count - 8) more anchors")
+                        .font(.caption2)
+                        .foregroundStyle(.secondary)
+                }
+            }
+        }
+    }
+
+    private func openFile(at url: URL) {
 #if os(macOS)
         NSWorkspace.shared.open(url)
 #else
         // On iPadOS a Link can be used.
 #endif
+    }
+
+    private func openPath(_ path: String) {
+        openFile(at: URL(fileURLWithPath: path))
+    }
+
+    private func artifactTimestamp(for artifact: CompiledArtifactRef) -> Date? {
+        if let generatedAt = artifact.generatedAt {
+            return generatedAt
+        }
+        let url = URL(fileURLWithPath: artifact.path)
+        return (try? url.resourceValues(forKeys: [.contentModificationDateKey]))?.contentModificationDate
     }
 
     private func saveUserData(notes: String, tags: String, status: ReadingStatus? = nil) {
