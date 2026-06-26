@@ -1,76 +1,71 @@
 # Plan
 
 ## Context
-- User selected the "Immersive Galaxy" visual direction for LiteratureAtlas.
-- The app is a SwiftPM SwiftUI executable with a tabbed macOS/iOS surface.
-- Current app already has a strong dark animated `MapView`; quieter screens such as `IngestView`, `QuestionView`, and top-level analytics surfaces should be brought into the same visual language.
-- Existing document/knowledge-base work was preserved in commit `81aa19e` on `feat/andrzej_literatureatlas-document-kb-snapshot`; this branch starts from that commit.
+- The current branch already contains the immersive galaxy UI and launch-responsiveness fix.
+- The user wants the map to become a general galaxy/universe of knowledge rather than a trading-specific cockpit.
+- The map should feel fluid, animated, dynamic, adaptive, and visually impressive while staying usable on macOS.
 
 ## Assumptions
-- The redesign should improve visual polish without changing core data models or ingestion/analytics behavior.
-- macOS 26/iOS 26 availability lets us use current SwiftUI APIs, with platform checks where Liquid Glass APIs are not cross-platform or not available.
-- The user prefers expressive visuals over restrained native-library styling, but the app should still feel like a native macOS app.
+- Trading-specific tooling remains available in the dedicated Trading tab and related detail surfaces.
+- The primary Map view should default to general corpus exploration: papers, topics, novelty, consensus, methods, time, and interest.
+- Animation must be bounded and respect Reduce Motion.
 
 ## Constraints
-- Keep the diff focused on SwiftUI presentation and shared styling.
-- Do not touch unrelated Rust/analytics/data-quality blockers unless a build forces it.
-- Preserve native macOS affordances: toolbar buttons, system controls, sheets, keyboard-friendly flows, and semantic colors where practical.
-- Keep animation bounded to avoid jank in large lists and charts.
-- Do not commit local `.superpowers/` companion state.
+- Keep the native `NavigationSplitView` shell and standard macOS affordances.
+- Do not reintroduce expensive work in SwiftUI `body` or app launch.
+- Keep map animation local to the map canvases and avoid full-window drawing groups.
+- Validate with SwiftPM build/test and a launch/runtime CPU check.
 
 ## Options considered
-1. Native macOS Library: strongest desktop convention, lowest risk, but less aligned with user's selected direction.
-2. Colorful Research Cockpit: balanced, native shell with richer visual hierarchy, but less immersive.
-3. Immersive Galaxy: app-wide dark cosmic visual language, higher wow factor, highest performance risk.
+1. Full custom 3D universe: highest visual ambition, but too risky for this SwiftUI pass and likely to destabilize performance.
+2. Map-only cinematic upgrade: add a richer animated starfield/nebula canvas, liquid-glass panels, general knowledge copy, and remove trading-specific map controls.
+3. Copy-only generalization: safest, but does not satisfy the request for a breathtaking dynamic galaxy.
 
-Chosen: 3 because the user selected it explicitly after seeing visual options. Bound the implementation so heavy surfaces remain performant and native controls remain recognizable.
+Chosen: 2 because it gives the map a dramatic universe feel while staying inside SwiftUI-native, bounded rendering.
 
 ## Execution plan
-1. Create a durable design spec under `docs/superpowers/specs/`.
-2. Add a shared galaxy visual system for colors, ambient backdrop, glass surfaces, hero headers, stat pills, and adaptive button styling.
-3. Replace the root static gradient with an animated galaxy backdrop and smoother tab transitions.
-4. Upgrade `GlassCard` to support richer galaxy material while keeping existing call sites simple.
-5. Refresh `IngestView` with a more immersive hero, status deck, and action controls.
-6. Refresh `QuestionView` with galaxy header, answer/evidence cards, and polished empty/loading states.
-7. Lightly tune `AnalyticsView` and shared overlays where low-risk, reusing the shared system.
-8. Build and test with SwiftPM, then run a short app launch smoke.
-9. Update `PLAN.md`, `TODO.md`, and `MEMORY.md` if durable conventions are established.
+1. Remove trading-specific sorting, color, and filter controls from the primary paper map.
+2. Rename visible map copy from step/trading-style framing to general knowledge-universe language.
+3. Add a lightweight animated starfield/nebula background for the map and map canvases.
+4. Improve node and paper visuals with fluid glow, orbital motion, and adaptive Reduce Motion behavior.
+5. Use system material/liquid-glass-style surfaces without painting over the native sidebar/root shell.
+6. Update `PLAN.md`, `TODO.md`, and `MEMORY.md` with durable conventions learned.
+7. Run `swift build`, `swift test`, launch the app, and measure process health.
 
 ## Test plan
 - `swift build`
 - `swift test`
-- `swift run LiteratureAtlas` launch smoke, then stop the GUI process after startup.
-- If visual changes touch analytics Python or FFI accidentally, rerun the relevant existing gates.
+- `swift run LiteratureAtlas`
+- Post-launch `ps` CPU/memory check, plus sample if CPU remains high.
 
 ## Risks and rollback
-- Risk: ambient animation increases CPU or invalidates large views too broadly.
-  - Rollback: keep animation inside isolated backdrop view, respect reduce motion, and remove repeat animation if build or runtime smoke suggests trouble.
-- Risk: dark galaxy styling reduces readability.
-  - Rollback: raise material opacity, increase contrast on cards, and keep text on semantic foreground styles where possible.
-- Risk: native macOS feel regresses.
-  - Rollback: keep system controls and toolbar placements; avoid custom replacement for TabView or menus in this pass.
+- Risk: richer animation raises CPU.
+  - Rollback: lower timeline frequency, reduce star counts, and keep Reduce Motion support.
+- Risk: removing trading controls hides useful capability.
+  - Rollback: keep the Trading tab as the domain-specific surface; re-add map controls only if the general map needs a domain lens selector later.
+- Risk: Liquid Glass API availability or signature mismatches.
+  - Rollback: use stable SwiftUI materials and standard controls, preserving the same visual hierarchy.
 
 ## Memory impact
-- Record the shared visual system convention if implementation lands and builds.
+- Record that primary map UI is general-purpose and trading-specific controls belong in the Trading tab.
 
 ## Notes / Results
 - Changes:
-  - Added `GalaxyTheme.swift` with shared galaxy colors, ambient animated backdrop, hero cards, metric tiles, status pills, section headers, and primary action button helper.
-  - Upgraded `GlassCard` with optional tint/prominence while preserving existing `GlassCard { ... }` call sites.
-  - Replaced the tab shell with a native `NavigationSplitView` sidebar and shared galaxy styling.
-  - Refreshed `IngestView` with immersive hero, metrics, command center, activity, log, claim graph, and assumption stress surfaces.
-  - Rebuilt `QuestionView` around galaxy-styled hero, empty state, composer, loading, answer, relevant-document, and evidence cards.
-  - Lightly tuned `AnalyticsView` hero/backend/KPI styling without refactoring chart or recompute logic.
-  - Updated `GlobalProgressOverlay` with a more luminous progress card.
-  - Fixed the launch freeze by removing startup Obsidian export/upgrade work, moving full claim graph export off the main actor, and making the Ingest claim graph preview explicit, bounded, and asynchronous.
-  - Made the global progress overlay non-blocking during background clustering and lowered galaxy KMeans priority so the app remains interactive while it computes.
+  - Renamed the primary map experience to `Knowledge Universe` and made it the default launch section.
+  - Reframed visible map copy around general knowledge exploration: topics, papers, methods, evidence, and open questions.
+  - Removed trading-specific sort/color/filter controls from the primary paper map; trading-specific exploration remains in the Trading tab.
+  - Added a bounded animated universe field with deterministic star drift, twinkle, nebula motion, and orbital dust.
+  - Reused the animated universe field inside cluster and paper canvases, with Reduce Motion support.
+  - Added glow/pulse treatment to topic nodes using the existing cluster timeline.
+  - Tuned map panels toward lighter system material/glass-like surfaces over the animated universe.
+  - Replaced the Q&A placeholder with a domain-neutral research prompt.
 - Tests run:
-  - `swift build` (pass after each implementation slice)
-  - `swift test` (pass: 48 tests, 1 opt-in ingestion smoke skipped)
-  - `swift run LiteratureAtlas` (build/startup smoke pass; post-fix process measured at 0-5% CPU after startup instead of ~190%)
+  - `swift build` (pass; existing unrelated deprecation warning in `StrategyProjectsView`)
+  - `swift test` (pass: 49 tests, 1 opt-in ingestion smoke skipped)
+  - `swift run LiteratureAtlas` (pass; app opens on `Knowledge Universe`)
+  - Runtime check with Universe active: debug build measured about 10-13% CPU and ~250-286 MB RSS after settling.
+  - Screenshot sanity check: visible app window titled `Knowledge Universe`; animated universe canvas and general controls render.
 - Tradeoffs:
-  - Used SwiftUI material/gradient glass styling rather than direct Liquid Glass APIs to keep the macOS SwiftPM build stable.
-  - Kept runtime animation conservative after profiling showed startup usability was more important than decorative motion.
-  - Clustering can still consume CPU on large corpora, but it no longer blocks clicks through the global overlay.
-  - Startup no longer auto-regenerates/upgrades the Obsidian vault; export still runs from explicit export, ingestion, and clustering paths.
-  - Did not address inherited `analytics/rust` deletion or output audit findings in this visual branch.
+  - Used stable SwiftUI materials rather than direct `glassEffect` calls because this repo currently builds cleanly with the existing SwiftPM/SDK setup and material surfaces satisfy the glass direction without API-signature risk.
+  - Kept topic names data-driven. If the loaded corpus contains trading papers, generated cluster names may still include trading terms; the UI framing and controls are no longer trading-specific.
+  - Opened the app on Universe by default to make the galaxy the first-viewport experience.

@@ -112,7 +112,7 @@ struct QuestionView: View {
                 )
 
                 HStack(alignment: .top, spacing: 12) {
-                    TextField("What are the main approaches to market microstructure modeling?", text: $localQuestion, axis: .vertical)
+                    TextField("What are the main schools of thought across this literature?", text: $localQuestion, axis: .vertical)
                         .textFieldStyle(.roundedBorder)
                         .lineLimit(2...5)
 

@@ -17,7 +17,7 @@ final class AppNavigation: ObservableObject {
         var title: String {
             switch self {
             case .ingest: return "Ingest"
-            case .map: return "Map"
+            case .map: return "Universe"
             case .qa: return "Q&A"
             case .trading: return "Trading"
             case .projects: return "Projects"
@@ -28,7 +28,7 @@ final class AppNavigation: ObservableObject {
         var systemImage: String {
             switch self {
             case .ingest: return "tray.and.arrow.down"
-            case .map: return "circle.grid.3x3"
+            case .map: return "sparkles"
             case .qa: return "questionmark.circle"
             case .trading: return "dollarsign.circle"
             case .projects: return "point.3.connected.trianglepath"
@@ -37,6 +37,6 @@ final class AppNavigation: ObservableObject {
         }
     }
 
-    @Published var selectedTab: Tab = .ingest
+    @Published var selectedTab: Tab = .map
     @Published var requestedStrategyProjectID: UUID? = nil
 }

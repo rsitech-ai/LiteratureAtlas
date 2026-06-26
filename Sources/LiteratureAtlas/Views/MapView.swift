@@ -4,9 +4,10 @@ import FoundationModels
 private enum MapPalette {
     static let backdrop = LinearGradient(
         colors: [
-            Color(red: 0.08, green: 0.08, blue: 0.16),
-            Color(red: 0.12, green: 0.09, blue: 0.22),
-            Color(red: 0.10, green: 0.14, blue: 0.30)
+            Color(red: 0.015, green: 0.018, blue: 0.045),
+            Color(red: 0.040, green: 0.034, blue: 0.120),
+            Color(red: 0.030, green: 0.070, blue: 0.155),
+            Color(red: 0.085, green: 0.040, blue: 0.130)
         ],
         startPoint: .topLeading,
         endPoint: .bottomTrailing
@@ -14,23 +15,27 @@ private enum MapPalette {
 
     static let canvas = LinearGradient(
         colors: [
-            Color(red: 0.14, green: 0.16, blue: 0.42),
-            Color(red: 0.22, green: 0.16, blue: 0.55),
-            Color(red: 0.10, green: 0.26, blue: 0.62)
+            Color(red: 0.045, green: 0.060, blue: 0.180),
+            Color(red: 0.120, green: 0.075, blue: 0.310),
+            Color(red: 0.025, green: 0.180, blue: 0.300)
         ],
         startPoint: .topLeading,
         endPoint: .bottomTrailing
     )
 
     static let glow = RadialGradient(
-        colors: [Color.white.opacity(0.22), .clear],
+        colors: [
+            Color.cyan.opacity(0.26),
+            Color.purple.opacity(0.12),
+            .clear
+        ],
         center: .center,
         startRadius: 10,
-        endRadius: 220
+        endRadius: 260
     )
 
-    static let panel = Color.white.opacity(0.08)
-    static let panelStroke = Color.white.opacity(0.14)
+    static let panel = Color.white.opacity(0.075)
+    static let panelStroke = Color.white.opacity(0.16)
 
     static func nodeGradient(for index: Int) -> LinearGradient {
         let palette: [[Color]] = [
@@ -71,6 +76,127 @@ private enum MapPalette {
             h = ((h << 5) &+ h) &+ UInt64(scalar.value)
         }
         return Int(truncatingIfNeeded: h)
+    }
+}
+
+@available(macOS 26, iOS 26, *)
+private struct UniverseField: View {
+    var cornerRadius: CGFloat? = nil
+    var starCount: Int = 90
+    var isCanvas: Bool = false
+    @Environment(\.accessibilityReduceMotion) private var reduceMotion
+
+    var body: some View {
+        TimelineView(.periodic(from: .now, by: reduceMotion ? 3600 : 1.0 / 15.0)) { timeline in
+            GeometryReader { geo in
+                let time = reduceMotion ? 0 : timeline.date.timeIntervalSinceReferenceDate
+                ZStack {
+                    MapPalette.backdrop
+                    nebulaLayer(size: geo.size, time: time)
+                    StarCanvas(count: starCount, time: time, intensity: isCanvas ? 0.95 : 0.62)
+                    orbitalDust(size: geo.size, time: time)
+                }
+                .clipShape(shape)
+            }
+        }
+        .allowsHitTesting(false)
+    }
+
+    private var shape: RoundedRectangle {
+        RoundedRectangle(cornerRadius: cornerRadius ?? 0, style: .continuous)
+    }
+
+    @ViewBuilder
+    private func nebulaLayer(size: CGSize, time: TimeInterval) -> some View {
+        let slow = CGFloat(time * 0.018)
+        ZStack {
+            RadialGradient(
+                colors: [Color.cyan.opacity(0.34), Color.blue.opacity(0.10), .clear],
+                center: .center,
+                startRadius: 20,
+                endRadius: max(size.width, size.height) * 0.72
+            )
+            .scaleEffect(1.05 + 0.025 * sin(slow * 5.0))
+            .offset(x: cos(slow) * size.width * 0.12, y: sin(slow * 1.2) * size.height * 0.08)
+            .blendMode(.screen)
+
+            RadialGradient(
+                colors: [Color.pink.opacity(0.26), Color.purple.opacity(0.12), .clear],
+                center: .center,
+                startRadius: 10,
+                endRadius: max(size.width, size.height) * 0.62
+            )
+            .scaleEffect(0.92 + 0.03 * cos(slow * 4.0))
+            .offset(x: -cos(slow * 0.9) * size.width * 0.15, y: -sin(slow) * size.height * 0.10)
+            .blendMode(.plusLighter)
+        }
+        .opacity(isCanvas ? 0.92 : 0.70)
+    }
+
+    @ViewBuilder
+    private func orbitalDust(size: CGSize, time: TimeInterval) -> some View {
+        let minSide = min(size.width, size.height)
+        ZStack {
+            ForEach(0..<5, id: \.self) { idx in
+                Ellipse()
+                    .stroke(
+                        LinearGradient(
+                            colors: [.clear, Color.white.opacity(0.05 + Double(idx) * 0.012), .clear],
+                            startPoint: .leading,
+                            endPoint: .trailing
+                        ),
+                        lineWidth: 1
+                    )
+                    .frame(width: minSide * CGFloat(0.44 + Double(idx) * 0.13), height: minSide * CGFloat(0.18 + Double(idx) * 0.055))
+                    .rotationEffect(.radians(time * (0.012 + Double(idx) * 0.004) + Double(idx) * 0.72))
+                    .blendMode(.screen)
+            }
+        }
+        .opacity(isCanvas ? 1 : 0.55)
+    }
+}
+
+@available(macOS 26, iOS 26, *)
+private struct StarCanvas: View {
+    let count: Int
+    let time: TimeInterval
+    let intensity: Double
+
+    var body: some View {
+        Canvas { context, size in
+            for idx in 0..<count {
+                let p = starPoint(index: idx, size: size, time: time)
+                let base = 0.35 + normalized(index: idx, salt: 17) * 0.65
+                let twinkle = 0.58 + 0.42 * sin(time * (0.8 + normalized(index: idx, salt: 29) * 1.6) + normalized(index: idx, salt: 7) * 6.28)
+                let radius = 0.7 + normalized(index: idx, salt: 43) * 2.2
+                let alpha = min(1, base * twinkle * intensity)
+                let rect = CGRect(x: p.x - radius / 2, y: p.y - radius / 2, width: radius, height: radius)
+                context.fill(Path(ellipseIn: rect), with: .color(.white.opacity(alpha)))
+
+                if idx % 11 == 0 {
+                    let glow = CGRect(x: p.x - radius * 2.3, y: p.y - radius * 2.3, width: radius * 4.6, height: radius * 4.6)
+                    context.fill(Path(ellipseIn: glow), with: .color(Color.cyan.opacity(alpha * 0.16)))
+                }
+            }
+        }
+        .blendMode(.screen)
+    }
+
+    private func starPoint(index: Int, size: CGSize, time: TimeInterval) -> CGPoint {
+        let x0 = normalized(index: index, salt: 3)
+        let y0 = normalized(index: index, salt: 11)
+        let drift = 0.006 + normalized(index: index, salt: 23) * 0.012
+        let x = (x0 + time * drift).truncatingRemainder(dividingBy: 1)
+        let y = y0 + sin(time * 0.05 + Double(index)) * 0.006
+        return CGPoint(x: size.width * x, y: size.height * y)
+    }
+
+    private func normalized(index: Int, salt: Int) -> Double {
+        var value = UInt64(truncatingIfNeeded: index &* 1103515245 &+ salt &* 12345)
+        value ^= value >> 13
+        value &*= 0x5bd1e995
+        value ^= value >> 15
+        return Double(value % 10_000) / 10_000.0
     }
 }
 
@@ -175,10 +301,6 @@ private enum PaperSort: String, CaseIterable, Identifiable {
     case recombination
     case rigor
     case openness
-    case tradingPriority
-    case tradingImpact
-    case tradingUsability
-    case tradingNovelty
 
     var id: String { rawValue }
 
@@ -194,28 +316,24 @@ private enum PaperSort: String, CaseIterable, Identifiable {
         case .recombination: return "Recombination"
         case .rigor: return "Rigor proxy"
         case .openness: return "Openness"
-        case .tradingPriority: return "Trading priority"
-        case .tradingImpact: return "Trading impact"
-        case .tradingUsability: return "Trading usability"
-        case .tradingNovelty: return "Trading novelty"
         }
     }
 }
 
 private enum PaperColorBy: String, CaseIterable, Identifiable {
     case novelty
-    case tradingTag
-    case assetClass
-    case horizon
+    case source
+    case status
+    case year
 
     var id: String { rawValue }
 
     var label: String {
         switch self {
         case .novelty: return "Novelty"
-        case .tradingTag: return "Trading tag"
-        case .assetClass: return "Asset class"
-        case .horizon: return "Horizon"
+        case .source: return "Source"
+        case .status: return "Reading"
+        case .year: return "Year"
         }
     }
 }
@@ -223,21 +341,7 @@ private enum PaperColorBy: String, CaseIterable, Identifiable {
 @available(macOS 26, iOS 26, *)
 private struct MapBackdropView: View {
     var body: some View {
-        MapPalette.backdrop
-            .overlay(
-                AngularGradient(
-                    colors: [
-                        Color.purple.opacity(0.22),
-                        Color.cyan.opacity(0.18),
-                        Color.pink.opacity(0.20),
-                        Color.purple.opacity(0.22)
-                    ],
-                    center: .center
-                )
-                .blur(radius: 160)
-                .opacity(0.35)
-                .blendMode(.screen)
-            )
+        UniverseField(starCount: 120)
             .ignoresSafeArea()
             .allowsHitTesting(false)
     }
@@ -258,9 +362,6 @@ struct MapView: View {
     @State private var paperSort: PaperSort = .recommended
     @State private var paperStatusFilter: PaperStatusFilter = .all
     @State private var paperSourceFilter: PaperSourceFilter = .all
-    @State private var selectedTradingTags: Set<String> = []
-    @State private var selectedAssetClasses: Set<String> = []
-    @State private var selectedHorizons: Set<String> = []
     @State private var paperColorBy: PaperColorBy = .novelty
     @State private var isNamingSubtopics: Bool = false
     @State private var isNamingMegaTopics: Bool = false
@@ -333,7 +434,7 @@ struct MapView: View {
                     header
 
                     if model.papers.isEmpty {
-                        Text("Ingest some PDFs first on the Ingest tab.")
+                        Text("Ingest documents first to seed your knowledge universe.")
                             .foregroundStyle(.secondary)
                         Spacer()
                     } else {
@@ -412,7 +513,7 @@ struct MapView: View {
                         }
 
                         if zoomLevel != .papers && activeClusters.isEmpty {
-                            Text("Run clustering to see the map.")
+                            Text("Build the universe to reveal topic constellations.")
                                 .foregroundStyle(.white.opacity(0.7))
                             Spacer()
                         } else if zoomLevel == .papers {
@@ -426,9 +527,6 @@ struct MapView: View {
 	                                statusFilter: $paperStatusFilter,
                                     sourceFilter: $paperSourceFilter,
 	                                sort: $paperSort,
-	                                selectedTradingTags: $selectedTradingTags,
-	                                selectedAssetClasses: $selectedAssetClasses,
-	                                selectedHorizons: $selectedHorizons,
 	                                colorBy: $paperColorBy,
 	                                onSelectPaper: { paper in
 	                                    withAnimation(.spring(response: 0.35, dampingFraction: 0.85)) {
@@ -542,7 +640,7 @@ struct MapView: View {
                     await MainActor.run { paperHighlights = highlights }
                 }
             }
-            .navigationTitle("Map")
+            .navigationTitle("Knowledge Universe")
             .alert("Export", isPresented: $showExportAlert) {
                 Button("OK", role: .cancel) {}
             } message: {
@@ -652,9 +750,12 @@ struct MapView: View {
     private var header: some View {
         HStack {
             VStack(alignment: .leading, spacing: 4) {
-                Text("Step 2 — Knowledge Galaxy")
+                Text("Knowledge Universe")
                     .font(.title.bold())
                     .foregroundStyle(.white)
+                Text("A living galaxy of topics, papers, methods, evidence, and open questions.")
+                    .font(.caption)
+                    .foregroundStyle(.white.opacity(0.72))
                 HStack(spacing: 8) {
                     let papersValue: String = {
                         guard model.yearFilterEnabled else { return "\(model.papers.count)" }
@@ -692,7 +793,7 @@ struct MapView: View {
                     if let result = model.exportGalaxyArtifacts() {
                         exportMessage = "Wrote:\n\(result.jsonURL.lastPathComponent)\n\(result.reportURL.lastPathComponent)"
                     } else {
-                        exportMessage = "Nothing to export yet. Run clustering first."
+                        exportMessage = "Nothing to export yet. Build the universe first."
                     }
                     showExportAlert = true
                 } label: {
@@ -729,7 +830,7 @@ struct MapView: View {
                 Button {
                     triggerClustering()
                 } label: {
-                    Label("Run clustering", systemImage: "sparkles")
+                    Label("Build universe", systemImage: "sparkles")
                 }
                 .buttonStyle(.borderedProminent)
                 .disabled(model.isIngesting || model.isClustering || model.papers.count < 3)
@@ -740,7 +841,7 @@ struct MapView: View {
                     .font(.caption)
                     .foregroundStyle(.white.opacity(0.7))
             } else {
-                Text("Resolution tunes the number of subtopics inside each mega-topic.")
+                Text("Resolution tunes how finely the universe splits topic constellations into subtopics.")
                     .font(.caption)
                     .foregroundStyle(.white.opacity(0.7))
             }
@@ -1020,9 +1121,6 @@ private struct PaperMapAndSidebar: View {
 	    @Binding var statusFilter: PaperStatusFilter
         @Binding var sourceFilter: PaperSourceFilter
 	    @Binding var sort: PaperSort
-	    @Binding var selectedTradingTags: Set<String>
-	    @Binding var selectedAssetClasses: Set<String>
-	    @Binding var selectedHorizons: Set<String>
 	    @Binding var colorBy: PaperColorBy
 	    var onSelectPaper: ((Paper) -> Void)?
 	    var onSelectSubtopic: ((Cluster) -> Void)?
@@ -1036,46 +1134,26 @@ private struct PaperMapAndSidebar: View {
 	        return Dictionary(uniqueKeysWithValues: recs.enumerated().map { ($0.element, $0.offset) })
 	    }
 
-	    private var hasAnyTradingFilter: Bool {
-	        !selectedTradingTags.isEmpty || !selectedAssetClasses.isEmpty || !selectedHorizons.isEmpty
-	    }
-
-	    private func tradingTags(for paper: Paper) -> Set<String> {
-	        let tags = paper.tradingLens?.tradingTags ?? []
-	        return Set(tags.isEmpty ? ["Unknown"] : tags)
-	    }
-
-	    private func assetClasses(for paper: Paper) -> Set<String> {
-	        let assets = paper.tradingLens?.assetClasses ?? []
-	        return Set(assets.isEmpty ? ["Unknown"] : assets)
-	    }
-
-	    private func horizons(for paper: Paper) -> Set<String> {
-	        let horizons = paper.tradingLens?.horizons ?? []
-	        return Set(horizons.isEmpty ? ["Unknown"] : horizons)
-	    }
-
-	    private func matches(selected: Set<String>, values: Set<String>) -> Bool {
-	        guard !selected.isEmpty else { return true }
-	        return !values.isDisjoint(with: selected)
-	    }
-
-	    private func primaryValue(from values: Set<String>) -> String {
-	        if values.count == 1, let only = values.first { return only }
-	        if let preferred = values.first(where: { $0.lowercased() != "unknown" }) { return preferred }
-	        return values.first ?? "Unknown"
-	    }
-
 	    private func tint(for paper: Paper) -> Color? {
 	        switch colorBy {
 	        case .novelty:
 	            return nil
-	        case .tradingTag:
-	            return MapPalette.categoricalTint(for: primaryValue(from: tradingTags(for: paper)))
-	        case .assetClass:
-	            return MapPalette.categoricalTint(for: primaryValue(from: assetClasses(for: paper)))
-	        case .horizon:
-	            return MapPalette.categoricalTint(for: primaryValue(from: horizons(for: paper)))
+	        case .source:
+	            return paper.sourceKind == .pdf ? Color.cyan.opacity(0.88) : Color.mint.opacity(0.82)
+	        case .status:
+	            switch paper.readingStatus ?? .unread {
+	            case .unread:
+	                return Color.white.opacity(0.58)
+	            case .inProgress:
+	                return Color.yellow.opacity(0.86)
+	            case .done:
+	                return Color.green.opacity(0.84)
+	            }
+	        case .year:
+	            if let year = paper.year {
+	                return MapPalette.categoricalTint(for: String(year / 5 * 5))
+	            }
+	            return Color.white.opacity(0.55)
 	        }
 	    }
 
@@ -1088,34 +1166,6 @@ private struct PaperMapAndSidebar: View {
 	            }
 	        }
 	        return map
-	    }
-
-	    private var availableTradingTags: [String] {
-	        uniqueOptions(from: papers) { Array(tradingTags(for: $0)) }
-	    }
-
-	    private var availableAssetClasses: [String] {
-	        uniqueOptions(from: papers) { Array(assetClasses(for: $0)) }
-	    }
-
-	    private var availableHorizons: [String] {
-	        uniqueOptions(from: papers) { Array(horizons(for: $0)) }
-	    }
-
-	    private func uniqueOptions(from papers: [Paper], extract: (Paper) -> [String]) -> [String] {
-	        var set: Set<String> = []
-	        for paper in papers {
-	            for item in extract(paper) {
-	                let cleaned = item.trimmingCharacters(in: .whitespacesAndNewlines)
-	                if cleaned.isEmpty { continue }
-	                set.insert(cleaned)
-	            }
-	        }
-	        return set.sorted { lhs, rhs in
-	            if lhs.lowercased() == "unknown" { return false }
-	            if rhs.lowercased() == "unknown" { return true }
-	            return lhs.localizedCaseInsensitiveCompare(rhs) == .orderedAscending
-	        }
 	    }
 
     private var filteredPapers: [Paper] {
@@ -1139,14 +1189,6 @@ private struct PaperMapAndSidebar: View {
 	            }
 	        }
 
-	        if hasAnyTradingFilter {
-	            base = base.filter { paper in
-	                matches(selected: selectedTradingTags, values: tradingTags(for: paper))
-	                    && matches(selected: selectedAssetClasses, values: assetClasses(for: paper))
-	                    && matches(selected: selectedHorizons, values: horizons(for: paper))
-	            }
-	        }
-
 	        return base.sorted(by: comparator)
 	    }
 
@@ -1154,8 +1196,6 @@ private struct PaperMapAndSidebar: View {
 	        { lhs, rhs in
 	            let lm = metricsByID[lhs.id]
 	            let rm = metricsByID[rhs.id]
-	            let ls = lhs.tradingScores ?? lhs.tradingLens?.scores
-	            let rs = rhs.tradingScores ?? rhs.tradingLens?.scores
 	            switch sort {
             case .recommended:
                 let lRank = recommendationRankByID[lhs.id] ?? Int.max
@@ -1225,38 +1265,6 @@ private struct PaperMapAndSidebar: View {
 	                let ry = rhs.year ?? -10_000
 	                if ly != ry { return ly > ry }
 	                return lhs.title < rhs.title
-	            case .tradingPriority:
-	                let lv = (ls?.strategyImpact ?? 0) * (ls?.usability ?? 0) * (ls?.confidence ?? 0)
-	                let rv = (rs?.strategyImpact ?? 0) * (rs?.usability ?? 0) * (rs?.confidence ?? 0)
-	                if lv != rv { return lv > rv }
-	                let ly = lhs.year ?? -10_000
-	                let ry = rhs.year ?? -10_000
-	                if ly != ry { return ly > ry }
-	                return lhs.title < rhs.title
-	            case .tradingImpact:
-	                let lv = ls?.strategyImpact ?? 0
-	                let rv = rs?.strategyImpact ?? 0
-	                if lv != rv { return lv > rv }
-	                let ly = lhs.year ?? -10_000
-	                let ry = rhs.year ?? -10_000
-	                if ly != ry { return ly > ry }
-	                return lhs.title < rhs.title
-	            case .tradingUsability:
-	                let lv = ls?.usability ?? 0
-	                let rv = rs?.usability ?? 0
-	                if lv != rv { return lv > rv }
-	                let ly = lhs.year ?? -10_000
-	                let ry = rhs.year ?? -10_000
-	                if ly != ry { return ly > ry }
-	                return lhs.title < rhs.title
-	            case .tradingNovelty:
-	                let lv = ls?.novelty ?? 0
-	                let rv = rs?.novelty ?? 0
-	                if lv != rv { return lv > rv }
-	                let ly = lhs.year ?? -10_000
-	                let ry = rhs.year ?? -10_000
-	                if ly != ry { return ly > ry }
-	                return lhs.title < rhs.title
 	            }
 	        }
 	    }
@@ -1314,12 +1322,6 @@ private struct PaperMapAndSidebar: View {
                                     .foregroundStyle(.white.opacity(0.78))
                                     .lineLimit(3)
                             }
-                            if let lens = cluster.tradingLens, !lens.isEmpty {
-                                Text(lens)
-                                    .font(.caption2)
-                                    .foregroundStyle(.white.opacity(0.72))
-                                    .lineLimit(4)
-                            }
                         }
                     } else {
                         Text("Pick a subtopic to explore its papers.")
@@ -1344,15 +1346,12 @@ private struct PaperMapAndSidebar: View {
 
                         Spacer()
 
-	                        if !searchQuery.isEmpty || statusFilter != .all || sourceFilter != .all || sort != .recommended || hasAnyTradingFilter || colorBy != .novelty {
+	                        if !searchQuery.isEmpty || statusFilter != .all || sourceFilter != .all || sort != .recommended || colorBy != .novelty {
 	                            Button("Reset") {
 	                                searchQuery = ""
 	                                statusFilter = .all
                                     sourceFilter = .all
 	                                sort = .recommended
-	                                selectedTradingTags = []
-	                                selectedAssetClasses = []
-	                                selectedHorizons = []
 	                                colorBy = .novelty
 	                            }
 	                            .buttonStyle(.bordered)
@@ -1395,29 +1394,6 @@ private struct PaperMapAndSidebar: View {
 	                        .pickerStyle(.menu)
 	                    }
 
-	                    HStack(spacing: 10) {
-	                        MultiSelectMenu(
-	                            title: "Tags",
-	                            emptyLabel: "Any tag",
-	                            options: availableTradingTags,
-	                            selection: $selectedTradingTags
-	                        )
-	                        MultiSelectMenu(
-	                            title: "Assets",
-	                            emptyLabel: "Any asset",
-	                            options: availableAssetClasses,
-	                            selection: $selectedAssetClasses
-	                        )
-	                        MultiSelectMenu(
-	                            title: "Horizon",
-	                            emptyLabel: "Any horizon",
-	                            options: availableHorizons,
-	                            selection: $selectedHorizons
-	                        )
-	                        Spacer()
-	                    }
-	                    .font(.caption)
-
 	                    Divider().overlay(Color.white.opacity(0.12))
 
                     ScrollView {
@@ -1451,53 +1427,6 @@ private struct PaperMapAndSidebar: View {
             }
             .frame(width: 390)
         }
-    }
-}
-
-@available(macOS 26, iOS 26, *)
-private struct MultiSelectMenu: View {
-    let title: String
-    let emptyLabel: String
-    let options: [String]
-    @Binding var selection: Set<String>
-
-    private var labelText: String {
-        selection.isEmpty ? emptyLabel : "\(title) (\(selection.count))"
-    }
-
-    var body: some View {
-        Menu {
-            if selection.isEmpty == false {
-                Button("Clear") { selection.removeAll() }
-                Divider()
-            }
-            if options.isEmpty {
-                Text("No data")
-            } else {
-                ForEach(options, id: \.self) { option in
-                    Button {
-                        if selection.contains(option) {
-                            selection.remove(option)
-                        } else {
-                            selection.insert(option)
-                        }
-                    } label: {
-                        HStack {
-                            Text(option)
-                            Spacer()
-                            if selection.contains(option) {
-                                Image(systemName: "checkmark")
-                            }
-                        }
-                    }
-                }
-            }
-        } label: {
-            Text(labelText)
-        }
-        .buttonStyle(.bordered)
-        .tint(Color.white.opacity(0.12))
-        .disabled(options.isEmpty)
     }
 }
 
@@ -1682,24 +1611,12 @@ struct ClusterGraphView: View {
                 let radius = min(size.width, size.height) / 2 - 80
                 let time = timeline.date.timeIntervalSinceReferenceDate
                 let wobble = reduceMotion ? 0 : min(10, radius * 0.03)
-                let spin = reduceMotion ? 0 : time * 0.015
                 let positions = Dictionary(uniqueKeysWithValues: clusters.enumerated().map { idx, cluster in
                     (cluster.id, position(for: cluster, fallbackIndex: idx, total: clusters.count, center: center, radius: radius, time: time, wobble: wobble))
                 })
 
                 ZStack {
-                    RoundedRectangle(cornerRadius: 24)
-                        .fill(MapPalette.canvas)
-                        .overlay(MapPalette.glow)
-                        .overlay(
-                            AngularGradient(
-                                colors: [.clear, Color.white.opacity(0.12), .clear],
-                                center: .center
-                            )
-                            .blur(radius: 80)
-                            .rotationEffect(.radians(spin))
-                            .blendMode(.screen)
-                        )
+                    UniverseField(cornerRadius: 24, starCount: 130, isCanvas: true)
                         .overlay(
                             ZStack {
                                 ForEach(0..<6, id: \.self) { idx in
@@ -1756,7 +1673,11 @@ struct ClusterGraphView: View {
 
                         ForEach(clusters, id: \.id) { cluster in
                             if let pos = positions[cluster.id] {
-                                ClusterNodeView(cluster: cluster, isSelected: selectedClusterIDs.contains(cluster.id))
+                                ClusterNodeView(
+                                    cluster: cluster,
+                                    isSelected: selectedClusterIDs.contains(cluster.id),
+                                    pulsePhase: reduceMotion ? 0 : time + Double(cluster.id)
+                                )
                                     .position(pos)
                                     .onTapGesture {
                                         withAnimation(.spring(response: 0.35, dampingFraction: 0.85)) {
@@ -1825,6 +1746,7 @@ struct ClusterNodeView: View {
     @EnvironmentObject private var model: AppModel
     let cluster: Cluster
     let isSelected: Bool
+    var pulsePhase: TimeInterval = 0
 
     private var paperCount: Int {
         model.paperCount(for: cluster)
@@ -1837,6 +1759,7 @@ struct ClusterNodeView: View {
     }
 
     var body: some View {
+        let pulse = 0.5 + 0.5 * sin(pulsePhase * 1.2)
         VStack(spacing: 4) {
             Text(cluster.name)
                 .font(.headline.weight(.semibold))
@@ -1852,6 +1775,11 @@ struct ClusterNodeView: View {
         .frame(width: size)
         .background(
             ZStack {
+                Circle()
+                    .fill(MapPalette.nodeGradient(for: cluster.id))
+                    .blur(radius: isSelected ? 30 : 20)
+                    .opacity(isSelected ? 0.70 : 0.30 + 0.16 * pulse)
+                    .scaleEffect(isSelected ? 1.28 : 1.05 + 0.05 * pulse)
                 if isSelected {
                     Circle()
                         .fill(MapPalette.nodeGradient(for: cluster.id))
@@ -1861,6 +1789,8 @@ struct ClusterNodeView: View {
                 }
                 RoundedRectangle(cornerRadius: 18)
                     .fill(MapPalette.nodeGradient(for: cluster.id))
+                RoundedRectangle(cornerRadius: 18)
+                    .fill(Color.white.opacity(0.10))
                 RoundedRectangle(cornerRadius: 18)
                     .strokeBorder(Color.white.opacity(isSelected ? 0.55 : 0.25), lineWidth: isSelected ? 2 : 1)
             }
@@ -2139,9 +2069,7 @@ struct PaperScatterView: View {
                     expandedPaperID: expandedPaperID
                 )
             ZStack {
-                RoundedRectangle(cornerRadius: 24)
-                    .fill(MapPalette.canvas)
-                    .overlay(MapPalette.glow)
+                UniverseField(cornerRadius: 24, starCount: usesDotMode ? 180 : 110, isCanvas: true)
                     .shadow(color: .black.opacity(0.25), radius: 16, x: 0, y: 10)
 
                 if papers.isEmpty {
@@ -2773,20 +2701,28 @@ private struct GlassPanel<Content: View>: View {
             .padding(14)
             .background(
                 ZStack {
-                    RoundedRectangle(cornerRadius: 18, style: .continuous)
-                        .fill(.thinMaterial)
-                    RoundedRectangle(cornerRadius: 18, style: .continuous)
-                        .fill(Color.black.opacity(0.22))
-                    RoundedRectangle(cornerRadius: 18, style: .continuous)
+                    RoundedRectangle(cornerRadius: 22, style: .continuous)
+                        .fill(.ultraThinMaterial)
+                    RoundedRectangle(cornerRadius: 22, style: .continuous)
+                        .fill(Color.black.opacity(0.16))
+                    RoundedRectangle(cornerRadius: 22, style: .continuous)
                         .fill(MapPalette.panel)
+                    RoundedRectangle(cornerRadius: 22, style: .continuous)
+                        .fill(
+                            LinearGradient(
+                                colors: [Color.white.opacity(0.10), Color.white.opacity(0.025), Color.cyan.opacity(0.035)],
+                                startPoint: .topLeading,
+                                endPoint: .bottomTrailing
+                            )
+                        )
                 }
             )
             .overlay(
-                RoundedRectangle(cornerRadius: 18)
+                RoundedRectangle(cornerRadius: 22)
                     .stroke(MapPalette.panelStroke, lineWidth: 1)
             )
-            .clipShape(RoundedRectangle(cornerRadius: 18, style: .continuous))
-            .shadow(color: .black.opacity(0.25), radius: 14, x: 0, y: 8)
+            .clipShape(RoundedRectangle(cornerRadius: 22, style: .continuous))
+            .shadow(color: .black.opacity(0.26), radius: 18, x: 0, y: 10)
     }
 }
 
