@@ -125,6 +125,34 @@ struct AnalyticsView: View {
         model.explorationPapers
     }
 
+    private var totalDocumentCount: Int {
+        model.papers.count
+    }
+
+    private var pdfDocumentCount: Int {
+        model.sourceKindCounts[.pdf] ?? 0
+    }
+
+    private var markdownDocumentCount: Int {
+        model.sourceKindCounts[.markdown] ?? 0
+    }
+
+    private var citationCoverageCount: Int {
+        model.papers.filter { !($0.citationAnchors ?? []).isEmpty }.count
+    }
+
+    private var compiledCoverageCount: Int {
+        model.papers.filter { !($0.compiledArtifacts ?? []).isEmpty }.count
+    }
+
+    private var staleCompiledCount: Int {
+        model.papers.filter(isCompiledArtifactStale).count
+    }
+
+    private var graphReadyCount: Int {
+        model.papers.filter { !($0.claims ?? []).isEmpty || $0.clusterIndex != nil }.count
+    }
+
     private var chartYearDomain: ClosedRange<Int>? {
         model.effectiveYearRange ?? model.corpusYearDomain
     }
@@ -159,6 +187,23 @@ struct AnalyticsView: View {
             .split(separator: ",")
             .map { $0.trimmingCharacters(in: .whitespacesAndNewlines).lowercased() }
             .filter { !$0.isEmpty }
+    }
+
+    private func isCompiledArtifactStale(_ paper: Paper) -> Bool {
+        guard let modifiedAt = paper.sourceModifiedAt else {
+            return (paper.compiledArtifacts ?? []).isEmpty
+        }
+        let generatedDates = (paper.compiledArtifacts ?? []).compactMap { artifact -> Date? in
+            if let generatedAt = artifact.generatedAt {
+                return generatedAt
+            }
+            let url = URL(fileURLWithPath: artifact.path)
+            return (try? url.resourceValues(forKeys: [.contentModificationDateKey]))?.contentModificationDate
+        }
+        guard let latestGeneratedAt = generatedDates.max() else {
+            return true
+        }
+        return latestGeneratedAt < modifiedAt
     }
 
     private func scheduleTimelineRecompute() {
@@ -876,6 +921,42 @@ struct AnalyticsView: View {
         }
     }
 
+    @ViewBuilder private func corpusHealthCard() -> some View {
+        GlassCard {
+            VStack(alignment: .leading, spacing: 10) {
+                HStack(alignment: .firstTextBaseline) {
+                    Text("Corpus health").font(.headline)
+                    Spacer()
+                    Text("\(totalDocumentCount) documents")
+                        .font(.caption2)
+                        .foregroundStyle(.secondary)
+                }
+
+                HStack(spacing: 10) {
+                    analyticsKPI(label: "PDF", value: "\(pdfDocumentCount)")
+                    analyticsKPI(label: "Markdown", value: "\(markdownDocumentCount)")
+                    analyticsKPI(label: "Cited", value: "\(citationCoverageCount)")
+                    analyticsKPI(label: "Compiled", value: "\(compiledCoverageCount)")
+                    analyticsKPI(label: "Stale", value: "\(staleCompiledCount)")
+                    analyticsKPI(label: "Graph-ready", value: "\(graphReadyCount)")
+                }
+
+                Text(
+                    "Citation coverage \(percentageString(citationCoverageCount, total: totalDocumentCount)) • compiled-note coverage \(percentageString(compiledCoverageCount, total: totalDocumentCount)) • graph-ready coverage \(percentageString(graphReadyCount, total: totalDocumentCount))"
+                )
+                .font(.caption)
+                .foregroundStyle(.secondary)
+
+                if let citations = analyticsSummary?.citations?.graph,
+                   citations.available == true {
+                    Text("Citation graph metrics are available in this analytics snapshot.")
+                        .font(.caption2)
+                        .foregroundStyle(.secondary)
+                }
+            }
+        }
+    }
+
     @ViewBuilder private func factorCard(_ summary: AnalyticsSummary) -> some View {
         GlassCard {
             VStack(alignment: .leading, spacing: 8) {
@@ -1577,6 +1658,7 @@ struct AnalyticsView: View {
                         .foregroundStyle(.secondary)
 
                     corpusBriefingCard()
+                    corpusHealthCard()
 
                     backendAnalyticsCard()
 
@@ -2084,6 +2166,25 @@ struct AnalyticsView: View {
             }
         }
         #endif
+    }
+
+    private func analyticsKPI(label: String, value: String) -> some View {
+        VStack(alignment: .leading, spacing: 2) {
+            Text(label)
+                .font(.caption2)
+                .foregroundStyle(.secondary)
+            Text(value)
+                .font(.subheadline.monospacedDigit().weight(.semibold))
+        }
+        .padding(.horizontal, 10)
+        .padding(.vertical, 8)
+        .background(Color.white.opacity(0.06))
+        .clipShape(RoundedRectangle(cornerRadius: 10))
+    }
+
+    private func percentageString(_ numerator: Int, total: Int) -> String {
+        guard total > 0 else { return "0%" }
+        return String(format: "%.0f%%", (Double(numerator) / Double(total)) * 100)
     }
 }
 

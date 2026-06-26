@@ -113,6 +113,7 @@ enum PaperMarkdownExporter {
         managed.append("id: \(yamlString(paper.id.uuidString))")
         managed.append("title: \(yamlString(paper.title.isEmpty ? paper.originalFilename : paper.title))")
         managed.append("cssclass: atlas-paper")
+        managed.append("source_kind: \(paper.sourceKind.rawValue)")
 
         var aliases: [String] = []
         aliases.append(ObsidianIDs.paperAlias(paper.id))
@@ -140,6 +141,12 @@ enum PaperMarkdownExporter {
         if let keywords = paper.keywords, !keywords.isEmpty { managed.append("keywords: \(yamlStringArray(keywords))") }
         managed.append("source_pdf: \(yamlString(paper.filePath))")
         managed.append("original_filename: \(yamlString(paper.originalFilename))")
+        if let extractStatus = paper.extractStatus {
+            managed.append("extract_status: \(extractStatus.rawValue)")
+        }
+        if let checksum = paper.sourceChecksum {
+            managed.append("source_checksum: \(yamlString(checksum))")
+        }
 
         let preserved = preserveFrontmatterLines(existing: existingFrontmatter, excludingKeys: managedFrontmatterKeys)
         return ([ "---" ] + managed + preserved + [ "---" ]).joined(separator: "\n")
@@ -152,6 +159,7 @@ enum PaperMarkdownExporter {
             "id",
             "title",
             "cssclass",
+            "source_kind",
             "aliases",
             "year",
             "page_count",
@@ -164,7 +172,9 @@ enum PaperMarkdownExporter {
             "tags",
             "keywords",
             "source_pdf",
-            "original_filename"
+            "original_filename",
+            "extract_status",
+            "source_checksum"
         ]
     }
 
@@ -224,11 +234,13 @@ enum PaperMarkdownExporter {
         var metaLines: [String] = []
         metaLines.append("- Atlas: [[Atlas]]")
         metaLines.append("- PDF: [Open](\(paper.fileURL.absoluteString))")
+        metaLines.append("- Source kind: \(paper.sourceKind.label)")
         if let year = paper.year { metaLines.append("- Year: \(year)") }
         if let pages = paper.pageCount { metaLines.append("- Pages: \(pages)") }
         if let ingestedAt = paper.ingestedAt { metaLines.append("- Ingested: \(iso8601(ingestedAt))") }
         if let firstReadAt = paper.firstReadAt { metaLines.append("- First read: \(iso8601(firstReadAt))") }
         if let status = paper.readingStatus?.label { metaLines.append("- Status: \(status)") }
+        if let extractStatus = paper.extractStatus { metaLines.append("- Extract status: \(extractStatus.label)") }
         if let clusterID = paper.clusterIndex, let cluster = context?.clustersByID[clusterID] {
             let name = cluster.name.trimmingCharacters(in: .whitespacesAndNewlines)
             let source = context?.clusterNameSources[clusterID]?.label ?? "Unknown"
@@ -243,6 +255,9 @@ enum PaperMarkdownExporter {
         if let keywords = paper.keywords, !keywords.isEmpty {
             let rendered = keywords.prefix(12).map { "`\($0)`" }.joined(separator: ", ")
             metaLines.append("- Keywords: \(rendered)")
+        }
+        if let checksum = paper.sourceChecksum {
+            metaLines.append("- Checksum: `\(checksum.prefix(12))…`")
         }
         lines.append(contentsOf: callout(type: "info", title: "Meta", body: metaLines.joined(separator: "\n")))
         lines.append("")

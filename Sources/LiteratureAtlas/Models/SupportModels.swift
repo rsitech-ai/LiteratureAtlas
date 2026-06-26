@@ -34,6 +34,7 @@ struct PaperChunk: Identifiable, Codable, Equatable {
     var embedding: [Float]
     var order: Int
     var pageHint: Int?
+    var citationAnchor: CitationAnchor?
 }
 
 struct Point2D: Codable, Equatable, Sendable {
@@ -46,6 +47,9 @@ struct ChunkEvidence: Identifiable, Equatable {
     var chunk: PaperChunk
     var score: Float
     var paperTitle: String
+    var citationLabel: String? {
+        chunk.citationAnchor?.displayLabel
+    }
 }
 
 struct ClusterSummary {

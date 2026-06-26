@@ -118,6 +118,21 @@ final class AppModelTests: XCTestCase {
         XCTAssertEqual(filtered, [p2.id])
     }
 
+    func testSourceKindCountsReflectMixedCorpus() async {
+        let model = await MainActor.run { AppModel(skipInitialLoad: true) }
+
+        let pdf = Paper(version: 1, sourceKind: .pdf, filePath: "a", id: UUID(), originalFilename: "a.pdf", title: "PDF", introSummary: nil, summary: "s", methodSummary: nil, resultsSummary: nil, takeaways: nil, keywords: ["x"], userNotes: nil, userTags: nil, readingStatus: .unread, noteEmbedding: nil, userQuestions: nil, flashcards: nil, year: 2020, embedding: [1, 0], clusterIndex: nil)
+        let markdown = Paper(version: 1, sourceKind: .markdown, filePath: "b", id: UUID(), originalFilename: "b.md", title: "MD", introSummary: nil, summary: "s", methodSummary: nil, resultsSummary: nil, takeaways: nil, keywords: ["y"], userNotes: nil, userTags: nil, readingStatus: .done, noteEmbedding: nil, userQuestions: nil, flashcards: nil, year: 2021, embedding: [0, 1], clusterIndex: nil)
+
+        await MainActor.run {
+            model.papers = [pdf, markdown]
+        }
+
+        let counts = await MainActor.run { model.sourceKindCounts }
+        XCTAssertEqual(counts[.pdf], 1)
+        XCTAssertEqual(counts[.markdown], 1)
+    }
+
     func testUserEventsPersistAsJSONLines() async throws {
         let tmp = FileManager.default.temporaryDirectory.appendingPathComponent(UUID().uuidString)
         let model = await MainActor.run { AppModel(skipInitialLoad: true, customOutputRoot: tmp) }
