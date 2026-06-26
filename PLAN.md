@@ -1,72 +1,59 @@
 # Plan
 
 ## Context
-- User wants everything to run in sync with the Swift app, not only via terminal scripts.
-- Goal for this session: integrate post-rebuild reliability checks directly into app analytics workflow and verify app+CLI alignment.
+- User selected the "Immersive Galaxy" visual direction for LiteratureAtlas.
+- The app is a SwiftPM SwiftUI executable with a tabbed macOS/iOS surface.
+- Current app already has a strong dark animated `MapView`; quieter screens such as `IngestView`, `QuestionView`, and top-level analytics surfaces should be brought into the same visual language.
+- Existing document/knowledge-base work was preserved in commit `81aa19e` on `feat/andrzej_literatureatlas-document-kb-snapshot`; this branch starts from that commit.
 
 ## Assumptions
-- `examples/` contains enough PDFs to sample 10 files.
-- Ingestion can run in test context via `AppModel` when provided explicit input/output paths.
-- Analytics rebuild from app should remain the source of truth, with health checks attached to the same flow.
+- The redesign should improve visual polish without changing core data models or ingestion/analytics behavior.
+- macOS 26/iOS 26 availability lets us use current SwiftUI APIs, with platform checks where Liquid Glass APIs are not cross-platform or not available.
+- The user prefers expressive visuals over restrained native-library styling, but the app should still feel like a native macOS app.
 
 ## Constraints
-- Keep regular `swift test` fast by making smoke test opt-in via env vars.
-- Avoid mutating the repo's main `Output/` during sample verification.
-- Preserve existing app behavior for users who only need rebuild; checks should be additive and observable in UI.
+- Keep the diff focused on SwiftUI presentation and shared styling.
+- Do not touch unrelated Rust/analytics/data-quality blockers unless a build forces it.
+- Preserve native macOS affordances: toolbar buttons, system controls, sheets, keyboard-friendly flows, and semantic colors where practical.
+- Keep animation bounded to avoid jank in large lists and charts.
+- Do not commit local `.superpowers/` companion state.
 
 ## Options considered
-1) Keep checks external (scripts only) and ask user to run them manually
-2) Integrate health checks into app rebuild flow and expose their status in Analytics UI
-Chosen: 2 because it keeps app and scripts aligned, reducing drift and missed checks.
+1. Native macOS Library: strongest desktop convention, lowest risk, but less aligned with user's selected direction.
+2. Colorful Research Cockpit: balanced, native shell with richer visual hierarchy, but less immersive.
+3. Immersive Galaxy: app-wide dark cosmic visual language, higher wow factor, highest performance risk.
+
+Chosen: 3 because the user selected it explicitly after seeing visual options. Bound the implementation so heavy surfaces remain performant and native controls remain recognizable.
 
 ## Execution plan
-1. Update `TODO.md` for app-sync task.
-2. Extend `AppModel` analytics rebuild path to run post-rebuild health checks (`audit_output_artifacts.py` + `topic_focus_audit.py`).
-3. Add dedicated published app state for health-check in-flight/message/log.
-4. Update `AnalyticsView` backend card with health-check status and manual trigger.
-5. Run validation:
-   - `swift test`
-   - Python analytics tests
-   - full integrated smoke run (`scripts/run_example_smoke.sh --count 10`)
-6. Update docs/memory with app-sync behavior.
+1. Create a durable design spec under `docs/superpowers/specs/`.
+2. Add a shared galaxy visual system for colors, ambient backdrop, glass surfaces, hero headers, stat pills, and adaptive button styling.
+3. Replace the root static gradient with an animated galaxy backdrop and smoother tab transitions.
+4. Upgrade `GlassCard` to support richer galaxy material while keeping existing call sites simple.
+5. Refresh `IngestView` with a more immersive hero, status deck, and action controls.
+6. Refresh `QuestionView` with galaxy header, answer/evidence cards, and polished empty/loading states.
+7. Lightly tune `AnalyticsView` and shared overlays where low-risk, reusing the shared system.
+8. Build and test with SwiftPM, then run a short app launch smoke.
+9. Update `PLAN.md`, `TODO.md`, and `MEMORY.md` if durable conventions are established.
 
 ## Test plan
+- `swift build`
 - `swift test`
-- `.venv/bin/python -m pytest analytics/tests -v`
-- `.venv/bin/python -m ruff check scripts/topic_focus_audit.py analytics/tests/test_topic_focus_audit_unit.py`
-- `scripts/run_example_smoke.sh --count 10`
+- `swift run LiteratureAtlas` launch smoke, then stop the GUI process after startup.
+- If visual changes touch analytics Python or FFI accidentally, rerun the relevant existing gates.
 
 ## Risks and rollback
-- Risk: adding health checks to rebuild may make failures more visible/noisy -> Rollback: keep separate health-check message/output and preserve analytics rebuild result.
-- Risk: UI state complexity grows -> Rollback: keep fields parallel to existing rebuild state and reuse log panel pattern.
+- Risk: ambient animation increases CPU or invalidates large views too broadly.
+  - Rollback: keep animation inside isolated backdrop view, respect reduce motion, and remove repeat animation if build or runtime smoke suggests trouble.
+- Risk: dark galaxy styling reduces readability.
+  - Rollback: raise material opacity, increase contrast on cards, and keep text on semantic foreground styles where possible.
+- Risk: native macOS feel regresses.
+  - Rollback: keep system controls and toolbar placements; avoid custom replacement for TabView or menus in this pass.
 
 ## Memory impact
-- Record that app rebuild now chains health checks and where to inspect results in UI.
+- Record the shared visual system convention if implementation lands and builds.
 
-## Notes / Results (fill in at end)
+## Notes / Results
 - Changes:
-  - Integrated app-side analytics health checks (output audit + topic audit) into rebuild workflow.
-  - Added Analytics UI status and manual health-check trigger.
-  - Kept script-based smoke flow aligned with app health checks.
-  - Calibrated sample smoke topic threshold from `50%` to `ceil(40%)` dominant-topic requirement to remove 10-paper random flakiness while preserving a meaningful topic gate.
-  - Fixed paper JSON naming collision: `savePaperJSON` now writes id-suffixed filenames and safely migrates/removes legacy title-only files only when they match the same paper.
-  - Ran full-corpus ingestion on all `examples/` PDFs into repo `Output/` and validated full analytics/audit pipeline.
 - Tests run:
-  - `swift test` (pass)
-  - `.venv/bin/python -m pytest analytics/tests -v` (pass)
-  - `.venv/bin/python -m ruff check scripts/topic_focus_audit.py analytics/tests/test_topic_focus_audit_unit.py` (pass)
-  - `scripts/run_example_smoke.sh --count 10` (pass, random sample #1)
-  - `scripts/run_example_smoke.sh --count 10` (pass, random sample #2)
-  - `swift test --filter IngestionSmokeTests/testIngestsSampleFolderAndWritesArtifacts` with env:
-    `LITERATURE_ATLAS_INGEST_SMOKE_INPUT_DIR=examples`
-    `LITERATURE_ATLAS_INGEST_SMOKE_OUTPUT_ROOT=Output`
-    `LITERATURE_ATLAS_INGEST_SMOKE_EXPECTED_COUNT=115`
-    `LITERATURE_ATLAS_INGEST_SMOKE_TIMEOUT_SEC=10800` (pass after collision fix)
-  - `.venv/bin/python analytics/rebuild_analytics.py --base .` (pass, 115 papers)
-  - `cargo run --manifest-path analytics/rust/Cargo.toml --release -- --emb Output/analytics/paper_embeddings.parquet --out Output/analytics/ann_edges.json --k 8` (pass, 115 entries)
-  - `.venv/bin/python scripts/audit_output_artifacts.py` (pass, 0 findings)
-  - `.venv/bin/python scripts/topic_focus_audit.py --base .` (pass)
 - Tradeoffs:
-  - Health checks are strict and can fail independently of rebuild; this is intentional for reliability visibility.
-  - Smoke thresholds now prioritize stability on very small random samples while still requiring at least one coherent, search-ready topic slice.
-  - In-place full-corpus run mutates repo `Output/`; this was intentional per user request for production-ready artifacts.
