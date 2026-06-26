@@ -15,90 +15,12 @@ struct IngestView: View {
     var body: some View {
         NavigationStack {
             ScrollView {
-                VStack(alignment: .leading, spacing: 16) {
+                VStack(alignment: .leading, spacing: 18) {
                     headerCard
-
-                    GlassCard {
-                        VStack(alignment: .leading, spacing: 12) {
-                            HStack(spacing: 12) {
-                                Button {
-                                    showFolderPicker = true
-                                } label: {
-                                    Label("Select Folder of Documents", systemImage: "folder")
-                                    .frame(maxWidth: .infinity)
-                                }
-                                .buttonStyle(.borderedProminent)
-                                .disabled(model.isIngesting)
-
-                                Button("Stop") {
-                                    model.cancelIngestion()
-                                }
-                                .buttonStyle(.bordered)
-                                .disabled(!model.isIngesting)
-                            }
-
-                            if let folder = model.selectedFolder {
-                                Label("Selected folder: \(folder.lastPathComponent)", systemImage: "checkmark.folder")
-                                    .font(.subheadline)
-                                    .foregroundStyle(.secondary)
-                            }
-
-                            ProgressView(value: model.ingestionProgress)
-                                .tint(.mint)
-                                .animation(.easeInOut, value: model.ingestionProgress)
-                            HStack {
-                                Text("\(model.ingestionCompletedCount)/\(max(1, model.ingestionTotalCount)) files")
-                                Spacer()
-                                if !model.sourceKindCounts.isEmpty {
-                                    Text(model.sourceKindCounts.map { "\($0.key.label): \($0.value)" }.sorted().joined(separator: " • "))
-                                }
-                                Spacer()
-                                if !model.ingestionCurrentFile.isEmpty {
-                                    Text("Now: \(model.ingestionCurrentFile)")
-                                }
-                            }
-                            .font(.caption)
-                            .foregroundStyle(.secondary)
-                        }
-                    }
-
-                    GlassCard {
-                VStack(alignment: .leading, spacing: 8) {
-                    Text("Activity")
-                        .font(.headline)
-                    ingestStatusRow
-                    if let latest = latestIngestedPaper {
-                        Divider().padding(.vertical, 4)
-                        VStack(alignment: .leading, spacing: 4) {
-                            Text("Last processed").font(.caption).foregroundStyle(.secondary)
-                            Text(latest.title).font(.subheadline.bold())
-                            HStack(spacing: 10) {
-                                        if let year = latest.year {
-                                            Label("Year \(year)", systemImage: "calendar")
-                                                .font(.caption2)
-                                                .foregroundStyle(.secondary)
-                                        }
-                                        if let pages = latest.pageCount {
-                                            Label("\(pages) pages", systemImage: "doc.on.doc")
-                                                .font(.caption2)
-                                                .foregroundStyle(.secondary)
-                                        }
-                                    }
-                                }
-                            }
-                        }
-                    }
-
-                    GlassCard {
-                        VStack(alignment: .leading, spacing: 8) {
-                            if showStyleTips {
-                                Text("Tip: keep this view open; clustering can run in parallel; hover rows for quick actions.")
-                                    .font(.caption2)
-                                    .foregroundStyle(.secondary)
-                            }
-                            InteractiveLogPanel(title: "Log", text: $model.ingestionLog, minHeight: 240)
-                        }
-                    }
+                    overviewMetrics
+                    commandCenterCard
+                    activityCard
+                    logCard
 
                     if !model.papers.isEmpty {
                         ReadingPlannerCard(selectedPaper: $selectedPaper)
@@ -134,19 +56,150 @@ struct IngestView: View {
     }
 
     private var headerCard: some View {
-        GlassCard {
-            VStack(alignment: .leading, spacing: 8) {
-                HStack {
-                    VStack(alignment: .leading, spacing: 4) {
-                        Text("Step 1 - Ingest Documents")
-                            .font(.title.bold())
-                        Text("Ingest PDFs and Markdown files, build traceable summaries with citation anchors, and write JSON + compiled Markdown artifacts into the repo Output folder.")
-                            .foregroundStyle(.secondary)
-                            .fixedSize(horizontal: false, vertical: true)
+        GalaxyHeroCard(
+            eyebrow: "Step 1",
+            title: "Ingest Documents",
+            subtitle: "Pull PDFs and Markdown into the atlas, build cited summaries, and compile durable knowledge artifacts into the repo Output folder.",
+            systemImage: "sparkles.rectangle.stack",
+            tint: GalaxyTheme.cometMint
+        ) {
+            availabilityBadge
+        }
+    }
+
+    private var overviewMetrics: some View {
+        HStack(spacing: 12) {
+            GalaxyMetricTile(
+                title: "Documents",
+                value: "\(model.papers.count)",
+                systemImage: "doc.text.fill",
+                tint: GalaxyTheme.nebulaBlue
+            )
+            GalaxyMetricTile(
+                title: "Completed",
+                value: "\(model.ingestionCompletedCount)",
+                systemImage: "checkmark.seal.fill",
+                tint: GalaxyTheme.cometMint
+            )
+            GalaxyMetricTile(
+                title: "Progress",
+                value: String(format: "%.0f%%", model.ingestionProgress * 100),
+                systemImage: "waveform.path.ecg",
+                tint: model.isIngesting ? GalaxyTheme.solarGold : GalaxyTheme.nebulaViolet
+            )
+        }
+    }
+
+    private var commandCenterCard: some View {
+        GlassCard(tint: GalaxyTheme.cometMint, prominence: .hero) {
+            VStack(alignment: .leading, spacing: 14) {
+                GalaxySectionHeader(
+                    "Corpus intake",
+                    subtitle: "Select a source folder and keep this window open while the atlas processes files.",
+                    systemImage: "tray.and.arrow.down.fill",
+                    tint: GalaxyTheme.cometMint
+                )
+
+                HStack(spacing: 12) {
+                    GalaxyPrimaryActionButton(
+                        title: "Select Folder of Documents",
+                        systemImage: "folder.fill",
+                        tint: GalaxyTheme.cometMint
+                    ) {
+                        showFolderPicker = true
                     }
-                    Spacer()
-                    availabilityBadge
+                    .disabled(model.isIngesting)
+
+                    Button {
+                        model.cancelIngestion()
+                    } label: {
+                        Label("Stop", systemImage: "stop.fill")
+                            .frame(minWidth: 92)
+                    }
+                    .buttonStyle(.bordered)
+                    .tint(.red)
+                    .disabled(!model.isIngesting)
                 }
+
+                if let folder = model.selectedFolder {
+                    GalaxyStatusPill(
+                        "Selected: \(folder.lastPathComponent)",
+                        systemImage: "checkmark.folder.fill",
+                        tint: GalaxyTheme.cometMint
+                    )
+                }
+
+                ProgressView(value: model.ingestionProgress)
+                    .tint(GalaxyTheme.cometMint)
+                    .animation(.easeInOut, value: model.ingestionProgress)
+
+                HStack(spacing: 10) {
+                    GalaxyStatusPill(
+                        "\(model.ingestionCompletedCount)/\(max(1, model.ingestionTotalCount)) files",
+                        systemImage: "number",
+                        tint: GalaxyTheme.nebulaBlue,
+                        isPulsing: model.isIngesting
+                    )
+
+                    if !model.sourceKindCounts.isEmpty {
+                        GalaxyStatusPill(
+                            model.sourceKindCounts.map { "\($0.key.label): \($0.value)" }.sorted().joined(separator: "  "),
+                            systemImage: "doc.on.doc",
+                            tint: GalaxyTheme.nebulaViolet
+                        )
+                    }
+
+                    if !model.ingestionCurrentFile.isEmpty {
+                        Text("Now: \(model.ingestionCurrentFile)")
+                            .font(.caption)
+                            .foregroundStyle(.secondary)
+                            .lineLimit(1)
+                            .truncationMode(.middle)
+                    }
+                }
+            }
+        }
+    }
+
+    private var activityCard: some View {
+        GlassCard(tint: GalaxyTheme.nebulaViolet) {
+            VStack(alignment: .leading, spacing: 12) {
+                GalaxySectionHeader("Activity", subtitle: "Live pipeline state", systemImage: "dot.radiowaves.left.and.right", tint: GalaxyTheme.nebulaViolet)
+                ingestStatusRow
+
+                if let latest = latestIngestedPaper {
+                    Divider().opacity(0.45).padding(.vertical, 2)
+                    VStack(alignment: .leading, spacing: 6) {
+                        Text("Last processed")
+                            .font(.caption.bold())
+                            .foregroundStyle(.secondary)
+                        Text(latest.title)
+                            .font(.subheadline.bold())
+                            .lineLimit(2)
+                        HStack(spacing: 10) {
+                            if let year = latest.year {
+                                GalaxyStatusPill("Year \(year)", systemImage: "calendar", tint: GalaxyTheme.solarGold)
+                            }
+                            if let pages = latest.pageCount {
+                                GalaxyStatusPill("\(pages) pages", systemImage: "doc.on.doc", tint: GalaxyTheme.nebulaBlue)
+                            }
+                        }
+                    }
+                }
+            }
+        }
+    }
+
+    private var logCard: some View {
+        GlassCard(tint: GalaxyTheme.nebulaBlue) {
+            VStack(alignment: .leading, spacing: 10) {
+                GalaxySectionHeader("Operations log", subtitle: "Searchable ingestion and analytics trace", systemImage: "terminal.fill", tint: GalaxyTheme.nebulaBlue)
+                if showStyleTips {
+                    Text("Keep this view open while processing; clustering and analytics can continue after ingest.")
+                        .font(.caption2)
+                        .foregroundStyle(.secondary)
+                }
+                InteractiveLogPanel(title: "Log", text: $model.ingestionLog, minHeight: 240)
             }
         }
     }
@@ -156,17 +209,11 @@ struct IngestView: View {
         switch availability {
         case .available:
             return AnyView(
-                Label("On-device model ready", systemImage: "checkmark.circle.fill")
-                    .foregroundStyle(.green)
-                    .padding(8)
-                    .background(.green.opacity(0.15), in: RoundedRectangle(cornerRadius: 12, style: .continuous))
+                GalaxyStatusPill("On-device model ready", systemImage: "checkmark.circle.fill", tint: GalaxyTheme.cometMint)
             )
         case .unavailable(let reason):
             return AnyView(
-                Label("Model unavailable", systemImage: "exclamationmark.triangle")
-                    .foregroundStyle(.orange)
-                    .padding(8)
-                    .background(.orange.opacity(0.15), in: RoundedRectangle(cornerRadius: 12, style: .continuous))
+                GalaxyStatusPill("Model unavailable", systemImage: "exclamationmark.triangle", tint: GalaxyTheme.solarGold)
                     .overlay(
                         Text(String(describing: reason))
                             .font(.caption2)
@@ -179,39 +226,38 @@ struct IngestView: View {
 
     private var ingestStatusRow: some View {
         HStack(spacing: 12) {
-            statusPill(title: model.isIngesting ? "Ingesting" : "Idle", color: model.isIngesting ? .mint : .gray)
-            statusPill(title: model.isClustering ? "Clustering" : "Not clustering", color: model.isClustering ? .blue : .gray.opacity(0.8))
-            statusPill(title: "Documents: \(model.papers.count)", color: .purple.opacity(0.8))
+            GalaxyStatusPill(
+                model.isIngesting ? "Ingesting" : "Idle",
+                systemImage: model.isIngesting ? "bolt.horizontal.fill" : "moon.stars.fill",
+                tint: model.isIngesting ? GalaxyTheme.cometMint : .secondary,
+                isPulsing: model.isIngesting
+            )
+            GalaxyStatusPill(
+                model.isClustering ? "Clustering" : "Not clustering",
+                systemImage: "circle.hexagongrid.fill",
+                tint: model.isClustering ? GalaxyTheme.nebulaBlue : .secondary,
+                isPulsing: model.isClustering
+            )
+            GalaxyStatusPill("Documents: \(model.papers.count)", systemImage: "doc.text.fill", tint: GalaxyTheme.nebulaViolet)
         }
-    }
-
-    private func statusPill(title: String, color: Color) -> some View {
-        Text(title)
-            .font(.caption.bold())
-            .padding(.vertical, 6)
-            .padding(.horizontal, 10)
-            .background(color.opacity(0.15), in: Capsule())
-            .overlay(Capsule().stroke(color.opacity(0.3), lineWidth: 1))
-            .foregroundStyle(color)
     }
 
     private var claimGraphCard: some View {
         let edges = topEdges.isEmpty ? model.claimGraphEdges() : topEdges
-        return GlassCard {
-            VStack(alignment: .leading, spacing: 8) {
-                Text("Claim graph")
-                    .font(.headline)
-                Text("Shows how claims support, extend, or contradict each other across papers.")
-                    .font(.caption2)
-                    .foregroundStyle(.secondary)
+        return GlassCard(tint: GalaxyTheme.nebulaPink) {
+            VStack(alignment: .leading, spacing: 10) {
+                GalaxySectionHeader(
+                    "Claim graph",
+                    subtitle: "Shows how claims support, extend, or contradict each other across papers.",
+                    systemImage: "point.3.connected.trianglepath.dotted",
+                    tint: GalaxyTheme.nebulaPink
+                )
                 if edges.isEmpty {
                     Text("No claim relations yet. Ingest papers to build the evidence graph.")
                         .font(.caption)
                         .foregroundStyle(.secondary)
                 } else {
-                    Text("Top relations")
-                        .font(.caption)
-                        .foregroundStyle(.secondary)
+                    GalaxyStatusPill("Top relations", systemImage: "link", tint: GalaxyTheme.nebulaPink)
                     ForEach(edges.prefix(5), id: \.id) { edge in
                         if let source = model.papers.first(where: { $0.claims?.contains(where: { $0.id == edge.sourceClaimID }) == true })?.title,
                            let target = model.papers.first(where: { $0.claims?.contains(where: { $0.id == edge.targetClaimID }) == true })?.title {
@@ -219,7 +265,7 @@ struct IngestView: View {
                                 Text(edge.kind.rawValue.capitalized)
                                     .font(.caption2.bold())
                                     .padding(6)
-                                    .background(Color.blue.opacity(0.1), in: Capsule())
+                                    .background(GalaxyTheme.nebulaBlue.opacity(0.14), in: Capsule())
                                 VStack(alignment: .leading, spacing: 2) {
                                     Text("From \(source) → \(target)")
                                         .font(.subheadline)
@@ -244,13 +290,14 @@ struct IngestView: View {
     }
 
     private var assumptionStressCard: some View {
-        GlassCard {
-            VStack(alignment: .leading, spacing: 8) {
-                Text("Assumption stress test")
-                    .font(.headline)
-                Text("Pick an assumption (e.g., “infinite liquidity”, “Poisson arrivals”) and see which claims rely on it.")
-                    .font(.caption)
-                    .foregroundStyle(.secondary)
+        GlassCard(tint: GalaxyTheme.solarGold) {
+            VStack(alignment: .leading, spacing: 10) {
+                GalaxySectionHeader(
+                    "Assumption stress test",
+                    subtitle: "Pick an assumption and see which claims rely on it.",
+                    systemImage: "exclamationmark.shield.fill",
+                    tint: GalaxyTheme.solarGold
+                )
                 HStack(alignment: .top) {
                     TextField("e.g., infinite liquidity", text: $assumptionQuery, axis: .vertical)
                         .textFieldStyle(.roundedBorder)
