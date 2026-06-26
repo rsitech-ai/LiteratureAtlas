@@ -22,7 +22,7 @@
 - Rust: `cargo clippy --manifest-path analytics/ffi/Cargo.toml` and `cargo clippy --manifest-path analytics/rust/Cargo.toml`
 
 ### Tests
-- Swift: `swift test` (43 tests, typically 1 opt-in smoke test skipped without env vars; requires macOS 26+)
+- Swift: `swift test` (49 tests, typically 1 opt-in smoke test skipped without env vars; requires macOS 26+)
 - Python: `.venv/bin/python -m pytest analytics/tests -v` (4 tests)
 - Rust FFI: `cargo test --manifest-path analytics/ffi/Cargo.toml` (3 tests)
 
@@ -43,6 +43,7 @@
 - **Analytics app sync**: `rebuildAnalyticsViaPython` and `rebuildAnalyticsWithCutoffs` now run output/topic health checks after successful rebuild and expose status/log in `AnalyticsView`; manual health-check trigger available in Analytics backend card.
 - **Immersive galaxy UI**: Shared visual styling lives in `Sources/LiteratureAtlas/Views/GalaxyTheme.swift`; prefer its backdrop, hero, metric, status pill, section header, and action helpers plus tinted `GlassCard` before adding one-off colors or custom card styles.
 - **Knowledge Universe map**: The primary map experience is general-purpose corpus exploration and opens by default as `Universe` / `Knowledge Universe`; trading-specific filtering and ranking belong in `TradingLensView`, not the main map.
+- **Knowledge Universe interaction**: Map taps select/inspect nodes in the right panel; deeper navigation is explicit from inspector actions. Paper graph nodes use adaptive labels, hover/selection expansion, canvas pan/zoom, and per-node drag offsets.
 - **Claim graph performance**: Full claim relation inference is corpus-scale and must not run during SwiftUI `body` evaluation or app launch. Use bounded previews for UI cards and keep full graph export off the main actor.
 - **Background progress UX**: Long-running clustering may show progress, but global overlays must not intercept normal app clicks unless the task has an enabled cancel/stop action.
 
@@ -78,3 +79,4 @@
 - 2026-06-26: Removed launch-time Obsidian vault regeneration/upgrade work and made Ingest claim graph preview explicit, bounded, and asynchronous after profiling a ~190% CPU startup hang (`Sources/LiteratureAtlas/App/AppModel.swift`, `Sources/LiteratureAtlas/Views/IngestView.swift`, `Sources/LiteratureAtlas/Services/ClaimGraph.swift`)
 - 2026-06-26: Made clustering progress non-blocking by preventing `GlobalProgressOverlay` from capturing clicks during clustering and running galaxy KMeans at utility priority (`Sources/LiteratureAtlas/Views/GlobalProgressOverlay.swift`, `Sources/LiteratureAtlas/App/AppModel.swift`)
 - 2026-06-26: Reframed the primary map as a general `Knowledge Universe`, removed trading-specific controls from the main paper map, made Universe the default launch section, and added bounded animated starfield/nebula canvases with Reduce Motion support (`Sources/LiteratureAtlas/Views/MapView.swift`, `Sources/LiteratureAtlas/App/AppNavigation.swift`)
+- 2026-06-26: Fixed Knowledge Universe graph interaction so cluster taps inspect instead of auto-navigating, paper selection drives the right inspector, paper graph nodes are labeled/draggable, and animation cadence is bounded for a responsive debug build (`Sources/LiteratureAtlas/Views/MapView.swift`)

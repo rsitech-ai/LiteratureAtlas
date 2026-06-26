@@ -87,7 +87,7 @@ private struct UniverseField: View {
     @Environment(\.accessibilityReduceMotion) private var reduceMotion
 
     var body: some View {
-        TimelineView(.periodic(from: .now, by: reduceMotion ? 3600 : 1.0 / 15.0)) { timeline in
+        TimelineView(.periodic(from: .now, by: reduceMotion ? 3600 : 1.0 / 10.0)) { timeline in
             GeometryReader { geo in
                 let time = reduceMotion ? 0 : timeline.date.timeIntervalSinceReferenceDate
                 ZStack {
@@ -341,7 +341,7 @@ private enum PaperColorBy: String, CaseIterable, Identifiable {
 @available(macOS 26, iOS 26, *)
 private struct MapBackdropView: View {
     var body: some View {
-        UniverseField(starCount: 120)
+        UniverseField(starCount: 90)
             .ignoresSafeArea()
             .allowsHitTesting(false)
     }
@@ -357,6 +357,7 @@ struct MapView: View {
     @State private var selectedSubtopicID: Int?
     @State private var selectedClusterIDs: Set<Int> = []
     @State private var selectedPaper: Paper?
+    @State private var focusedPaperID: UUID?
     @State private var paperHighlights: [UUID: PaperNoveltyScore] = [:]
     @State private var paperSearchQuery: String = ""
     @State private var paperSort: PaperSort = .recommended
@@ -528,6 +529,7 @@ struct MapView: View {
                                     sourceFilter: $paperSourceFilter,
 	                                sort: $paperSort,
 	                                colorBy: $paperColorBy,
+                                    focusedPaperID: $focusedPaperID,
 	                                onSelectPaper: { paper in
 	                                    withAnimation(.spring(response: 0.35, dampingFraction: 0.85)) {
 	                                        selectedPaper = paper
@@ -558,11 +560,8 @@ struct MapView: View {
                                 } : { cluster in
                                     selectSubtopic(cluster)
                                 },
-                                onSelect: zoomLevel == .mega ? { cluster in
-                                    selectMega(cluster)
-                                } : { cluster in
-                                    if zoomLevel == .topics { selectSubtopic(cluster) }
-                                },
+                                onSelect: nil,
+                                zoomLabel: zoomLevel == .mega ? "Zoom into subtopics" : "Open paper graph",
                                 lensLabel: lens.label
                             )
                             .transition(.opacity.combined(with: .scale(scale: 0.985)))
@@ -967,6 +966,7 @@ struct MapView: View {
             selectedMegaID = cluster.id
             selectedSubtopicID = nil
             selectedClusterIDs = [cluster.id]
+            focusedPaperID = nil
             zoomLevel = .topics
         }
     }
@@ -987,6 +987,7 @@ struct MapView: View {
             selectedClusterIDs = [cluster.id]
             zoomLevel = .papers
             paperSearchQuery = ""
+            focusedPaperID = nil
         }
     }
 }
@@ -1010,6 +1011,7 @@ struct ClusterMapAndSidebar: View {
     let onZoomOut: (() -> Void)?
     let onZoom: ((Cluster) -> Void)?
     let onSelect: ((Cluster) -> Void)?
+    let zoomLabel: String
     let lensLabel: String
     private var driftMagnitudes: [Int: Double] {
         guard let drift = model.analyticsSummary?.drift else { return [:] }
@@ -1092,7 +1094,7 @@ struct ClusterMapAndSidebar: View {
                             .foregroundStyle(.white.opacity(0.7))
                     } else {
                         ForEach(clusters.filter { selectedClusterIDs.contains($0.id) }) { cluster in
-                            ClusterDetailCard(cluster: cluster, onZoom: onZoom != nil && !isZoomed ? {
+                            ClusterDetailCard(cluster: cluster, zoomLabel: zoomLabel, onZoom: onZoom != nil ? {
                                 onZoom?(cluster)
                             } : nil)
                         }
@@ -1119,9 +1121,10 @@ private struct PaperMapAndSidebar: View {
     let driftVector: (dx: Double, dy: Double)?
 	    @Binding var searchQuery: String
 	    @Binding var statusFilter: PaperStatusFilter
-        @Binding var sourceFilter: PaperSourceFilter
+	    @Binding var sourceFilter: PaperSourceFilter
 	    @Binding var sort: PaperSort
 	    @Binding var colorBy: PaperColorBy
+        @Binding var focusedPaperID: UUID?
 	    var onSelectPaper: ((Paper) -> Void)?
 	    var onSelectSubtopic: ((Cluster) -> Void)?
 
@@ -1191,6 +1194,12 @@ private struct PaperMapAndSidebar: View {
 
 	        return base.sorted(by: comparator)
 	    }
+
+    private var focusedPaper: Paper? {
+        guard let focusedPaperID else { return nil }
+        return filteredPapers.first(where: { $0.id == focusedPaperID })
+            ?? papers.first(where: { $0.id == focusedPaperID })
+    }
 
 	    private var comparator: (Paper, Paper) -> Bool {
 	        { lhs, rhs in
@@ -1291,6 +1300,7 @@ private struct PaperMapAndSidebar: View {
 	                    tintByPaperID: tintByID,
 	                    driftVector: driftVector,
 	                    emptyMessage: emptyMessage,
+                        focusedPaperID: $focusedPaperID,
 	                    onSelectPaper: onSelectPaper
 	                )
                 .frame(minHeight: 360)
@@ -1329,6 +1339,22 @@ private struct PaperMapAndSidebar: View {
                             .foregroundStyle(.white.opacity(0.72))
                     }
 
+                    if let focusedPaper {
+                        FocusedPaperInspector(
+                            paper: focusedPaper,
+                            accentTint: tintByID[focusedPaper.id],
+                            metric: metricsByID[focusedPaper.id],
+                            highlight: highlights[focusedPaper.id],
+                            onOpen: { onSelectPaper?(focusedPaper) },
+                            onClear: {
+                                withAnimation(.spring(response: 0.35, dampingFraction: 0.85)) {
+                                    focusedPaperID = nil
+                                }
+                            }
+                        )
+                        .transition(.opacity.combined(with: .move(edge: .top)))
+                    }
+
                     HStack(spacing: 10) {
                         Menu {
                             if subtopics.isEmpty {
@@ -1353,6 +1379,7 @@ private struct PaperMapAndSidebar: View {
                                     sourceFilter = .all
 	                                sort = .recommended
 	                                colorBy = .novelty
+                                    focusedPaperID = nil
 	                            }
 	                            .buttonStyle(.bordered)
 	                            .tint(Color.white.opacity(0.12))
@@ -1407,6 +1434,7 @@ private struct PaperMapAndSidebar: View {
                             } else {
                                 ForEach(filteredPapers) { paper in
                                     Button {
+                                        focusedPaperID = paper.id
                                         onSelectPaper?(paper)
 	                                    } label: {
 	                                        PaperRowCard(
@@ -1427,6 +1455,90 @@ private struct PaperMapAndSidebar: View {
             }
             .frame(width: 390)
         }
+    }
+}
+
+@available(macOS 26, iOS 26, *)
+private struct FocusedPaperInspector: View {
+    let paper: Paper
+    let accentTint: Color?
+    let metric: AnalyticsSummary.PaperMetric?
+    let highlight: PaperNoveltyScore?
+    let onOpen: () -> Void
+    let onClear: () -> Void
+
+    private func zText(_ value: Double) -> String {
+        String(format: "%+.2f", value)
+    }
+
+    var body: some View {
+        VStack(alignment: .leading, spacing: 10) {
+            HStack(alignment: .top, spacing: 10) {
+                Circle()
+                    .fill(accentTint ?? Color.orange.opacity(0.9))
+                    .frame(width: 12, height: 12)
+                    .overlay(Circle().stroke(Color.white.opacity(0.35), lineWidth: 1))
+                    .shadow(color: (accentTint ?? Color.orange).opacity(0.45), radius: 8)
+                    .padding(.top, 4)
+
+                VStack(alignment: .leading, spacing: 4) {
+                    Text("Selected paper")
+                        .font(.caption.bold())
+                        .foregroundStyle(.white.opacity(0.72))
+                    Text(paper.title)
+                        .font(.subheadline.bold())
+                        .foregroundStyle(.white)
+                        .lineLimit(3)
+                }
+
+                Spacer(minLength: 0)
+
+                Button(action: onClear) {
+                    Image(systemName: "xmark.circle.fill")
+                        .foregroundStyle(.white.opacity(0.7))
+                }
+                .buttonStyle(.plain)
+            }
+
+            Text(paper.summary)
+                .font(.caption)
+                .foregroundStyle(.white.opacity(0.82))
+                .lineLimit(4)
+
+            HStack(spacing: 6) {
+                if let year = paper.year {
+                    MiniPill(label: "\(year)", tint: Color.white.opacity(0.10))
+                }
+                if let status = paper.readingStatus {
+                    MiniPill(label: status.label, tint: Color.green.opacity(0.18))
+                }
+                if let metric {
+                    MiniPill(label: "N \(zText(metric.zNovelty))", tint: Color.pink.opacity(0.20))
+                    MiniPill(label: "C \(zText(metric.zConsensus))", tint: Color.mint.opacity(0.18))
+                } else if let highlight {
+                    if highlight.novelty > 0.6 {
+                        MiniPill(label: "Outlier", tint: Color.purple.opacity(0.22))
+                    }
+                    if highlight.saturation > 0.6 {
+                        MiniPill(label: "Dense", tint: Color.orange.opacity(0.22))
+                    }
+                }
+                Spacer(minLength: 0)
+            }
+
+            Button(action: onOpen) {
+                Label("Open full details", systemImage: "doc.text.magnifyingglass")
+                    .font(.caption.bold())
+            }
+            .buttonStyle(.borderedProminent)
+            .tint(Color.white.opacity(0.16))
+        }
+        .padding(12)
+        .background(Color.white.opacity(0.07), in: RoundedRectangle(cornerRadius: 16, style: .continuous))
+        .overlay(
+            RoundedRectangle(cornerRadius: 16, style: .continuous)
+                .stroke(Color.white.opacity(0.16), lineWidth: 1)
+        )
     }
 }
 
@@ -1604,7 +1716,7 @@ struct ClusterGraphView: View {
     }
 
     var body: some View {
-        TimelineView(.periodic(from: .now, by: reduceMotion ? 3600 : 1.0 / 18.0)) { timeline in
+        TimelineView(.periodic(from: .now, by: reduceMotion ? 3600 : 1.0 / 12.0)) { timeline in
             GeometryReader { geo in
                 let size = geo.size
                 let center = CGPoint(x: size.width / 2, y: size.height / 2)
@@ -1616,7 +1728,7 @@ struct ClusterGraphView: View {
                 })
 
                 ZStack {
-                    UniverseField(cornerRadius: 24, starCount: 130, isCanvas: true)
+                    UniverseField(cornerRadius: 24, starCount: 95, isCanvas: true)
                         .overlay(
                             ZStack {
                                 ForEach(0..<6, id: \.self) { idx in
@@ -1679,6 +1791,7 @@ struct ClusterGraphView: View {
                                     pulsePhase: reduceMotion ? 0 : time + Double(cluster.id)
                                 )
                                     .position(pos)
+                                    .contentShape(Rectangle())
                                     .onTapGesture {
                                         withAnimation(.spring(response: 0.35, dampingFraction: 0.85)) {
                                             if selectedClusterIDs.contains(cluster.id) {
@@ -1806,6 +1919,7 @@ struct ClusterNodeView: View {
 struct ClusterDetailCard: View {
     @EnvironmentObject private var model: AppModel
     let cluster: Cluster
+    let zoomLabel: String
     let onZoom: (() -> Void)?
 
     @State private var isEditing: Bool = false
@@ -1946,7 +2060,7 @@ struct ClusterDetailCard: View {
                     Button {
                         onZoom()
                     } label: {
-                        Label("Zoom into subtopics", systemImage: "magnifyingglass")
+                        Label(zoomLabel, systemImage: "magnifyingglass")
                             .font(.subheadline.bold())
                     }
                     .buttonStyle(.borderedProminent)
@@ -2041,13 +2155,22 @@ struct PaperScatterView: View {
     let tintByPaperID: [UUID: Color]
     let driftVector: (dx: Double, dy: Double)?
     let emptyMessage: String
+    @Binding var focusedPaperID: UUID?
     var onSelectPaper: ((Paper) -> Void)?
     @Environment(\.accessibilityReduceMotion) private var reduceMotion
-    @State private var expandedPaperID: UUID?
+    @State private var hoveredPaperID: UUID?
+    @State private var paperOffsets: [UUID: CGSize] = [:]
+    @State private var isDraggingPaperNode: Bool = false
+    @GestureState private var livePaperDrag: PaperDrag?
     @State private var panOffset: CGSize = .zero
     @GestureState private var gesturePan: CGSize = .zero
     @State private var zoomScale: CGFloat = 1.0
     @GestureState private var gestureZoom: CGFloat = 1.0
+
+    private struct PaperDrag: Equatable {
+        let id: UUID
+        let translation: CGSize
+    }
 
     var body: some View {
         GeometryReader { geo in
@@ -2066,10 +2189,10 @@ struct PaperScatterView: View {
                     base: basePositions,
                     center: center,
                     radius: radius,
-                    expandedPaperID: expandedPaperID
+                    expandedPaperID: focusedPaperID
                 )
             ZStack {
-                UniverseField(cornerRadius: 24, starCount: usesDotMode ? 180 : 110, isCanvas: true)
+                UniverseField(cornerRadius: 24, starCount: usesDotMode ? 130 : 90, isCanvas: true)
                     .shadow(color: .black.opacity(0.25), radius: 16, x: 0, y: 10)
 
                 if papers.isEmpty {
@@ -2086,7 +2209,7 @@ struct PaperScatterView: View {
                         }
                         .onTapGesture {
                             withAnimation(.spring(response: 0.35, dampingFraction: 0.85)) {
-                                expandedPaperID = nil
+                                focusedPaperID = nil
                             }
                         }
 
@@ -2101,23 +2224,43 @@ struct PaperScatterView: View {
 
                         if usesDotMode {
 	                            ForEach(Array(papers.enumerated()), id: \.1.id) { idx, paper in
-	                                let pos = resolvedPositions[idx]
+	                                let pos = adjustedPosition(resolvedPositions[idx], for: paper.id)
 	                                let score = highlights[paper.id]
-	                                let isSelected = expandedPaperID == paper.id
-	                                PaperDotView(highlight: score, isSelected: isSelected, overrideTint: tintByPaperID[paper.id])
+                                    let isSelected = focusedPaperID == paper.id
+                                    let isHovered = hoveredPaperID == paper.id
+                                    let showsLabel = shouldShowGraphLabel(
+                                        index: idx,
+                                        total: papers.count,
+                                        scale: scale,
+                                        isSelected: isSelected,
+                                        isHovered: isHovered
+                                    )
+	                                PaperGraphNodeView(
+                                        paper: paper,
+                                        highlight: score,
+                                        isSelected: isSelected,
+                                        isHovered: isHovered,
+                                        overrideTint: tintByPaperID[paper.id],
+                                        showsLabel: showsLabel
+                                    )
 	                                    .position(pos)
-	                                    .contentShape(Circle())
+                                        .zIndex(isSelected ? 7 : (isHovered ? 4 : 0))
+	                                    .contentShape(Rectangle())
+                                        .onHover { hovering in
+                                            hoveredPaperID = hovering ? paper.id : (hoveredPaperID == paper.id ? nil : hoveredPaperID)
+                                        }
 	                                    .onTapGesture {
 	                                        withAnimation(.spring(response: 0.35, dampingFraction: 0.85)) {
-	                                            expandedPaperID = isSelected ? nil : paper.id
+	                                            focusedPaperID = isSelected ? nil : paper.id
                                         }
                                     }
+                                    .simultaneousGesture(paperDragGesture(for: paper.id))
                             }
 
-                            if let selectedID = expandedPaperID,
+                            if let selectedID = focusedPaperID,
                                let idx = papers.firstIndex(where: { $0.id == selectedID }) {
                                 let paper = papers[idx]
-                                let pos = resolvedPositions[idx]
+                                let pos = adjustedPosition(resolvedPositions[idx], for: paper.id)
 	                                PaperNodeView(
 	                                    paper: paper,
 	                                    highlight: highlights[paper.id],
@@ -2127,13 +2270,14 @@ struct PaperScatterView: View {
 	                                )
                                 .position(pos)
                                 .zIndex(10)
+                                .simultaneousGesture(paperDragGesture(for: paper.id))
                                 .transition(.opacity.combined(with: .scale(scale: 0.98)))
                             }
                         } else {
                             ForEach(Array(papers.enumerated()), id: \.1.id) { idx, paper in
-                                let pos = resolvedPositions[idx]
+                                let pos = adjustedPosition(resolvedPositions[idx], for: paper.id)
                                 let score = highlights[paper.id]
-                                let isExpanded = expandedPaperID == paper.id
+                                let isExpanded = focusedPaperID == paper.id
 	                                PaperNodeView(
 	                                    paper: paper,
 	                                    highlight: score,
@@ -2145,9 +2289,10 @@ struct PaperScatterView: View {
                                 .zIndex(isExpanded ? 10 : 0)
                                 .onTapGesture {
                                     withAnimation(.spring(response: 0.35, dampingFraction: 0.85)) {
-                                        expandedPaperID = isExpanded ? nil : paper.id
+                                        focusedPaperID = isExpanded ? nil : paper.id
                                     }
                                 }
+                                .simultaneousGesture(paperDragGesture(for: paper.id))
                                 .animation(.spring(response: 0.45, dampingFraction: 0.85), value: pos)
                             }
                         }
@@ -2244,9 +2389,10 @@ struct PaperScatterView: View {
     private func panAndZoomGesture() -> some Gesture {
         let pan = DragGesture(minimumDistance: 4)
             .updating($gesturePan) { value, state, _ in
-                state = value.translation
+                state = isDraggingPaperNode ? .zero : value.translation
             }
             .onEnded { value in
+                guard !isDraggingPaperNode else { return }
                 panOffset = CGSize(width: panOffset.width + value.translation.width, height: panOffset.height + value.translation.height)
             }
 
@@ -2264,13 +2410,56 @@ struct PaperScatterView: View {
     private func clampScale(_ value: CGFloat) -> CGFloat {
         min(max(value, 0.65), 2.6)
     }
+
+    private func adjustedPosition(_ point: CGPoint, for paperID: UUID) -> CGPoint {
+        let offset = paperOffset(for: paperID)
+        return CGPoint(x: point.x + offset.width, y: point.y + offset.height)
+    }
+
+    private func paperOffset(for paperID: UUID) -> CGSize {
+        let base = paperOffsets[paperID] ?? .zero
+        guard let livePaperDrag, livePaperDrag.id == paperID else { return base }
+        return CGSize(
+            width: base.width + livePaperDrag.translation.width,
+            height: base.height + livePaperDrag.translation.height
+        )
+    }
+
+    private func paperDragGesture(for paperID: UUID) -> some Gesture {
+        DragGesture(minimumDistance: 3)
+            .onChanged { _ in
+                isDraggingPaperNode = true
+            }
+            .updating($livePaperDrag) { value, state, _ in
+                state = PaperDrag(id: paperID, translation: value.translation)
+            }
+            .onEnded { value in
+                let base = paperOffsets[paperID] ?? .zero
+                paperOffsets[paperID] = CGSize(
+                    width: base.width + value.translation.width,
+                    height: base.height + value.translation.height
+                )
+                isDraggingPaperNode = false
+            }
+    }
+
+    private func shouldShowGraphLabel(index: Int, total: Int, scale: CGFloat, isSelected: Bool, isHovered: Bool) -> Bool {
+        if isSelected || isHovered { return true }
+        if total <= 45 { return true }
+        if total <= 95 { return index.isMultiple(of: 2) || scale > 1.35 }
+        let stride = max(3, total / 32)
+        return index.isMultiple(of: stride) || scale > 1.6 && index.isMultiple(of: 2)
+    }
 }
 
 @available(macOS 26, iOS 26, *)
-private struct PaperDotView: View {
+private struct PaperGraphNodeView: View {
+    let paper: Paper
     let highlight: PaperNoveltyScore?
     let isSelected: Bool
+    let isHovered: Bool
     let overrideTint: Color?
+    let showsLabel: Bool
 
     private var tint: Color {
         if let overrideTint { return overrideTint }
@@ -2281,15 +2470,42 @@ private struct PaperDotView: View {
     }
 
     var body: some View {
-        Circle()
-            .fill(tint)
-            .frame(width: isSelected ? 14 : 9, height: isSelected ? 14 : 9)
-            .overlay(
+        HStack(spacing: 7) {
+            ZStack {
                 Circle()
-                    .stroke(Color.white.opacity(isSelected ? 0.55 : 0.18), lineWidth: isSelected ? 2 : 1)
-            )
-            .shadow(color: tint.opacity(isSelected ? 0.45 : 0.22), radius: isSelected ? 10 : 4, x: 0, y: 3)
-            .animation(.spring(response: 0.35, dampingFraction: 0.85), value: isSelected)
+                    .fill(tint.opacity(isSelected || isHovered ? 0.26 : 0.12))
+                    .frame(width: isSelected || isHovered ? 34 : 24, height: isSelected || isHovered ? 34 : 24)
+                    .blur(radius: 2)
+                Circle()
+                    .fill(tint)
+                    .frame(width: isSelected ? 15 : (isHovered ? 13 : 10), height: isSelected ? 15 : (isHovered ? 13 : 10))
+                    .overlay(
+                        Circle()
+                            .stroke(Color.white.opacity(isSelected ? 0.70 : 0.26), lineWidth: isSelected ? 2 : 1)
+                    )
+                    .shadow(color: tint.opacity(isSelected || isHovered ? 0.62 : 0.30), radius: isSelected || isHovered ? 12 : 5, x: 0, y: 3)
+            }
+            .frame(width: 34, height: 34)
+
+            if showsLabel {
+                Text(paper.title)
+                    .font(.caption2.weight(isSelected || isHovered ? .bold : .semibold))
+                    .foregroundStyle(.white.opacity(isSelected || isHovered ? 0.98 : 0.86))
+                    .lineLimit(2)
+                    .frame(width: isSelected || isHovered ? 185 : 128, alignment: .leading)
+                    .padding(.horizontal, 8)
+                    .padding(.vertical, 6)
+                    .background(.ultraThinMaterial, in: RoundedRectangle(cornerRadius: 10, style: .continuous))
+                    .overlay(
+                        RoundedRectangle(cornerRadius: 10, style: .continuous)
+                            .stroke(Color.white.opacity(isSelected || isHovered ? 0.28 : 0.12), lineWidth: 1)
+                    )
+            }
+        }
+        .padding(.trailing, showsLabel ? 2 : 0)
+        .scaleEffect(isSelected ? 1.07 : (isHovered ? 1.04 : 1.0), anchor: .leading)
+        .animation(.spring(response: 0.35, dampingFraction: 0.85), value: isSelected)
+        .animation(.spring(response: 0.25, dampingFraction: 0.9), value: isHovered)
     }
 }
 
