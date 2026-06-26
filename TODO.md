@@ -1,20 +1,20 @@
 # TODO
 
 ## Tasks
-- [x] Generalize map framing (DoD: primary Map view copy describes a knowledge universe, not a trading-specific workflow)
-- [x] Remove trading-specific controls from primary paper map (DoD: paper map sort/color/filter controls are general corpus controls only)
-- [x] Upgrade map animation and visual depth (DoD: map canvases show richer bounded starfield/nebula/orbital motion and respect Reduce Motion)
-- [x] Apply liquid-glass-style surfaces safely (DoD: app uses system material/glass-like surfaces without custom chrome over native sidebars/toolbars)
-- [x] Validate SwiftPM build/tests/runtime (DoD: `swift build`, `swift test`, and launch CPU check completed)
-- [x] Memory update: primary map/general universe convention (DoD: `MEMORY.md` updated only with durable repo knowledge)
+- [x] Fix cluster inspector selection (DoD: tapping a topic selects it in the right panel without automatic navigation)
+- [x] Add explicit inspector zoom actions (DoD: mega topics and subtopics navigate only from right-panel actions)
+- [x] Add focused paper inspector (DoD: graph selection updates the right panel and can open full details)
+- [x] Make paper graph readable and movable (DoD: paper nodes show adaptive labels, support hover/selection expansion, and can be dragged)
+- [x] Validate SwiftPM build/tests/runtime (DoD: `swift build`, `swift test`, and launch check completed)
+- [x] Memory update: graph interaction convention (DoD: `MEMORY.md` updated if durable behavior changed)
 
 ## In progress
 - none
 
 ## Done
-- [x] Generalize map framing
-- [x] Remove trading-specific controls from primary paper map
-- [x] Upgrade map animation and visual depth
-- [x] Apply liquid-glass-style surfaces safely
+- [x] Fix cluster inspector selection
+- [x] Add explicit inspector zoom actions
+- [x] Add focused paper inspector
+- [x] Make paper graph readable and movable
 - [x] Validate SwiftPM build/tests/runtime
-- [x] Memory update: primary map/general universe convention
+- [x] Memory update: graph interaction convention
