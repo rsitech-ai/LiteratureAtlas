@@ -1,20 +1,18 @@
 # TODO
 
 ## Tasks
-- [x] Integrate analytics health checks into app rebuild flow (DoD: rebuild triggers output + topic audits automatically)
-- [x] Add app state + UI visibility for health-check status/logs (DoD: Analytics view shows message and log panel)
-- [x] Add manual app trigger for health checks (DoD: button in Analytics backend card works)
-- [x] Verify app/CLI sync with regression tests + smoke run (DoD: swift test + python tests + `scripts/run_example_smoke.sh --count 10` pass)
-- [x] Memory update: record app-sync behavior (DoD: MEMORY.md updated)
+- [ ] Add immersive galaxy design spec (DoD: `docs/superpowers/specs/2026-06-26-immersive-galaxy-ui-design.md` describes scope, components, risks, and validation)
+- [ ] Add shared galaxy visual system (DoD: reusable SwiftUI helpers cover backdrop, cards, hero headers, stat pills, and action styling)
+- [ ] Upgrade root shell and shared cards (DoD: app root uses animated galaxy backdrop and existing card call sites compile)
+- [ ] Refresh Ingest UI (DoD: ingest screen has immersive hero, status deck, clearer actions, and no behavior changes)
+- [ ] Refresh Q&A UI (DoD: question screen has polished empty/loading/answer/evidence states and no behavior changes)
+- [ ] Lightly tune analytics/shared overlays (DoD: top-level surfaces reuse shared galaxy styling without large chart rewrites)
+- [ ] Validate SwiftPM build and tests (DoD: `swift build`, `swift test`, and app launch smoke completed or blockers recorded)
+- [ ] Memory update: record visual-system convention if implemented (DoD: `MEMORY.md` updated only for durable repo knowledge)
 
 ## In progress
-- none
+- [ ] Add immersive galaxy design spec
 
 ## Done
-- [x] Refresh `PLAN.md` for integration + sample-run scope
-- [x] Added `LITERATURE_ATLAS_SMOKE_FAST` env mode for deterministic ingestion smoke path
-- [x] Tuned smoke-run primary-topic threshold to `ceil(40% of sample)` to avoid small-sample false negatives
-- [x] Verified two separate random 10-paper smoke runs pass end-to-end
-- [x] Root-caused full-corpus drop from 115 -> 114 to paper JSON title-collision overwrite (`My Articles`)
-- [x] Fixed `savePaperJSON` to use id-suffixed filenames and safe legacy migration/removal for matching papers only
-- [x] Ran full corpus ingest into repo `Output/` and validated analytics + ANN + audits (all pass)
+- [x] Preserved previous document/knowledge-base work on `feat/andrzej_literatureatlas-document-kb-snapshot`
+- [x] Created implementation branch `feat/andrzej_immersive-galaxy-ui`
