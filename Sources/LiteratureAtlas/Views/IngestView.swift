@@ -9,6 +9,8 @@ struct IngestView: View {
     @State private var assumptionQuery: String = ""
     @State private var assumptionNarrative: String = ""
     @State private var topEdges: [ClaimEdge] = []
+    @State private var hasLoadedClaimPreview = false
+    @State private var isLoadingClaimPreview = false
     @State private var showStyleTips = false
     @State private var selectedPaper: Paper?
 
@@ -243,8 +245,7 @@ struct IngestView: View {
     }
 
     private var claimGraphCard: some View {
-        let edges = topEdges.isEmpty ? model.claimGraphEdges() : topEdges
-        return GlassCard(tint: GalaxyTheme.nebulaPink) {
+        GlassCard(tint: GalaxyTheme.nebulaPink) {
             VStack(alignment: .leading, spacing: 10) {
                 GalaxySectionHeader(
                     "Claim graph",
@@ -252,13 +253,17 @@ struct IngestView: View {
                     systemImage: "point.3.connected.trianglepath.dotted",
                     tint: GalaxyTheme.nebulaPink
                 )
-                if edges.isEmpty {
-                    Text("No claim relations yet. Ingest papers to build the evidence graph.")
+                if !hasLoadedClaimPreview {
+                    Text("Generate a preview when you want to inspect how claims support, extend, or contradict each other.")
+                        .font(.caption)
+                        .foregroundStyle(.secondary)
+                } else if topEdges.isEmpty {
+                    Text("No claim relations found in the current corpus preview.")
                         .font(.caption)
                         .foregroundStyle(.secondary)
                 } else {
                     GalaxyStatusPill("Top relations", systemImage: "link", tint: GalaxyTheme.nebulaPink)
-                    ForEach(edges.prefix(5), id: \.id) { edge in
+                    ForEach(topEdges.prefix(5), id: \.id) { edge in
                         if let source = model.papers.first(where: { $0.claims?.contains(where: { $0.id == edge.sourceClaimID }) == true })?.title,
                            let target = model.papers.first(where: { $0.claims?.contains(where: { $0.id == edge.targetClaimID }) == true })?.title {
                             HStack(alignment: .top, spacing: 6) {
@@ -278,13 +283,32 @@ struct IngestView: View {
                             }
                         }
                     }
-                    Button {
-                        topEdges = model.claimGraphEdges()
-                    } label: {
-                        Label("Refresh relations", systemImage: "arrow.clockwise")
-                    }
-                    .buttonStyle(.bordered)
                 }
+                Button {
+                    refreshClaimPreview()
+                } label: {
+                    Label(
+                        isLoadingClaimPreview ? "Generating preview" : "Refresh relations",
+                        systemImage: isLoadingClaimPreview ? "hourglass" : "arrow.clockwise"
+                    )
+                }
+                .buttonStyle(.bordered)
+                .disabled(isLoadingClaimPreview)
+            }
+        }
+    }
+
+    private func refreshClaimPreview() {
+        guard !isLoadingClaimPreview else { return }
+        isLoadingClaimPreview = true
+        let claims = model.papers.flatMap { $0.claims ?? [] }
+
+        Task.detached(priority: .userInitiated) {
+            let edges = ClaimRelationInferencer.inferEdges(for: claims, limit: 25)
+            await MainActor.run {
+                topEdges = edges
+                hasLoadedClaimPreview = true
+                isLoadingClaimPreview = false
             }
         }
     }

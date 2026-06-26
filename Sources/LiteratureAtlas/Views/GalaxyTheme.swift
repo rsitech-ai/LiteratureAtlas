@@ -42,83 +42,10 @@ enum GalaxyTheme {
 struct GalaxyBackdrop: View {
     var intensity: Double = 1.0
 
-    @Environment(\.accessibilityReduceMotion) private var reduceMotion
-    @State private var phase: Double = 0
-
-    private let stars = GalaxyStar.seeded
-
     var body: some View {
-        GeometryReader { proxy in
-            let size = proxy.size
-
-            ZStack {
-                GalaxyTheme.baseGradient
-
-                RadialGradient(
-                    colors: [GalaxyTheme.nebulaBlue.opacity(0.34 * intensity), .clear],
-                    center: UnitPoint(x: reduceMotion ? 0.18 : 0.16 + 0.06 * sin(phase * .pi * 2), y: 0.18),
-                    startRadius: 10,
-                    endRadius: max(size.width, size.height) * 0.62
-                )
-                .blendMode(.screen)
-
-                RadialGradient(
-                    colors: [GalaxyTheme.nebulaPink.opacity(0.28 * intensity), .clear],
-                    center: UnitPoint(x: 0.82, y: reduceMotion ? 0.18 : 0.20 + 0.05 * cos(phase * .pi * 2)),
-                    startRadius: 10,
-                    endRadius: max(size.width, size.height) * 0.58
-                )
-                .blendMode(.screen)
-
-                AngularGradient(
-                    colors: [
-                        GalaxyTheme.nebulaViolet.opacity(0.20 * intensity),
-                        GalaxyTheme.nebulaBlue.opacity(0.16 * intensity),
-                        GalaxyTheme.solarGold.opacity(0.12 * intensity),
-                        GalaxyTheme.nebulaPink.opacity(0.18 * intensity),
-                        GalaxyTheme.nebulaViolet.opacity(0.20 * intensity)
-                    ],
-                    center: .center
-                )
-                .blur(radius: 120)
-                .opacity(0.46)
-                .rotationEffect(.degrees(reduceMotion ? 0 : phase * 360))
-                .blendMode(.screen)
-
-                ForEach(stars) { star in
-                    Circle()
-                        .fill(Color.white.opacity(star.opacity))
-                        .frame(width: star.size, height: star.size)
-                        .position(x: size.width * star.x, y: size.height * star.y)
-                }
-            }
-            .drawingGroup()
-            .ignoresSafeArea()
-            .allowsHitTesting(false)
-            .onAppear {
-                guard !reduceMotion, phase == 0 else { return }
-                withAnimation(.linear(duration: 44).repeatForever(autoreverses: false)) {
-                    phase = 1
-                }
-            }
-        }
-    }
-}
-
-@available(macOS 26, iOS 26, *)
-private struct GalaxyStar: Identifiable {
-    let id: Int
-    let x: Double
-    let y: Double
-    let size: CGFloat
-    let opacity: Double
-
-    static let seeded: [GalaxyStar] = (0..<64).map { index in
-        let a = Double((index * 37) % 101) / 100
-        let b = Double((index * 53 + 17) % 97) / 96
-        let size = CGFloat(1 + ((index * 7) % 3))
-        let opacity = 0.10 + Double((index * 11) % 8) / 26
-        return GalaxyStar(id: index, x: a, y: b, size: size, opacity: opacity)
+        GalaxyTheme.baseGradient
+        .ignoresSafeArea()
+        .allowsHitTesting(false)
     }
 }
 
@@ -225,9 +152,6 @@ struct GalaxyStatusPill: View {
     let tint: Color
     var isPulsing: Bool = false
 
-    @Environment(\.accessibilityReduceMotion) private var reduceMotion
-    @State private var pulse = false
-
     init(_ title: String, systemImage: String? = nil, tint: Color, isPulsing: Bool = false) {
         self.title = title
         self.systemImage = systemImage
@@ -246,15 +170,9 @@ struct GalaxyStatusPill: View {
         .padding(.vertical, 7)
         .padding(.horizontal, 11)
         .foregroundStyle(tint)
-        .background(tint.opacity(pulse ? 0.22 : 0.13), in: Capsule())
-        .overlay(Capsule().stroke(tint.opacity(pulse ? 0.48 : 0.28), lineWidth: 1))
-        .shadow(color: tint.opacity(pulse ? 0.36 : 0.12), radius: pulse ? 16 : 8, x: 0, y: 0)
-        .onAppear {
-            guard isPulsing, !reduceMotion else { return }
-            withAnimation(.easeInOut(duration: 1.6).repeatForever(autoreverses: true)) {
-                pulse = true
-            }
-        }
+        .background(tint.opacity(isPulsing ? 0.20 : 0.13), in: Capsule())
+        .overlay(Capsule().stroke(tint.opacity(isPulsing ? 0.44 : 0.28), lineWidth: 1))
+        .shadow(color: tint.opacity(isPulsing ? 0.28 : 0.12), radius: isPulsing ? 14 : 8, x: 0, y: 0)
     }
 }
 

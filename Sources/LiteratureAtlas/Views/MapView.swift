@@ -222,8 +222,6 @@ private enum PaperColorBy: String, CaseIterable, Identifiable {
 
 @available(macOS 26, iOS 26, *)
 private struct MapBackdropView: View {
-    @State private var phase: Double = 0
-
     var body: some View {
         MapPalette.backdrop
             .overlay(
@@ -238,17 +236,10 @@ private struct MapBackdropView: View {
                 )
                 .blur(radius: 160)
                 .opacity(0.35)
-                .rotationEffect(.degrees(phase * 360))
                 .blendMode(.screen)
             )
             .ignoresSafeArea()
             .allowsHitTesting(false)
-            .onAppear {
-                guard phase == 0 else { return }
-                withAnimation(.linear(duration: 28).repeatForever(autoreverses: false)) {
-                    phase = 1
-                }
-            }
     }
 }
 

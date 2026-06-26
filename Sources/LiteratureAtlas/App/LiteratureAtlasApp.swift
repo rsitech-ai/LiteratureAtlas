@@ -7,24 +7,8 @@ import AppKit
 @available(macOS 26, *)
 @MainActor
 final class LiteratureAtlasAppDelegate: NSObject, NSApplicationDelegate {
-    private func bringAllWindowsToFront() {
-        NSApp.activate(ignoringOtherApps: true)
-        for window in NSApp.windows {
-            window.makeKeyAndOrderFront(nil)
-        }
-    }
-
     func applicationDidFinishLaunching(_ notification: Notification) {
         NSApp.setActivationPolicy(.regular)
-        Task { @MainActor in
-            self.bringAllWindowsToFront()
-        }
-    }
-
-    func applicationDidBecomeActive(_ notification: Notification) {
-        Task { @MainActor in
-            self.bringAllWindowsToFront()
-        }
     }
 }
 #endif

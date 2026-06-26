@@ -150,7 +150,6 @@ final class AppModel: ObservableObject {
                 await loadSavedGalaxyIfPresent()
                 await loadSavedCorpusBriefingIfPresent()
                 await loadAnalyticsSummaryIfPresent()
-                exportObsidianVaultArtifacts(force: false)
             }
         }
     }
@@ -867,34 +866,6 @@ final class AppModel: ObservableObject {
                 }
             }
 
-            // One-time Obsidian export for existing papers (create missing + upgrade old format).
-            let root = outputRoot
-            let ctx = PaperMarkdownExporter.Context(allPapers: loaded)
-            Task.detached(priority: .utility) {
-                let fm = FileManager.default
-                let folder = root
-                    .appendingPathComponent("obsidian", isDirectory: true)
-                    .appendingPathComponent("papers", isDirectory: true)
-
-                let existing = (try? fm.contentsOfDirectory(at: folder, includingPropertiesForKeys: [.isRegularFileKey], options: [.skipsHiddenFiles])) ?? []
-
-                func existingFile(for token: String) -> URL? {
-                    existing.first(where: { $0.lastPathComponent.contains(token) })
-                }
-
-                func needsUpgrade(_ url: URL) -> Bool {
-                    guard let text = try? String(contentsOf: url, encoding: .utf8) else { return true }
-                    return !text.contains("obsidian_format_version: \(PaperMarkdownExporter.obsidianFormatVersion)")
-                }
-
-                for paper in loaded {
-                    let token = paper.id.uuidString
-                    if let url = existingFile(for: token) {
-                        if !needsUpgrade(url) { continue }
-                    }
-                    _ = try? PaperMarkdownExporter.write(paper: paper, outputRoot: root, context: ctx)
-                }
-            }
         }
     }
 
@@ -1853,7 +1824,7 @@ final class AppModel: ObservableObject {
         let corpusVersion = currentCorpusVersion()
         let inputs: [(id: UUID, embedding: [Float])] = validPapers.map { ($0.id, $0.embedding) }
 
-        let compute = await Task.detached(priority: .userInitiated) { () -> GalaxyComputeResult in
+        let compute = await Task.detached(priority: .utility) { () -> GalaxyComputeResult in
             let count = inputs.count
             let kMega = min(
                 max(level0Range.lowerBound, count / max(1, count / 6)),
@@ -2460,13 +2431,14 @@ final class AppModel: ObservableObject {
         let allClustersSnapshot = AppModel.flattenClustersForObsidian(megaClusters: megaClustersSnapshot, clusters: clustersSnapshot)
         let papersByIDSnapshot = Dictionary(uniqueKeysWithValues: papersSnapshot.map { ($0.id, $0) })
         let paperContextSnapshot = PaperMarkdownExporter.Context(allPapers: papersSnapshot, clusters: allClustersSnapshot, clusterNameSources: sourcesSnapshot)
-        let claimEdgesSnapshot = claimGraphEdges()
+        let claimsSnapshot = papersSnapshot.flatMap { $0.claims ?? [] }
 
         Task.detached(priority: .utility) {
             let fm = FileManager.default
             let papersByID = papersByIDSnapshot
             let allClusters = allClustersSnapshot
             let paperContext = paperContextSnapshot
+            let claimEdgesSnapshot = ClaimRelationInferencer.inferEdges(for: claimsSnapshot)
 
             func extractBracketToken(from fileName: String) -> String? {
                 guard let start = fileName.lastIndex(of: "["),
