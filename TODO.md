@@ -8,6 +8,9 @@
 - [x] Refresh Q&A UI (DoD: question screen has polished empty/loading/answer/evidence states and no behavior changes)
 - [x] Lightly tune analytics/shared overlays (DoD: top-level surfaces reuse shared galaxy styling without large chart rewrites)
 - [x] Validate SwiftPM build and tests (DoD: `swift build`, `swift test`, and app launch smoke completed or blockers recorded)
+- [x] Fix launch freeze from claim graph work (DoD: app startup no longer runs full claim relation inference on the main actor)
+- [x] Make claim graph preview explicit and bounded (DoD: Ingest card does not call corpus-scale inference during SwiftUI body evaluation)
+- [x] Keep background clustering non-blocking (DoD: progress overlay does not intercept app clicks while clustering)
 - [x] Memory update: record visual-system convention if implemented (DoD: `MEMORY.md` updated only for durable repo knowledge)
 
 ## In progress
@@ -15,6 +18,9 @@
 
 ## Done
 - [x] Validate SwiftPM build and tests
+- [x] Fix launch freeze from claim graph work
+- [x] Make claim graph preview explicit and bounded
+- [x] Keep background clustering non-blocking
 - [x] Memory update: recorded immersive galaxy visual-system convention
 - [x] Lightly tune analytics/shared overlays
 - [x] Refresh Q&A UI

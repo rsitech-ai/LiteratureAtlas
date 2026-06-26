@@ -2083,6 +2083,7 @@ struct AnalyticsView: View {
                     }
                 }
                 .onWidthChange { width in
+                    guard width > 0, abs(analyticsContentWidth - width) > 1 else { return }
                     analyticsContentWidth = width
                 }
                 .task {

@@ -170,7 +170,7 @@ enum ClaimExtractor {
 // MARK: - Claim relations
 
 enum ClaimRelationInferencer {
-    static func inferEdges(for claims: [PaperClaim]) -> [ClaimEdge] {
+    static func inferEdges(for claims: [PaperClaim], limit: Int? = nil) -> [ClaimEdge] {
         guard claims.count >= 2 else { return [] }
         var edges: [ClaimEdge] = []
 
@@ -178,8 +178,14 @@ enum ClaimRelationInferencer {
             for j in i+1..<claims.count {
                 let a = claims[i]
                 let b = claims[j]
-                if let edge = relation(from: a, to: b) { edges.append(edge) }
-                if let edge = relation(from: b, to: a) { edges.append(edge) }
+                if let edge = relation(from: a, to: b) {
+                    edges.append(edge)
+                    if let limit, edges.count >= limit { return edges }
+                }
+                if let edge = relation(from: b, to: a) {
+                    edges.append(edge)
+                    if let limit, edges.count >= limit { return edges }
+                }
             }
         }
         return edges
