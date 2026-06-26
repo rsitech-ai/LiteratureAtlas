@@ -55,5 +55,18 @@ Chosen: 3 because the user selected it explicitly after seeing visual options. B
 
 ## Notes / Results
 - Changes:
+  - Added `GalaxyTheme.swift` with shared galaxy colors, ambient animated backdrop, hero cards, metric tiles, status pills, section headers, and primary action button helper.
+  - Upgraded `GlassCard` with optional tint/prominence while preserving existing `GlassCard { ... }` call sites.
+  - Replaced `RootView`'s static gradient with `GalaxyBackdrop` and localized selected-tab animation.
+  - Refreshed `IngestView` with immersive hero, metrics, command center, activity, log, claim graph, and assumption stress surfaces.
+  - Rebuilt `QuestionView` around galaxy-styled hero, empty state, composer, loading, answer, relevant-document, and evidence cards.
+  - Lightly tuned `AnalyticsView` hero/backend/KPI styling without refactoring chart or recompute logic.
+  - Updated `GlobalProgressOverlay` with a more luminous progress card.
 - Tests run:
+  - `swift build` (pass after each implementation slice)
+  - `swift test` (pass: 48 tests, 1 opt-in ingestion smoke skipped)
+  - `swift run LiteratureAtlas` (build/startup smoke pass; terminal process stopped with Ctrl-C after startup)
 - Tradeoffs:
+  - Used SwiftUI material/gradient glass styling rather than direct Liquid Glass APIs to keep the macOS SwiftPM build stable.
+  - Kept MapView mostly unchanged because it already owns the most animation-heavy surface.
+  - Did not address inherited `analytics/rust` deletion or output audit findings in this visual branch.

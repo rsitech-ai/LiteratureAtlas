@@ -3,15 +3,11 @@ import SwiftUI
 @available(macOS 26, iOS 26, *)
 struct RootView: View {
     @EnvironmentObject private var nav: AppNavigation
+    @Environment(\.accessibilityReduceMotion) private var reduceMotion
 
     var body: some View {
         ZStack {
-            LinearGradient(
-                colors: [Color.blue.opacity(0.16), Color.purple.opacity(0.14), Color.indigo.opacity(0.12)],
-                startPoint: .topLeading,
-                endPoint: .bottomTrailing
-            )
-            .ignoresSafeArea()
+            GalaxyBackdrop(intensity: 1.0)
 
             TabView(selection: $nav.selectedTab) {
                 IngestView()
@@ -38,6 +34,9 @@ struct RootView: View {
                     .tabItem { Label("Analytics", systemImage: "chart.xyaxis.line") }
                     .tag(AppNavigation.Tab.analytics)
             }
+            .tint(GalaxyTheme.nebulaBlue)
+            .transition(reduceMotion ? .opacity : .opacity.combined(with: .scale(scale: 0.995)))
+            .animation(reduceMotion ? nil : .easeInOut(duration: 0.22), value: nav.selectedTab)
 
             GlobalProgressOverlay()
         }

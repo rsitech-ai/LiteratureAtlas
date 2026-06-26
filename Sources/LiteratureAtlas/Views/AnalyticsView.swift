@@ -1493,15 +1493,20 @@ struct AnalyticsView: View {
     }
 
     @ViewBuilder private func backendAnalyticsCard() -> some View {
-        GlassCard {
-            VStack(alignment: .leading, spacing: 8) {
-                Text("Backend analytics (DuckDB / Python)")
-                    .font(.headline)
+        GlassCard(tint: GalaxyTheme.nebulaBlue) {
+            VStack(alignment: .leading, spacing: 10) {
+                GalaxySectionHeader(
+                    "Backend analytics",
+                    subtitle: "DuckDB / Python rebuild, reload, and health-check controls.",
+                    systemImage: "server.rack",
+                    tint: GalaxyTheme.nebulaBlue
+                )
                 HStack {
                     Button("Reload analytics.json") {
                         model.reloadAnalyticsSummary()
                     }
                     .buttonStyle(.borderedProminent)
+                    .tint(GalaxyTheme.nebulaBlue)
                     Text("Reads Output/analytics/analytics.json")
                         .font(.caption2)
                         .foregroundStyle(.secondary)
@@ -1648,14 +1653,28 @@ struct AnalyticsView: View {
         }
     }
 
+    private var analyticsHero: some View {
+        GalaxyHeroCard(
+            eyebrow: "Research telemetry",
+            title: "Analytics",
+            subtitle: "Position, flow, influence, drift, and corpus health across the knowledge galaxy.",
+            systemImage: "chart.xyaxis.line",
+            tint: GalaxyTheme.nebulaBlue
+        ) {
+            HStack(spacing: 10) {
+                GalaxyStatusPill("\(model.papers.count) papers", systemImage: "doc.text.fill", tint: GalaxyTheme.nebulaBlue)
+                if let summary = analyticsSummary {
+                    GalaxyStatusPill("dim \(summary.vectorDim)", systemImage: "point.3.filled.connected.trianglepath.dotted", tint: GalaxyTheme.nebulaViolet)
+                }
+            }
+        }
+    }
+
     var body: some View {
         NavigationStack {
             ScrollView {
                 VStack(alignment: .leading, spacing: 16) {
-                    Text("Analytics")
-                        .font(.title.bold())
-                    Text("Position (novelty/consensus) + Flow (influence/drift) across your corpus.")
-                        .foregroundStyle(.secondary)
+                    analyticsHero
 
                     corpusBriefingCard()
                     corpusHealthCard()
@@ -2178,8 +2197,11 @@ struct AnalyticsView: View {
         }
         .padding(.horizontal, 10)
         .padding(.vertical, 8)
-        .background(Color.white.opacity(0.06))
-        .clipShape(RoundedRectangle(cornerRadius: 10))
+        .background(GalaxyTheme.nebulaBlue.opacity(0.08), in: RoundedRectangle(cornerRadius: 10, style: .continuous))
+        .overlay(
+            RoundedRectangle(cornerRadius: 10, style: .continuous)
+                .stroke(GalaxyTheme.nebulaBlue.opacity(0.16), lineWidth: 1)
+        )
     }
 
     private func percentageString(_ numerator: Int, total: Int) -> String {
