@@ -126,8 +126,8 @@ struct TradingLensScatterChartView: View {
                                     hoveredPointID = nil
                                 }
                             )
-                            .frame(width: plotFrame.width, height: plotFrame.height)
-                            .position(x: plotFrame.midX, y: plotFrame.midY)
+                            .frame(width: chartPlotDimension(plotFrame.width), height: chartPlotDimension(plotFrame.height))
+                            .position(x: chartPlotCoordinate(plotFrame.midX), y: chartPlotCoordinate(plotFrame.midY))
                         )
                         #endif
                 }
@@ -215,4 +215,3 @@ struct TradingTagTrendChartView: View {
         .chartLegend(position: .bottom)
     }
 }
-

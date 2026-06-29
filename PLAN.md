@@ -1,49 +1,59 @@
 # Plan
 
 ## Context
-- The user reports the LiteratureAtlas left sidebar is not clickable.
-- Runtime reproduction confirms the click reaches the sidebar row text, but the selected view remains on Knowledge Universe.
-- Sampling found a second root cause: when two clusters are selected, `BridgingSection.body` repeatedly runs claim/bridge analysis during SwiftUI layout and can pin the main thread at 100% CPU.
+- The user requested a fresh end-to-end SwiftUI polish audit for LiteratureAtlas after the sidebar responsiveness fix.
+- Current target is the macOS SwiftPM SwiftUI app launched as `dist/LiteratureAtlas.app`.
+- Recent weak spots: sidebar click-through, Knowledge Universe animation/CPU, bridge analysis, Analytics warnings, native control reachability, logs, and visual consistency.
 
 ## Assumptions
-- "Left panel" means the LiteratureAtlas app sidebar with Ingest, Universe, Q&A, Trading, Projects, and Analytics.
-- Success means each sidebar row switches the detail view when clicked in the launched `.app` bundle.
+- "End to end" means macOS app bundle launch, primary route navigation, representative safe control clicks, logs, performance samples, source-backed feature matrix, and broad test gates.
+- Destructive, expensive, or external side-effect actions may be opened/cancelled or source-reviewed, but not executed if they mutate the corpus, launch long AI jobs, export files, or require manual file selection.
+- Release-candidate performance is not claimed unless a Release/Instruments pass is completed.
 
 ## Constraints
-- Keep the fix narrowly scoped to navigation/hit testing.
-- Do not mutate corpus data or run import/export side effects.
-- Verify against the real app bundle, not only source review.
+- Do not overwrite unrelated user work.
+- Keep code changes scoped to concrete audit findings.
+- Use `script/build_and_run.sh` for macOS launch evidence.
+- Use the weakest truthful readiness label.
 
 ## Options considered
-1. Add a broad overlay/hit-testing workaround around the sidebar.
-2. Fix the SwiftUI selection/tag contract in `RootView`.
-3. Replace the sidebar `List` with explicit buttons.
+1. Static audit only.
+2. Build/test/runtime interaction audit with safe control sweep and log/performance review.
+3. Full release-candidate audit with Release/Instruments, signing/notarization, and complete macOS UI automation.
 
-Chosen: 2 plus removing layout-time bridge analysis because reproduction shows events reach the row but selection does not change, and process sampling shows the main thread can be saturated by `BridgingSection.body`.
+Chosen: 2 because it matches the request and gives live evidence without executing unsafe side effects or claiming release readiness.
 
 ## Execution plan
-1. Replace inert `List(selection:)` rows with explicit sidebar buttons that set `nav.selectedTab`.
-2. Move expensive bridge paper analysis out of `BridgingSection.body`; make bridge search explicit/on-demand.
-3. Rebuild and relaunch through `./script/build_and_run.sh --verify`.
-4. Click Ingest, Universe, Q&A, Trading, Projects, and Analytics in the live app.
-5. Capture verification evidence and run `swift test`.
-6. Update TODO, MEMORY if durable knowledge changed, and record final notes.
+1. Run build/test gates: app bundle verify, Swift tests, Python lint/tests, Rust FFI tests.
+2. Launch the app and capture baseline screenshot/process/log state.
+3. Click through all root sidebar routes and capture/record resulting states.
+4. Exercise safe visible controls per route: segmented controls, toggles, text inputs where non-destructive, sheets/dialog cancel paths, and disabled states.
+5. Inspect source for remaining high-risk SwiftUI patterns: expensive work in `body`, unstable `ForEach` identity, global overlays, and duplicate IDs.
+6. Inspect runtime logs after interaction sweep.
+7. Write `docs/audits/polish-audit-2026-06-29-round2.md` with commands, matrix, interaction coverage, visual/performance notes, and readiness label.
+8. Update TODO, MEMORY/reflection if durable knowledge changes.
 
 ## Test plan
-- Runtime click smoke for all sidebar tabs in `dist/LiteratureAtlas.app`.
-- Process sample/CPU check after removing body-time bridge work.
-- `swift test`.
+- `./script/build_and_run.sh --verify`
+- `swift test`
+- `.venv/bin/python -m ruff check analytics/`
+- `.venv/bin/python -m pytest analytics/tests -v`
+- `cargo test --manifest-path analytics/ffi/Cargo.toml`
+- Runtime route/control sweep via the launched `.app`
+- Unified log scan after the sweep
 
 ## Risks and rollback
-- Risk: row selection still fails because another overlay captures clicks.
-  - Rollback: inspect AX hit targets and convert the sidebar to explicit native buttons.
-- Risk: switching to concrete tags breaks compilation.
-  - Rollback: restore optional tags and use an explicit `onTapGesture` per row after confirming the compiler/runtime behavior.
+- Risk: macOS AX/screenshot automation can lose foreground to other apps.
+  - Rollback: verify by app process/window title, force `frontmost`, and record automation limitations honestly.
+- Risk: expensive actions such as ingestion, rebuilding analytics, or AI generation mutate data or run too long.
+  - Rollback: validate their disabled/cancel/safe paths and source-review the execution path.
+- Risk: Debug performance overstates cost.
+  - Rollback: report debug samples as smoke evidence only, not release performance.
 
 ## Memory impact
-- Record the fixed sidebar selection convention if verified.
+- Record only durable workflow or architecture findings discovered during this pass.
 
 ## Notes / Results
-- Changes: replaced the sidebar `List(selection:)` rows with explicit full-width native-style buttons that set `nav.selectedTab`; moved bridge paper search out of `BridgingSection.body` and behind an explicit `Find bridging papers` button to stop layout-time claim graph recomputation.
-- Tests run: `./script/build_and_run.sh --verify` passed; focused `swift test --filter AppPathsTests` passed; full `swift test` passed with 51 tests and 1 expected opt-in ingestion smoke skipped.
-- Tradeoffs: bridge influence/claim paths are no longer auto-rendered during selection because that made normal UI navigation unusable; bridge paper search remains available on demand.
+- Changes: added shared chart plot geometry guards, ignored non-finite width measurements, clamped chart hover overlay frames, and converted factor exposure area fills to line marks to remove oversized CoreAnimation paint layers.
+- Tests run: `./script/build_and_run.sh --verify` passed; `swift build` passed; `swift test` passed with 51 tests and 1 expected opt-in ingestion smoke skipped; `.venv/bin/python -m ruff check analytics/` passed; `.venv/bin/python -m pytest analytics/tests -v` passed with 9 tests; `cargo test --manifest-path analytics/ffi/Cargo.toml` passed with 3 tests; final strict unified log scan was clean.
+- Tradeoffs: route automation through AppleScript AX remains flaky for some immediate title reads, so Trading/Projects are marked partial rather than fully certified; destructive/export/rebuild/AI actions were source/visual reviewed but not executed.
