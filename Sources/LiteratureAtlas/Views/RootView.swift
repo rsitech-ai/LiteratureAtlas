@@ -4,24 +4,28 @@ import SwiftUI
 struct RootView: View {
     @EnvironmentObject private var nav: AppNavigation
 
-    private var selection: Binding<AppNavigation.Tab?> {
-        Binding(
-            get: { nav.selectedTab },
-            set: { tab in
-                if let tab {
-                    nav.selectedTab = tab
-                }
-            }
-        )
-    }
-
     var body: some View {
         NavigationSplitView {
-            List(selection: selection) {
+            List {
                 Section("Atlas") {
                     ForEach(AppNavigation.Tab.allCases) { tab in
-                        Label(tab.title, systemImage: tab.systemImage)
-                            .tag(Optional(tab))
+                        Button {
+                            nav.selectedTab = tab
+                        } label: {
+                            Label(tab.title, systemImage: tab.systemImage)
+                                .font(.body.weight(.semibold))
+                                .frame(maxWidth: .infinity, alignment: .leading)
+                                .padding(.vertical, 6)
+                                .padding(.horizontal, 8)
+                                .contentShape(Rectangle())
+                        }
+                        .buttonStyle(.plain)
+                        .foregroundStyle(nav.selectedTab == tab ? .white : .primary)
+                        .background(
+                            RoundedRectangle(cornerRadius: 8)
+                                .fill(nav.selectedTab == tab ? GalaxyTheme.nebulaBlue.opacity(0.86) : Color.clear)
+                        )
+                        .accessibilityIdentifier("sidebar-\(tab.rawValue)")
                     }
                 }
             }
