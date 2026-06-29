@@ -1,20 +1,17 @@
 # TODO
 
 ## Tasks
-- [x] Fix cluster inspector selection (DoD: tapping a topic selects it in the right panel without automatic navigation)
-- [x] Add explicit inspector zoom actions (DoD: mega topics and subtopics navigate only from right-panel actions)
-- [x] Add focused paper inspector (DoD: graph selection updates the right panel and can open full details)
-- [x] Make paper graph readable and movable (DoD: paper nodes show adaptive labels, support hover/selection expansion, and can be dragged)
-- [x] Validate SwiftPM build/tests/runtime (DoD: `swift build`, `swift test`, and launch check completed)
-- [x] Memory update: graph interaction convention (DoD: `MEMORY.md` updated if durable behavior changed)
+- [x] Establish audit baseline (DoD: repo state, package shape, app target, entry point, and workflow surface documented)
+- [x] Add reproducible macOS run entrypoint (DoD: `script/build_and_run.sh --verify` launches the app bundle and Codex Run action points at it)
+- [x] Run build/test/lint gates (DoD: relevant checks executed or blocked with reason)
+- [x] Exercise runtime UI smoke (DoD: app launches, screenshots captured, primary surfaces inspected)
+- [x] Inspect logs and performance signals (DoD: process health and log findings captured)
+- [x] Complete polish/performance source scan (DoD: SwiftUI risks classified with evidence)
+- [x] Write audit report (DoD: `docs/audits/polish-audit-2026-06-29.md` includes matrix, evidence, issues, and readiness label)
+- [x] Memory update: audit/run workflow (DoD: `MEMORY.md` records verified durable workflow if changed)
 
 ## In progress
-- none
+- None.
 
 ## Done
-- [x] Fix cluster inspector selection
-- [x] Add explicit inspector zoom actions
-- [x] Add focused paper inspector
-- [x] Make paper graph readable and movable
-- [x] Validate SwiftPM build/tests/runtime
-- [x] Memory update: graph interaction convention
+- [x] SwiftUI polish audit completed with a truthful readiness label: smoke-clean for primary Knowledge Universe, not polish-ready/release-candidate.

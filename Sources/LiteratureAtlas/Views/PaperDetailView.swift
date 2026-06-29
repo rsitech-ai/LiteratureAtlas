@@ -122,7 +122,7 @@ struct PaperDetailView: View {
                             Button {
                                 createdStrategyProject = model.createStrategyProject(from: paper.id)
                             } label: {
-                                Label("Create project", systemImage: "point.3.connected.trianglepath")
+                                Label("Create project", systemImage: "folder.badge.plus")
                             }
                             .buttonStyle(.bordered)
                         }

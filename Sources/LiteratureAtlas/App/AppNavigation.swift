@@ -31,7 +31,7 @@ final class AppNavigation: ObservableObject {
             case .map: return "sparkles"
             case .qa: return "questionmark.circle"
             case .trading: return "dollarsign.circle"
-            case .projects: return "point.3.connected.trianglepath"
+            case .projects: return "folder"
             case .analytics: return "chart.xyaxis.line"
             }
         }

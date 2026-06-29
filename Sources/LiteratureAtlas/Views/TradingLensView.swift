@@ -879,7 +879,7 @@ private struct TradingPaperRow: View {
                 Button {
                     onCreateProject()
                 } label: {
-                    Image(systemName: "point.3.connected.trianglepath")
+                    Image(systemName: "folder.badge.plus")
                 }
                 .buttonStyle(.borderless)
                 .help("Create project")
@@ -1173,7 +1173,7 @@ private struct TradingSelectedPaperCard: View {
                         nav.requestedStrategyProjectID = project.id
                     }
                 } label: {
-                    Label("Project", systemImage: "point.3.connected.trianglepath")
+                    Label("Project", systemImage: "folder")
                 }
                 .buttonStyle(.bordered)
 
@@ -1307,7 +1307,7 @@ private struct HypothesisRow: View {
 
                 if onCreateProject != nil {
                     Button { onCreateProject?() } label: {
-                        Image(systemName: "point.3.connected.trianglepath")
+                        Image(systemName: "folder.badge.plus")
                     }
                     .buttonStyle(.borderless)
                     .help("Create project")

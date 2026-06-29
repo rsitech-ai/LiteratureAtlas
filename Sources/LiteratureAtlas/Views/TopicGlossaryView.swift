@@ -91,7 +91,7 @@ struct TopicGlossaryView: View {
                 HStack(alignment: .top, spacing: 10) {
                     VStack(alignment: .leading, spacing: 4) {
                         HStack(spacing: 8) {
-                            Text(mega.name)
+                            Text(DisplayText.clusterName(mega.name))
                                 .font(.headline)
                                 .foregroundStyle(.white)
                             NameSourcePill(source: model.clusterNameSources[mega.id] ?? .heuristic)
@@ -169,7 +169,7 @@ struct TopicGlossaryView: View {
             HStack(alignment: .top, spacing: 10) {
                 VStack(alignment: .leading, spacing: 2) {
                     HStack(spacing: 8) {
-                        Text(sub.name)
+                        Text(DisplayText.clusterName(sub.name))
                             .font(.subheadline.bold())
                             .foregroundStyle(.white)
                         NameSourcePill(source: model.clusterNameSources[sub.id] ?? .heuristic)
