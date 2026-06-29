@@ -1,67 +1,60 @@
 # Plan
 
 ## Context
-- The immersive knowledge universe branch launches, but the current graph interaction is wrong for inspection.
-- Cluster node taps navigate immediately, so the right details panel cannot behave like a stable inspector.
-- The paper universe switches to anonymous dot mode for larger subtopics, making it unreadable and not graph-like enough.
+- The user requested an end-to-end SwiftUI polish audit for LiteratureAtlas.
+- Recent work changed the app shell and Knowledge Universe graph, so launch behavior, navigation, visual polish, animation cost, and real UI workflows need fresh evidence.
+- The repo is a SwiftPM macOS/iOS package; current audit target is the macOS SwiftUI app.
 
 ## Assumptions
-- Tap should select and inspect; explicit buttons should navigate deeper or open full details.
-- The paper map should remain fast for large paper sets, so labels must be adaptive rather than showing every full card at once.
-- Dragging individual paper nodes is enough to make the graph feel movable while existing canvas pan/zoom remains available.
+- "End to end" means repo-wide audit coverage across build, tests, launch, primary navigation, major workflows, visual states, logs, and performance signals.
+- App Store/release-candidate readiness is not the target unless signing/notarization/release packaging is explicitly requested.
+- The app may require Apple Foundation Models availability for the full UI; unavailable model state is still a valid state to audit.
 
 ## Constraints
-- Keep the native SwiftUI/macOS shell and existing model APIs.
-- Avoid expensive layout work in `body`; keep the lightweight deterministic layout and bounded animation.
-- Preserve current sheet/overlay paper detail behavior.
+- Do not overwrite unrelated user work.
+- Keep app code changes out of scope unless a concrete blocker or high-confidence polish defect is reproduced.
+- Use `swiftui-polish-auditor` plus macOS build/test routing.
+- Use a project-local audit report under `docs/audits/`.
+- Use the weakest truthful readiness label.
 
 ## Options considered
-1. Force full paper cards for every paper.
-2. Keep dot mode but add selectable labels, focused inspector state, hover/selection expansion, and per-node dragging.
-3. Replace the map with a new graph engine.
+1. Static source audit only.
+2. Build/test/launch plus source-guided feature matrix and runtime smoke.
+3. Full release hardening with signing, notarization, Instruments traces, accessibility automation, and packaging.
 
-Chosen: 2 because it fixes readability and interaction directly without destabilizing the SwiftUI app.
+Chosen: 2 because it matches the request, gives real evidence beyond tests, and avoids claiming release-candidate quality without release-gate work.
 
 ## Execution plan
-1. Separate cluster selection from navigation so the right inspector stays active.
-2. Add explicit zoom labels/actions in the inspector for mega topics and subtopics.
-3. Add focused paper state shared between the graph and right sidebar.
-4. Replace anonymous paper dots with labeled graph nodes that support hover, selection, and dragging.
-5. Add a focused paper inspector above the paper list.
-6. Run SwiftPM build/tests, launch the app, and inspect runtime status.
-7. Update durable memory if the graph interaction convention changes.
+1. Establish project baseline: git state, package shape, app target, entry point, workflow map.
+2. Add/update the macOS `script/build_and_run.sh` and Codex Run action for reproducible launch.
+3. Run build/test quality gates: Swift build/test plus existing Python/Rust checks where feasible.
+4. Launch the app through the run script and capture screenshot/process evidence.
+5. Exercise primary navigation/workflows: Ingest, Universe, Q&A, Trading, Projects, Analytics, paper detail/glossary where reachable.
+6. Inspect runtime logs and process health after smoke.
+7. Perform a code-first SwiftUI polish/performance scan for obvious body work, global animations, unstable identity, and blocking overlays.
+8. Write `docs/audits/polish-audit-2026-06-29.md` with feature matrix, evidence, issues, and readiness label.
+9. Update TODO, MEMORY if durable workflow/tooling knowledge changed, and reflection notes.
 
 ## Test plan
+- `./script/build_and_run.sh --verify`
 - `swift build`
 - `swift test`
-- `swift run LiteratureAtlas`
-- Runtime process check after launch.
+- Existing available lint/test checks from `MEMORY.md` where dependencies are present.
+- Runtime screenshot and process check.
+- Unified log sample for app process after launch/smoke.
 
 ## Risks and rollback
-- Risk: extra labels clutter dense graphs.
-  - Rollback: reduce adaptive label density while keeping hover/selection labels.
-- Risk: node drag conflicts with canvas pan.
-  - Rollback: keep drag on graph nodes only and leave background pan unchanged.
-- Risk: sidebar selection state drifts after filters change.
-  - Rollback: clear focused paper on filter/subtopic changes.
+- Risk: Foundation Models unavailable blocks full UI smoke.
+  - Rollback: classify full workflow smoke as blocked and audit unsupported state honestly.
+- Risk: UI automation cannot reliably click native SwiftUI controls by coordinates.
+  - Rollback: use screenshots, Accessibility metadata, process/log evidence, and code-backed workflow matrix without overstating verification.
+- Risk: run script launch semantics differ from `swift run`.
+  - Rollback: compare with direct `swift run` only for diagnosis, keeping the script as the canonical app-bundle path.
 
 ## Memory impact
-- Record that map taps inspect/select and deeper navigation is explicit from the inspector; paper graph nodes are labeled/draggable with a focused right-panel inspector.
+- Record the new canonical run script and audit report location if verified.
 
 ## Notes / Results
-- Changes:
-  - Cluster node taps now only select/inspect; automatic drill-in was removed from `onSelect`.
-  - Cluster inspector actions now explicitly say `Zoom into subtopics` or `Open paper graph`.
-  - Added shared focused-paper state between the paper graph and right sidebar.
-  - Added a focused paper inspector with summary, metrics, clear, and open-details actions.
-  - Replaced anonymous paper dots with adaptive labeled graph nodes that support hover, selection, and per-node dragging.
-  - Expanded cluster node hit areas so card clicks are more reliable.
-  - Reduced universe animation cadence/star counts to keep the debug build responsive.
-- Tests run:
-  - `swift build` (pass)
-  - `swift test` (pass: 49 tests, 1 opt-in ingestion smoke skipped)
-  - `swift run LiteratureAtlas` (pass; app launched and remains running for validation)
-  - Runtime check after settling: debug build measured about 11% CPU and ~687 MB RSS with Universe active.
-- Tradeoffs:
-  - Kept adaptive labels instead of rendering every paper as a full card because dense subtopics would become slower and less readable.
-  - Left paper list rows opening full details while graph taps focus the inspector; this preserves existing list behavior and fixes the graph workflow.
+- Changes: added the reproducible macOS app-bundle run script and Codex Run action; fixed bundle-launched data loading by routing repo-relative paths through `AppPaths`; made the Knowledge Universe inspector scrollable; stripped visible markdown bold markers from cluster labels with `DisplayText`; reduced always-on Universe animation cadence; replaced an unavailable SF Symbol with standard folder symbols; wrote the audit report at `docs/audits/polish-audit-2026-06-29.md`.
+- Tests run: `./script/build_and_run.sh --verify` passed; `swift test` passed with 51 tests and 1 existing opt-in ingestion smoke skipped; `.venv/bin/python -m ruff check analytics/` passed; `.venv/bin/python -m pytest analytics/tests -v` passed with 9 tests; `cargo test --manifest-path analytics/ffi/Cargo.toml` passed with 3 tests.
+- Tradeoffs: full native tab-walk UI automation was not completed because the available tooling was simulator-oriented or produced a shallow AX tree; import/export and expensive write actions were source-reviewed but not executed; debug Universe still shows about 25% CPU after launch and needs Release/Instruments follow-up before any release-quality performance claim.

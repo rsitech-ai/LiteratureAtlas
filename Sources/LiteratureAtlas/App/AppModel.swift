@@ -156,8 +156,7 @@ final class AppModel: ObservableObject {
 
     private static func makePrimaryOutputRoot() -> URL {
         // Constrain all persisted data to the app directory (repo Output folder) so nothing leaks into ~/Documents.
-        let cwd = URL(fileURLWithPath: FileManager.default.currentDirectoryPath)
-        let root = cwd.appendingPathComponent("Output", isDirectory: true)
+        let root = AppPaths.outputRoot()
         prepareOutputRoot(root)
         return root
     }

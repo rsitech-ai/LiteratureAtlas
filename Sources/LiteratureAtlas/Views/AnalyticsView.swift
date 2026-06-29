@@ -166,7 +166,7 @@ struct AnalyticsView: View {
             let years = cluster.memberPaperIDs.compactMap { yearByID[$0] }
             guard !years.isEmpty else { return nil }
             let total = years.reduce(0, +)
-            return (cluster.name, Double(total) / Double(years.count))
+            return (DisplayText.clusterName(cluster.name), Double(total) / Double(years.count))
         }
     }
 
@@ -1513,8 +1513,7 @@ struct AnalyticsView: View {
 #if os(macOS)
                     Spacer()
                     Button {
-                        let cwd = URL(fileURLWithPath: FileManager.default.currentDirectoryPath)
-                        let folder = cwd.appendingPathComponent("Output", isDirectory: true)
+                        let folder = AppPaths.outputRoot()
                             .appendingPathComponent("analytics", isDirectory: true)
                         PlatformOpen.revealInFinder(url: folder)
                     } label: {
@@ -1896,7 +1895,7 @@ struct AnalyticsView: View {
                                         set: { debateLeftClusterID = $0 }
                                     )) {
                                         ForEach(model.clusters, id: \.id) { cluster in
-                                            Text(cluster.name).tag(Optional(cluster.id))
+                                            Text(DisplayText.clusterName(cluster.name)).tag(Optional(cluster.id))
                                         }
                                     }
                                     .pickerStyle(.menu)
@@ -1919,7 +1918,7 @@ struct AnalyticsView: View {
                                             set: { debateLeftClusterID = $0 }
                                         )) {
                                             ForEach(model.clusters, id: \.id) { cluster in
-                                                Text(cluster.name).tag(Optional(cluster.id))
+                                                Text(DisplayText.clusterName(cluster.name)).tag(Optional(cluster.id))
                                             }
                                         }
                                         .pickerStyle(.menu)
@@ -1929,7 +1928,7 @@ struct AnalyticsView: View {
                                             set: { debateRightClusterID = $0 }
                                         )) {
                                             ForEach(model.clusters, id: \.id) { cluster in
-                                                Text(cluster.name).tag(Optional(cluster.id))
+                                                Text(DisplayText.clusterName(cluster.name)).tag(Optional(cluster.id))
                                             }
                                         }
                                         .pickerStyle(.menu)

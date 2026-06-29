@@ -87,7 +87,7 @@ private struct UniverseField: View {
     @Environment(\.accessibilityReduceMotion) private var reduceMotion
 
     var body: some View {
-        TimelineView(.periodic(from: .now, by: reduceMotion ? 3600 : 1.0 / 10.0)) { timeline in
+        TimelineView(.periodic(from: .now, by: reduceMotion ? 3600 : 1.0 / 6.0)) { timeline in
             GeometryReader { geo in
                 let time = reduceMotion ? 0 : timeline.date.timeIntervalSinceReferenceDate
                 ZStack {
@@ -925,7 +925,7 @@ struct MapView: View {
             Image(systemName: "chevron.right")
                 .foregroundStyle(.white.opacity(0.7))
 
-            Text(cluster.name)
+            Text(DisplayText.clusterName(cluster.name))
                 .font(.headline)
                 .foregroundStyle(.white)
         }
@@ -945,7 +945,7 @@ struct MapView: View {
             Image(systemName: "chevron.right")
                 .foregroundStyle(.white.opacity(0.7))
 
-            Text(cluster.name)
+            Text(DisplayText.clusterName(cluster.name))
                 .font(.headline)
                 .foregroundStyle(.white)
         }
@@ -1076,34 +1076,37 @@ struct ClusterMapAndSidebar: View {
             }
 
             GlassPanel {
-                VStack(alignment: .leading, spacing: 12) {
-                    HStack {
-                        Text(isZoomed ? "Subtopic details" : "Cluster details")
-                            .font(.headline)
-                            .foregroundStyle(.white)
-                        Spacer()
-                        if let onZoomOut {
-                            Button("Back") { onZoomOut() }
-                                .buttonStyle(.bordered)
+                ScrollView {
+                    VStack(alignment: .leading, spacing: 12) {
+                        HStack {
+                            Text(isZoomed ? "Subtopic details" : "Cluster details")
+                                .font(.headline)
+                                .foregroundStyle(.white)
+                            Spacer()
+                            if let onZoomOut {
+                                Button("Back") { onZoomOut() }
+                                    .buttonStyle(.bordered)
+                            }
+                        }
+
+                        if selectedClusterIDs.isEmpty {
+                            Text("Tap a cluster node in the map to see details.")
+                                .font(.caption)
+                                .foregroundStyle(.white.opacity(0.7))
+                        } else {
+                            ForEach(clusters.filter { selectedClusterIDs.contains($0.id) }) { cluster in
+                                ClusterDetailCard(cluster: cluster, zoomLabel: zoomLabel, onZoom: onZoom != nil ? {
+                                    onZoom?(cluster)
+                                } : nil)
+                            }
+                        }
+
+                        if showBridging {
+                            Divider().padding(.vertical, 4)
+                            BridgingSection(selectedClusterIDs: $selectedClusterIDs)
                         }
                     }
-
-                    if selectedClusterIDs.isEmpty {
-                        Text("Tap a cluster node in the map to see details.")
-                            .font(.caption)
-                            .foregroundStyle(.white.opacity(0.7))
-                    } else {
-                        ForEach(clusters.filter { selectedClusterIDs.contains($0.id) }) { cluster in
-                            ClusterDetailCard(cluster: cluster, zoomLabel: zoomLabel, onZoom: onZoom != nil ? {
-                                onZoom?(cluster)
-                            } : nil)
-                        }
-                    }
-
-                    if showBridging {
-                        Divider().padding(.vertical, 4)
-                        BridgingSection(selectedClusterIDs: $selectedClusterIDs)
-                    }
+                    .frame(maxWidth: .infinity, alignment: .leading)
                 }
             }
             .frame(width: 380)
@@ -1323,7 +1326,7 @@ private struct PaperMapAndSidebar: View {
 
                     if let cluster {
                         VStack(alignment: .leading, spacing: 6) {
-                            Text(cluster.name)
+                            Text(DisplayText.clusterName(cluster.name))
                                 .font(.subheadline.bold())
                                 .foregroundStyle(.white)
                             if !cluster.metaSummary.isEmpty {
@@ -1361,7 +1364,7 @@ private struct PaperMapAndSidebar: View {
                                 Text("No subtopics yet.")
                             } else {
                                 ForEach(subtopics) { sub in
-                                    Button(sub.name) { onSelectSubtopic?(sub) }
+                                    Button(DisplayText.clusterName(sub.name)) { onSelectSubtopic?(sub) }
                                 }
                             }
                         } label: {
@@ -1716,7 +1719,7 @@ struct ClusterGraphView: View {
     }
 
     var body: some View {
-        TimelineView(.periodic(from: .now, by: reduceMotion ? 3600 : 1.0 / 12.0)) { timeline in
+        TimelineView(.periodic(from: .now, by: reduceMotion ? 3600 : 1.0 / 8.0)) { timeline in
             GeometryReader { geo in
                 let size = geo.size
                 let center = CGPoint(x: size.width / 2, y: size.height / 2)
@@ -1874,7 +1877,7 @@ struct ClusterNodeView: View {
     var body: some View {
         let pulse = 0.5 + 0.5 * sin(pulsePhase * 1.2)
         VStack(spacing: 4) {
-            Text(cluster.name)
+            Text(DisplayText.clusterName(cluster.name))
                 .font(.headline.weight(.semibold))
                 .multilineTextAlignment(.center)
                 .lineLimit(2)
@@ -1935,7 +1938,7 @@ struct ClusterDetailCard: View {
             VStack(alignment: .leading, spacing: 8) {
                 HStack {
                     VStack(alignment: .leading, spacing: 4) {
-                        Text(cluster.name)
+                        Text(DisplayText.clusterName(cluster.name))
                             .font(.headline)
                             .foregroundStyle(.white)
                         let filteredCount = model.paperCount(for: cluster)
@@ -2090,7 +2093,7 @@ struct ClusterDetailCard: View {
             NavigationStack {
                 VStack(alignment: .leading, spacing: 12) {
                     HStack {
-                        Text(cluster.name)
+                        Text(DisplayText.clusterName(cluster.name))
                             .font(.title3.bold())
                             .foregroundStyle(.primary)
                         Spacer()
