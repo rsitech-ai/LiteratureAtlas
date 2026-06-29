@@ -36,7 +36,7 @@ struct StrategyProjectDetailView: View {
                     } else {
                         GlassCard {
                             VStack(alignment: .leading, spacing: 8) {
-                                Text("Strategy not found").font(.headline)
+                                Text("Research project not found").font(.headline)
                                 Text("It may have been deleted or not loaded yet.")
                                     .font(.caption)
                                     .foregroundStyle(.secondary)
@@ -46,13 +46,13 @@ struct StrategyProjectDetailView: View {
                 }
                 .padding(16)
             }
-            .navigationTitle("Strategy")
+            .navigationTitle("Research Project")
             .toolbar {
                 ToolbarItemGroup(placement: .primaryAction) {
                     Button {
                         model.exportQuantKnowledgeGraphSnapshot()
                     } label: {
-                        Label("Export KG", systemImage: "square.and.arrow.up")
+                        Label("Export Graph", systemImage: "square.and.arrow.up")
                     }
                     Button {
                         save()
@@ -68,7 +68,7 @@ struct StrategyProjectDetailView: View {
                     }
                 }
             }
-            .confirmationDialog("Delete this strategy project?", isPresented: $showDeleteConfirm) {
+            .confirmationDialog("Delete this research project?", isPresented: $showDeleteConfirm) {
                 Button("Delete", role: .destructive) {
                     model.deleteStrategyProject(strategyID)
                     dismiss()
@@ -147,7 +147,7 @@ struct StrategyProjectDetailView: View {
                     StrategyStageDot(label: "Idea", done: stages.idea)
                     StrategyStageDot(label: "Features", done: stages.features)
                     StrategyStageDot(label: "Model", done: stages.model)
-                    StrategyStageDot(label: "Trade", done: stages.tradePlan)
+                    StrategyStageDot(label: "Plan", done: stages.tradePlan)
                     StrategyStageDot(label: "Outcome", done: stages.outcomes)
                     Spacer()
                     let pct = Int(Double(stages.completedCount) / 5.0 * 100.0)
@@ -187,7 +187,7 @@ struct StrategyProjectDetailView: View {
                     stages.idea ? nil : "Write idea",
                     stages.features ? nil : "Add features",
                     stages.model ? nil : "Define model",
-                    stages.tradePlan ? nil : "Draft trade plan",
+                    stages.tradePlan ? nil : "Draft application plan",
                     stages.outcomes ? nil : "Record outcome"
                 ].compactMap { $0 }
                 if !missing.isEmpty {
@@ -234,7 +234,7 @@ struct StrategyProjectDetailView: View {
                         }
                     }
                 } else {
-                    Text("No outcomes recorded yet. Add one to start tracking Sharpe, drawdowns, and PnL curves.")
+                    Text("No outcomes recorded yet. Add one to start tracking scores, risks, and result curves.")
                         .font(.caption)
                         .foregroundStyle(.secondary)
                 }
@@ -412,13 +412,13 @@ struct StrategyProjectDetailView: View {
         GlassCard {
             VStack(alignment: .leading, spacing: 10) {
                 HStack {
-                    Text("Trade").font(.headline)
+                    Text("Application Plan").font(.headline)
                     Spacer()
                     if project.tradePlan.wrappedValue == nil {
                         Button {
                             project.tradePlan.wrappedValue = QuantTradePlan()
                         } label: {
-                            Label("Add trade plan", systemImage: "plus")
+                            Label("Add plan", systemImage: "plus")
                         }
                         .buttonStyle(.bordered)
                     } else {
@@ -433,22 +433,22 @@ struct StrategyProjectDetailView: View {
 
                 if project.tradePlan.wrappedValue != nil {
                     let trade = unwrap(project.tradePlan, fallback: QuantTradePlan())
-                    TextField("Universe (optional)", text: optionalText(trade.universe))
+                    TextField("Scope / domain (optional)", text: optionalText(trade.universe))
                         .textFieldStyle(.roundedBorder)
 
-                    TextField("Horizon (optional)", text: optionalText(trade.horizon))
+                    TextField("Timeframe (optional)", text: optionalText(trade.horizon))
                         .textFieldStyle(.roundedBorder)
 
                     labeledEditor(
-                        "Signal definition",
+                        "Evidence pattern",
                         text: optionalText(trade.signalDefinition)
                     )
                     labeledEditor(
-                        "Portfolio construction",
+                        "Application design",
                         text: optionalText(trade.portfolioConstruction)
                     )
                     labeledEditor(
-                        "Costs & slippage",
+                        "Costs and constraints",
                         text: optionalText(trade.costsAndSlippage)
                     )
                     labeledEditor(
@@ -456,11 +456,11 @@ struct StrategyProjectDetailView: View {
                         text: optionalText(trade.constraints)
                     )
                     labeledEditor(
-                        "Execution notes",
+                        "Implementation notes",
                         text: optionalText(trade.executionNotes)
                     )
                 } else {
-                    Text("No trade plan yet.")
+                    Text("No application plan yet.")
                         .font(.caption)
                         .foregroundStyle(.secondary)
                 }
@@ -523,7 +523,7 @@ struct StrategyProjectDetailView: View {
         GlassCard {
             VStack(alignment: .leading, spacing: 10) {
                 HStack {
-                    Text("PnL / Outcomes").font(.headline)
+                    Text("Outcomes").font(.headline)
                     Spacer()
                     Button {
                         project.outcomes.wrappedValue.append(QuantOutcome(kind: .backtest, metrics: QuantBacktestMetrics(), notes: nil))
@@ -555,18 +555,18 @@ struct StrategyProjectDetailView: View {
                             .pickerStyle(.menu)
 
                             HStack(spacing: 10) {
-                                TextField("Sharpe", text: metricBinding(project.outcomes[idx].metrics, keyPath: \.sharpe))
+                                TextField("Score", text: metricBinding(project.outcomes[idx].metrics, keyPath: \.sharpe))
                                     .textFieldStyle(.roundedBorder)
-                                TextField("PnL", text: metricBinding(project.outcomes[idx].metrics, keyPath: \.pnl))
+                                TextField("Result", text: metricBinding(project.outcomes[idx].metrics, keyPath: \.pnl))
                                     .textFieldStyle(.roundedBorder)
-                                TextField("Max DD", text: metricBinding(project.outcomes[idx].metrics, keyPath: \.maxDrawdown))
+                                TextField("Risk", text: metricBinding(project.outcomes[idx].metrics, keyPath: \.maxDrawdown))
                                     .textFieldStyle(.roundedBorder)
                             }
 
                             HStack(spacing: 10) {
-                                TextField("CAGR", text: metricBinding(project.outcomes[idx].metrics, keyPath: \.cagr))
+                                TextField("Growth", text: metricBinding(project.outcomes[idx].metrics, keyPath: \.cagr))
                                     .textFieldStyle(.roundedBorder)
-                                TextField("Turnover", text: metricBinding(project.outcomes[idx].metrics, keyPath: \.turnover))
+                                TextField("Effort", text: metricBinding(project.outcomes[idx].metrics, keyPath: \.turnover))
                                     .textFieldStyle(.roundedBorder)
                                 TextField("Hit rate", text: metricBinding(project.outcomes[idx].metrics, keyPath: \.hitRate))
                                     .textFieldStyle(.roundedBorder)
@@ -779,12 +779,12 @@ private struct StrategyMetricRow: View {
 
     var body: some View {
         HStack(spacing: 10) {
-            StrategyMetricPill(label: "Sharpe", value: metrics.sharpe, tint: .mint)
-            StrategyMetricPill(label: "CAGR", value: metrics.cagr, tint: .teal)
-            StrategyMetricPill(label: "MaxDD", value: metrics.maxDrawdown, tint: .red)
-            StrategyMetricPill(label: "Turn", value: metrics.turnover, tint: .orange)
+            StrategyMetricPill(label: "Score", value: metrics.sharpe, tint: .mint)
+            StrategyMetricPill(label: "Growth", value: metrics.cagr, tint: .teal)
+            StrategyMetricPill(label: "Risk", value: metrics.maxDrawdown, tint: .red)
+            StrategyMetricPill(label: "Effort", value: metrics.turnover, tint: .orange)
             StrategyMetricPill(label: "Hit", value: metrics.hitRate, tint: .indigo)
-            StrategyMetricPill(label: "PnL", value: metrics.pnl, tint: .gray)
+            StrategyMetricPill(label: "Result", value: metrics.pnl, tint: .gray)
             Spacer()
         }
     }
@@ -838,14 +838,14 @@ private struct StrategyPnLChart: View {
                 let p = sorted[i]
                 LineMark(
                     x: .value("t", p.t),
-                    y: .value("PnL", p.v)
+                    y: .value("Result", p.v)
                 )
                 .interpolationMethod(.catmullRom)
                 .foregroundStyle(tint.opacity(0.92))
                 .lineStyle(StrokeStyle(lineWidth: 2))
             }
             if let last = sorted.last {
-                PointMark(x: .value("t", last.t), y: .value("PnL", last.v))
+                PointMark(x: .value("t", last.t), y: .value("Result", last.v))
                     .foregroundStyle(tint)
                     .symbolSize(46)
             }

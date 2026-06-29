@@ -68,10 +68,10 @@ final class StrategyMarkdownExporterTests: XCTestCase {
         XCTAssertTrue(original.contains("Paper Title"))
         XCTAssertTrue(original.contains("## Idea"))
         XCTAssertTrue(original.contains("Original idea"))
-        XCTAssertTrue(original.contains("## Trade Plan"))
-        XCTAssertTrue(original.contains("Universe: SPY"))
+        XCTAssertTrue(original.contains("## Application Plan"))
+        XCTAssertTrue(original.contains("Scope / domain: SPY"))
         XCTAssertTrue(original.contains("## Outcomes"))
-        XCTAssertTrue(original.contains("Sharpe 2.300"))
+        XCTAssertTrue(original.contains("Score 2.300"))
 
         // User edits after the managed block should survive future writes.
         let userTail = "\nCustom user line\n"
@@ -85,4 +85,3 @@ final class StrategyMarkdownExporterTests: XCTestCase {
         XCTAssertTrue(updated.contains("Custom user line"))
     }
 }
-

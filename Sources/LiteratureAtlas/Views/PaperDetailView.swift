@@ -110,7 +110,7 @@ struct PaperDetailView: View {
                 GlassCard {
                     VStack(alignment: .leading, spacing: 8) {
                         HStack {
-                            Text("Trading lens").font(.headline)
+                            Text("Insight brief").font(.headline)
                             Spacer()
                             Button {
                                 model.generateTradingLens(for: paper.id)
@@ -122,7 +122,7 @@ struct PaperDetailView: View {
                             Button {
                                 createdStrategyProject = model.createStrategyProject(from: paper.id)
                             } label: {
-                                Label("Create project", systemImage: "folder.badge.plus")
+                                Label("Create research project", systemImage: "folder.badge.plus")
                             }
                             .buttonStyle(.bordered)
                         }
@@ -139,7 +139,7 @@ struct PaperDetailView: View {
                                 HStack {
                                     if let novelty = scores.novelty { MetricPill(label: "Novelty", value: novelty, tint: .orange) }
                                     if let usability = scores.usability { MetricPill(label: "Usability", value: usability, tint: .mint) }
-                                    if let impact = scores.strategyImpact { MetricPill(label: "Impact", value: impact, tint: .blue) }
+                                    if let impact = scores.strategyImpact { MetricPill(label: "Application", value: impact, tint: .blue) }
                                     if let conf = scores.confidence { MetricPill(label: "Conf.", value: conf * 10, tint: .purple) }
                                 }
                                 Text("Conf. shown on a 0–10 scale.")
@@ -149,19 +149,19 @@ struct PaperDetailView: View {
 
                             Group {
                                 if let tags = lens.tradingTags, !tags.isEmpty {
-                                    Text("Tags: \(tags.joined(separator: ", "))")
+                                    Text("Patterns: \(tags.joined(separator: ", "))")
                                 }
                                 if let assets = lens.assetClasses, !assets.isEmpty {
-                                    Text("Assets: \(assets.joined(separator: ", "))")
+                                    Text("Domains: \(assets.joined(separator: ", "))")
                                 }
                                 if let horizons = lens.horizons, !horizons.isEmpty {
-                                    Text("Horizon: \(horizons.joined(separator: ", "))")
+                                    Text("Timeframe: \(horizons.joined(separator: ", "))")
                                 }
                                 if let archetypes = lens.signalArchetypes, !archetypes.isEmpty {
-                                    Text("Archetypes: \(archetypes.joined(separator: ", "))")
+                                    Text("Pattern types: \(archetypes.joined(separator: ", "))")
                                 }
                                 if let flags = lens.riskFlags, !flags.isEmpty {
-                                    Text("Risk flags: \(flags.joined(separator: ", "))")
+                                    Text("Caveats: \(flags.joined(separator: ", "))")
                                 }
                             }
                             .font(.caption)
@@ -169,7 +169,7 @@ struct PaperDetailView: View {
 
                             if let hyps = lens.alphaHypotheses, !hyps.isEmpty {
                                 Divider().padding(.vertical, 4)
-                                Text("Alpha hypotheses").font(.subheadline.bold())
+                                Text("Hypotheses").font(.subheadline.bold())
                                 ForEach(Array(hyps.prefix(3).enumerated()), id: \.offset) { _, h in
                                     let text = h.hypothesis ?? "Unknown"
                                     VStack(alignment: .leading, spacing: 2) {
@@ -178,13 +178,13 @@ struct PaperDetailView: View {
                                             Text("target: \(target)").font(.caption2).foregroundStyle(.secondary)
                                         }
                                         if let horizon = h.horizon, !horizon.isEmpty {
-                                            Text("horizon: \(horizon)").font(.caption2).foregroundStyle(.secondary)
+                                            Text("timeframe: \(horizon)").font(.caption2).foregroundStyle(.secondary)
                                         }
                                     }
                                 }
                             }
                         } else {
-                            Text("No trading lens scorecard yet.")
+                            Text("No insight brief yet.")
                                 .font(.caption)
                                 .foregroundStyle(.secondary)
                         }
@@ -282,7 +282,7 @@ struct PaperDetailView: View {
 
                 GlassCard {
                     VStack(alignment: .leading, spacing: 10) {
-                        Text("Strategy prototypes").font(.headline)
+                        Text("Research plans").font(.headline)
                         HStack {
                             Button {
                                 model.generateStrategyBlueprint(for: paper.id)
@@ -294,7 +294,7 @@ struct PaperDetailView: View {
                             Button {
                                 model.auditBacktest(for: paper.id)
                             } label: {
-                                Label("Audit backtest", systemImage: "checkmark.shield")
+                                Label("Audit plan", systemImage: "checkmark.shield")
                             }
                             .buttonStyle(.bordered)
                             .disabled((latestPaper()?.strategyBlueprint ?? "").isEmpty)
@@ -304,7 +304,7 @@ struct PaperDetailView: View {
 
                         if let blueprint = latestPaper()?.strategyBlueprint, !blueprint.isEmpty {
                             Divider().padding(.vertical, 4)
-                            Text("Blueprint").font(.subheadline.bold())
+                            Text("Research plan").font(.subheadline.bold())
                             ScrollView {
                                 Text(blueprint)
                                     .font(.system(.footnote, design: .monospaced))
@@ -312,14 +312,14 @@ struct PaperDetailView: View {
                             }
                             .frame(minHeight: 120, maxHeight: 280)
                         } else {
-                            Text("No strategy blueprint yet.")
+                            Text("No research plan yet.")
                                 .font(.caption)
                                 .foregroundStyle(.secondary)
                         }
 
                         if let audit = latestPaper()?.backtestAudit, !audit.isEmpty {
                             Divider().padding(.vertical, 4)
-                            Text("Backtest audit").font(.subheadline.bold())
+                            Text("Plan audit").font(.subheadline.bold())
                             ScrollView {
                                 Text(audit)
                                     .font(.system(.footnote, design: .monospaced))

@@ -395,7 +395,7 @@ struct TradingLensView: View {
                 }
                 .padding()
             }
-            .navigationTitle("Trading lens")
+            .navigationTitle("Insights")
         }
         .sheet(item: $selectedPaperDetail) { paper in
             PaperDetailView(paper: paper)
@@ -408,8 +408,8 @@ struct TradingLensView: View {
             VStack(alignment: .leading, spacing: 10) {
                 HStack(alignment: .firstTextBaseline) {
                     VStack(alignment: .leading, spacing: 4) {
-                        Text("Trading lens").font(.headline)
-                        Text("Filter, rank, and harvest actionable hypotheses from paper scorecards.")
+                        Text("Insights").font(.headline)
+                        Text("Filter, rank, and harvest actionable hypotheses from generated insight briefs.")
                             .font(.caption2)
                             .foregroundStyle(.secondary)
                     }
@@ -423,7 +423,7 @@ struct TradingLensView: View {
                 let total = papers.count
                 let coverage = total > 0 ? Double(withLens) / Double(total) : 0
                 HStack(spacing: 12) {
-                    StatPill(label: "Lens", value: "\(withLens)/\(total) (\(Int(coverage * 100))%)")
+                    StatPill(label: "Briefs", value: "\(withLens)/\(total) (\(Int(coverage * 100))%)")
                     StatPill(label: "Missing", value: "\(papersMissingLensCount)")
                     StatPill(label: "Scored", value: "\(papersWithScores.count)")
                     if !model.tradingLensFailures.isEmpty {
@@ -457,7 +457,7 @@ struct TradingLensView: View {
                     HStack(spacing: 12) {
                         StatPill(label: "Median P", value: String(format: "%.1f", median(priorities) ?? 0))
                         StatPill(label: "Top P", value: String(format: "%.1f", priorities.max() ?? 0))
-                        StatPill(label: "Avg N/U/I/C", value: String(format: "%.1f/%.1f/%.1f/%.2f", avgN, avgU, avgI, avgC))
+                        StatPill(label: "Avg N/U/A/C", value: String(format: "%.1f/%.1f/%.1f/%.2f", avgN, avgU, avgI, avgC))
                     }
                 }
 
@@ -465,7 +465,7 @@ struct TradingLensView: View {
                     Divider().padding(.vertical, 4)
                     VStack(alignment: .leading, spacing: 8) {
                         HStack {
-                            Text("Generate missing scorecards")
+                            Text("Generate missing insight briefs")
                                 .font(.caption)
                                 .foregroundStyle(.secondary)
                             Spacer()
@@ -474,10 +474,10 @@ struct TradingLensView: View {
                                     .buttonStyle(.bordered)
                             } else {
                                 Menu {
-                                    Button("Backfill missing (all)") { model.backfillTradingLensForMissingPapers() }
-                                    Button("Backfill missing (25 newest)") { model.backfillTradingLensForMissingPapers(limit: 25) }
+                                    Button("Generate missing (all)") { model.backfillTradingLensForMissingPapers() }
+                                    Button("Generate missing (25 newest)") { model.backfillTradingLensForMissingPapers(limit: 25) }
                                 } label: {
-                                    Label("Backfill", systemImage: "sparkles")
+                                    Label("Generate", systemImage: "sparkles")
                                 }
                                 .buttonStyle(.borderedProminent)
                             }
@@ -490,7 +490,7 @@ struct TradingLensView: View {
                                 .font(.caption2)
                                 .foregroundStyle(.secondary)
                         } else if papersMissingLensCount > 0 {
-                            Text("\(papersMissingLensCount) papers missing a trading lens scorecard in the current year filter.")
+                            Text("\(papersMissingLensCount) papers missing an insight brief in the current year filter.")
                                 .font(.caption2)
                                 .foregroundStyle(.secondary)
                         }
@@ -533,7 +533,7 @@ struct TradingLensView: View {
                 } else {
                     TradingLensScatterChartView(points: lensPoints, selectedPointID: $selectedPointID)
                         .frame(minHeight: 420)
-                    Text("x=usability · y=novelty · color=strategy impact · opacity=confidence")
+                    Text("x=usability · y=novelty · color=application impact · opacity=confidence")
                         .font(.caption2)
                         .foregroundStyle(.secondary)
 
@@ -556,10 +556,10 @@ struct TradingLensView: View {
     private var tagsCard: some View {
         GlassCard {
             VStack(alignment: .leading, spacing: 10) {
-                Text("Tags").font(.headline)
+                Text("Patterns").font(.headline)
 
                 if tagCounts.isEmpty {
-                    Text("No tags available in the current filter.")
+                    Text("No patterns available in the current filter.")
                         .font(.caption2)
                         .foregroundStyle(.secondary)
                 } else {
@@ -567,7 +567,7 @@ struct TradingLensView: View {
                         .frame(minHeight: 280)
 
                     Divider().padding(.vertical, 4)
-                    Text("Quick tag filters").font(.subheadline.weight(.semibold))
+                    Text("Quick pattern filters").font(.subheadline.weight(.semibold))
                     TradingTagChipGrid(
                         counts: Array(tagCounts.prefix(18)),
                         selection: $selectedTradingTags
@@ -576,7 +576,7 @@ struct TradingLensView: View {
 
                 if !tagTrends.isEmpty {
                     Divider().padding(.vertical, 4)
-                    Text("Tag frequency over time (top tags)").font(.subheadline.weight(.semibold))
+                    Text("Pattern frequency over time").font(.subheadline.weight(.semibold))
                     TradingTagTrendChartView(trends: tagTrends, domain: yearDomain)
                         .frame(minHeight: 280)
                 }
@@ -614,12 +614,12 @@ struct TradingLensView: View {
                     }
                 }
 
-                SearchField(text: $searchQuery, placeholder: "Search title, summary, verdict…")
+                SearchField(text: $searchQuery, placeholder: "Search title, summary, brief…")
 
                 HStack(spacing: 10) {
-                    MultiSelectMenu(title: "Tags", emptyLabel: "Any tag", options: availableTradingTags, selection: $selectedTradingTags)
-                    MultiSelectMenu(title: "Assets", emptyLabel: "Any asset", options: availableAssetClasses, selection: $selectedAssetClasses)
-                    MultiSelectMenu(title: "Horizon", emptyLabel: "Any horizon", options: availableHorizons, selection: $selectedHorizons)
+                    MultiSelectMenu(title: "Patterns", emptyLabel: "Any pattern", options: availableTradingTags, selection: $selectedTradingTags)
+                    MultiSelectMenu(title: "Domains", emptyLabel: "Any domain", options: availableAssetClasses, selection: $selectedAssetClasses)
+                    MultiSelectMenu(title: "Timeframe", emptyLabel: "Any timeframe", options: availableHorizons, selection: $selectedHorizons)
                     Spacer()
                 }
                 .font(.caption)
@@ -643,19 +643,19 @@ struct TradingLensView: View {
                             })
                             .contextMenu {
                                 Button("Open details") { selectedPaperDetail = paper }
-                                Button("Create project") {
+                                Button("Create research project") {
                                     if let project = model.createStrategyProject(from: paper.id) {
                                         nav.selectedTab = .projects
                                         nav.requestedStrategyProjectID = project.id
                                     }
                                 }
                                 if paper.tradingLens == nil {
-                                    Button("Generate trading lens") { model.generateTradingLens(for: paper.id) }
+                                    Button("Generate insight brief") { model.generateTradingLens(for: paper.id) }
                                 } else {
-                                    Button("Re-generate trading lens") { model.generateTradingLens(for: paper.id) }
+                                    Button("Re-generate insight brief") { model.generateTradingLens(for: paper.id) }
                                 }
-                                Button("Generate strategy blueprint") { model.generateStrategyBlueprint(for: paper.id) }
-                                Button("Audit backtest") { model.auditBacktest(for: paper.id) }
+                                Button("Generate research plan") { model.generateStrategyBlueprint(for: paper.id) }
+                                Button("Audit plan") { model.auditBacktest(for: paper.id) }
                             }
                         }
                     }
@@ -668,13 +668,13 @@ struct TradingLensView: View {
         GlassCard {
             VStack(alignment: .leading, spacing: 10) {
                 HStack(alignment: .firstTextBaseline) {
-                    Text("Alpha hypotheses").font(.headline)
+                    Text("Hypotheses").font(.headline)
                     Spacer()
                     Text("\(hypotheses.count)")
                         .font(.caption2)
                         .foregroundStyle(.secondary)
                 }
-                Text("Harvested from paper trading lens scorecards (not deduplicated yet).")
+                Text("Harvested from generated insight briefs (not deduplicated yet).")
                     .font(.caption2)
                     .foregroundStyle(.secondary)
 
@@ -872,7 +872,7 @@ private struct TradingPaperRow: View {
                     Image(systemName: "sparkles")
                 }
                 .buttonStyle(.borderless)
-                .help("Generate trading lens")
+                .help("Generate insight brief")
             }
 
             if let onCreateProject {
@@ -882,7 +882,7 @@ private struct TradingPaperRow: View {
                     Image(systemName: "folder.badge.plus")
                 }
                 .buttonStyle(.borderless)
-                .help("Create project")
+                .help("Create research project")
             }
 
             Button {
@@ -1173,7 +1173,7 @@ private struct TradingSelectedPaperCard: View {
                         nav.requestedStrategyProjectID = project.id
                     }
                 } label: {
-                    Label("Project", systemImage: "folder")
+                    Label("Research project", systemImage: "folder")
                 }
                 .buttonStyle(.bordered)
 
@@ -1190,7 +1190,7 @@ private struct TradingSelectedPaperCard: View {
             }
 
             if !tags.isEmpty {
-                Text("Tags").font(.caption.bold()).foregroundStyle(.secondary)
+                Text("Patterns").font(.caption.bold()).foregroundStyle(.secondary)
                 LazyVGrid(columns: columns, alignment: .leading, spacing: 8) {
                     ForEach(Array(tags), id: \.self) { tag in
                         TradingFilterChip(
@@ -1204,7 +1204,7 @@ private struct TradingSelectedPaperCard: View {
             }
 
             if !assets.isEmpty {
-                Text("Assets").font(.caption.bold()).foregroundStyle(.secondary)
+                Text("Domains").font(.caption.bold()).foregroundStyle(.secondary)
                 LazyVGrid(columns: columns, alignment: .leading, spacing: 8) {
                     ForEach(Array(assets), id: \.self) { asset in
                         TradingFilterChip(
@@ -1218,7 +1218,7 @@ private struct TradingSelectedPaperCard: View {
             }
 
             if !horizons.isEmpty {
-                Text("Horizons").font(.caption.bold()).foregroundStyle(.secondary)
+                Text("Timeframes").font(.caption.bold()).foregroundStyle(.secondary)
                 LazyVGrid(columns: columns, alignment: .leading, spacing: 8) {
                     ForEach(Array(horizons), id: \.self) { horizon in
                         TradingFilterChip(
@@ -1264,7 +1264,7 @@ private struct HypothesisRow: View {
             }
 
             if !card.features.isEmpty {
-                Text("features: \(card.features.prefix(6).joined(separator: ", "))")
+                Text("signals: \(card.features.prefix(6).joined(separator: ", "))")
                     .font(.caption2)
                     .foregroundStyle(.secondary)
                     .lineLimit(2)
@@ -1275,7 +1275,7 @@ private struct HypothesisRow: View {
                     .foregroundStyle(.secondary)
             }
             if let horizon = card.horizon, !horizon.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty {
-                Text("horizon: \(horizon)")
+                Text("timeframe: \(horizon)")
                     .font(.caption2)
                     .foregroundStyle(.secondary)
             }
@@ -1294,9 +1294,9 @@ private struct HypothesisRow: View {
                 Button {
                     let parts: [String] = [
                         card.hypothesis,
-                        card.features.isEmpty ? nil : "features: \(card.features.joined(separator: ", "))",
+                        card.features.isEmpty ? nil : "signals: \(card.features.joined(separator: ", "))",
                         card.target?.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty == false ? "target: \(card.target ?? "")" : nil,
-                        card.horizon?.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty == false ? "horizon: \(card.horizon ?? "")" : nil
+                        card.horizon?.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty == false ? "timeframe: \(card.horizon ?? "")" : nil
                     ].compactMap { $0 }
                     PlatformClipboard.copy(parts.joined(separator: "\n"))
                 } label: {
@@ -1310,7 +1310,7 @@ private struct HypothesisRow: View {
                         Image(systemName: "folder.badge.plus")
                     }
                     .buttonStyle(.borderless)
-                    .help("Create project")
+                    .help("Create research project")
                 }
             }
         }

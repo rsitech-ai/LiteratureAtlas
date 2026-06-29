@@ -1,59 +1,58 @@
 # Plan
 
 ## Context
-- The user requested a fresh end-to-end SwiftUI polish audit for LiteratureAtlas after the sidebar responsiveness fix.
-- Current target is the macOS SwiftPM SwiftUI app launched as `dist/LiteratureAtlas.app`.
-- Recent weak spots: sidebar click-through, Knowledge Universe animation/CPU, bridge analysis, Analytics warnings, native control reachability, logs, and visual consistency.
+- The user confirmed LiteratureAtlas should be fully generalized, not trading-first with an optional trading lens.
+- The implementation must remove trading/quant framing from user-facing app surfaces while preserving existing data compatibility.
+- Design spec: `docs/superpowers/specs/2026-06-29-full-generalization-design.md`
+- Implementation plan: `docs/superpowers/plans/2026-06-29-full-generalization.md`
 
 ## Assumptions
-- "End to end" means macOS app bundle launch, primary route navigation, representative safe control clicks, logs, performance samples, source-backed feature matrix, and broad test gates.
-- Destructive, expensive, or external side-effect actions may be opened/cancelled or source-reviewed, but not executed if they mutate the corpus, launch long AI jobs, export files, or require manual file selection.
-- Release-candidate performance is not claimed unless a Release/Instruments pass is completed.
+- Full generalization means app chrome, UI copy, prompts, exports, and visible workflows should use generic research/insight language.
+- Internal Swift type names and JSON keys may remain if changing them only increases migration risk.
+- Existing `trading_lens` and strategy project data must continue to load.
 
 ## Constraints
-- Do not overwrite unrelated user work.
-- Keep code changes scoped to concrete audit findings.
-- Use `script/build_and_run.sh` for macOS launch evidence.
-- Use the weakest truthful readiness label.
+- Do not destructively migrate `Output/`.
+- Keep changes product-facing and migration-safe.
+- Verify with Swift build/tests and real app launch.
 
 ## Options considered
-1. Static audit only.
-2. Build/test/runtime interaction audit with safe control sweep and log/performance review.
-3. Full release-candidate audit with Release/Instruments, signing/notarization, and complete macOS UI automation.
+1. Rename-only generalization.
+2. Migration-preserving product generalization.
+3. Clean-slate removal of trading/strategy subsystems.
 
-Chosen: 2 because it matches the request and gives live evidence without executing unsafe side effects or claiming release readiness.
+Chosen: 2 because it removes trading from the app experience without breaking existing corpus artifacts.
 
 ## Execution plan
-1. Run build/test gates: app bundle verify, Swift tests, Python lint/tests, Rust FFI tests.
-2. Launch the app and capture baseline screenshot/process/log state.
-3. Click through all root sidebar routes and capture/record resulting states.
-4. Exercise safe visible controls per route: segmented controls, toggles, text inputs where non-destructive, sheets/dialog cancel paths, and disabled states.
-5. Inspect source for remaining high-risk SwiftUI patterns: expensive work in `body`, unstable `ForEach` identity, global overlays, and duplicate IDs.
-6. Inspect runtime logs after interaction sweep.
-7. Write `docs/audits/polish-audit-2026-06-29-round2.md` with commands, matrix, interaction coverage, visual/performance notes, and readiness label.
-8. Update TODO, MEMORY/reflection if durable knowledge changes.
+1. Generalize navigation and planner chrome.
+2. Generalize the Insights lens UI.
+3. Generalize paper detail and row actions.
+4. Generalize project UI.
+5. Generalize analytics, markdown export, prompt fallback, and log copy.
+6. Update tests/docs/memory.
+7. Run full verification and live app smoke.
 
 ## Test plan
-- `./script/build_and_run.sh --verify`
+- `swift build`
 - `swift test`
 - `.venv/bin/python -m ruff check analytics/`
 - `.venv/bin/python -m pytest analytics/tests -v`
 - `cargo test --manifest-path analytics/ffi/Cargo.toml`
-- Runtime route/control sweep via the launched `.app`
-- Unified log scan after the sweep
+- `./script/build_and_run.sh --verify`
+- Strict runtime log scan after final launch
 
 ## Risks and rollback
-- Risk: macOS AX/screenshot automation can lose foreground to other apps.
-  - Rollback: verify by app process/window title, force `frontmost`, and record automation limitations honestly.
-- Risk: expensive actions such as ingestion, rebuilding analytics, or AI generation mutate data or run too long.
-  - Rollback: validate their disabled/cancel/safe paths and source-review the execution path.
-- Risk: Debug performance overstates cost.
-  - Rollback: report debug samples as smoke evidence only, not release performance.
+- Risk: broad copy changes miss a visible trading string.
+  - Rollback: run focused `rg` over Swift/UI/docs and classify remaining internal-only terms.
+- Risk: exporter tests assert old labels.
+  - Rollback: update assertions to generic labels while preserving stored key compatibility.
+- Risk: app launch is fine but route automation remains flaky.
+  - Rollback: verify by screenshot/window state and report automation limits honestly.
 
 ## Memory impact
-- Record only durable workflow or architecture findings discovered during this pass.
+- Record the generalization boundary: user-facing app is general research/insight language; legacy trading/strategy names can remain as compatibility internals.
 
 ## Notes / Results
-- Changes: added shared chart plot geometry guards, ignored non-finite width measurements, clamped chart hover overlay frames, and converted factor exposure area fills to line marks to remove oversized CoreAnimation paint layers.
-- Tests run: `./script/build_and_run.sh --verify` passed; `swift build` passed; `swift test` passed with 51 tests and 1 expected opt-in ingestion smoke skipped; `.venv/bin/python -m ruff check analytics/` passed; `.venv/bin/python -m pytest analytics/tests -v` passed with 9 tests; `cargo test --manifest-path analytics/ffi/Cargo.toml` passed with 3 tests; final strict unified log scan was clean.
-- Tradeoffs: route automation through AppleScript AX remains flaky for some immediate title reads, so Trading/Projects are marked partial rather than fully certified; destructive/export/rebuild/AI actions were source/visual reviewed but not executed.
+- Changes: Generalized product-facing navigation, planner, Insights, paper details/actions, research projects, analytics, markdown exports, Obsidian setup copy, runtime logs, and prompt templates from trading/quant language to general research/insight language.
+- Tests run: `swift build`; `swift test` (51 tests, 1 opt-in ingestion smoke skipped); `.venv/bin/python -m ruff check analytics/`; `.venv/bin/python -m pytest analytics/tests -v` (9 passed); `cargo test --manifest-path analytics/ffi/Cargo.toml` (3 passed); `./script/build_and_run.sh --verify`; app running from `dist/LiteratureAtlas.app` as process 25120.
+- Tradeoffs: Internal Swift type names, JSON keys, event names, `.strategy.json`, and `quant_kg.json` remain for compatibility. Remaining finance terms are compatibility parsing or claim-graph/test content that only appears when source papers contain those concepts.

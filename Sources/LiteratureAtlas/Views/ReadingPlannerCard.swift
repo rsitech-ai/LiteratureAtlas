@@ -8,13 +8,13 @@ struct ReadingPlannerCard: View {
 
     @Binding var selectedPaper: Paper?
 
-    private struct TradingLensFailure: Identifiable {
+    private struct InsightBriefFailure: Identifiable {
         let id: UUID
         let paper: Paper
         let message: String
     }
 
-    private struct TradingPriorityRow: Identifiable {
+    private struct InsightPriorityRow: Identifiable {
         let id: UUID
         let paper: Paper
         let subtitle: String
@@ -23,8 +23,8 @@ struct ReadingPlannerCard: View {
 
     var body: some View {
         let nextUp = Array(model.recommendedNextPapers().prefix(5))
-        let tradingPriority = model.tradingPriorityPapers(limit: 5)
-        let missingTradingLensCount = model.papers.filter { $0.tradingLens == nil }.count
+        let insightPriority = model.tradingPriorityPapers(limit: 5)
+        let missingInsightBriefCount = model.papers.filter { $0.tradingLens == nil }.count
         let blindSpots = model.blindSpots(limit: 3)
         let curriculum = Array(model.adaptiveCurriculum().prefix(5))
         let failures = tradingLensFailures()
@@ -33,14 +33,14 @@ struct ReadingPlannerCard: View {
             VStack(alignment: .leading, spacing: 10) {
                 header
 
-                tradingLensSection(
-                    missingTradingLensCount: missingTradingLensCount,
+                insightBriefSection(
+                    missingInsightBriefCount: missingInsightBriefCount,
                     failures: failures
                 )
 
                 nextUpSection(nextUp)
 
-                tradingPrioritySection(tradingPriority)
+                insightPrioritySection(insightPriority)
 
                 blindSpotsSection(blindSpots)
 
@@ -64,7 +64,7 @@ struct ReadingPlannerCard: View {
                 .buttonStyle(.bordered)
 
                 Button { nav.selectedTab = .trading } label: {
-                    Label("Open Trading", systemImage: "dollarsign.circle")
+                    Label("Open Insights", systemImage: "lightbulb")
                 }
                 .buttonStyle(.bordered)
 
@@ -78,13 +78,13 @@ struct ReadingPlannerCard: View {
     }
 
     @ViewBuilder
-    private func tradingLensSection(missingTradingLensCount: Int, failures: [TradingLensFailure]) -> some View {
-        if model.tradingLensBackfillInFlight || missingTradingLensCount > 0 || !failures.isEmpty {
+    private func insightBriefSection(missingInsightBriefCount: Int, failures: [InsightBriefFailure]) -> some View {
+        if model.tradingLensBackfillInFlight || missingInsightBriefCount > 0 || !failures.isEmpty {
             Divider().padding(.vertical, 4)
 
             VStack(alignment: .leading, spacing: 8) {
                 HStack {
-                    Text("Trading lens scorecards")
+                    Text("Insight briefs")
                         .font(.caption)
                         .foregroundStyle(.secondary)
                     Spacer()
@@ -93,10 +93,10 @@ struct ReadingPlannerCard: View {
                             .buttonStyle(.bordered)
                     } else {
                         Menu {
-                            Button("Backfill missing (all)") { model.backfillTradingLensForMissingPapers() }
-                            Button("Backfill missing (25 newest)") { model.backfillTradingLensForMissingPapers(limit: 25) }
+                            Button("Generate missing (all)") { model.backfillTradingLensForMissingPapers() }
+                            Button("Generate missing (25 newest)") { model.backfillTradingLensForMissingPapers(limit: 25) }
                         } label: {
-                            Label("Backfill", systemImage: "sparkles")
+                            Label("Generate", systemImage: "sparkles")
                         }
                         .buttonStyle(.borderedProminent)
                     }
@@ -108,8 +108,8 @@ struct ReadingPlannerCard: View {
                     Text("\(model.tradingLensBackfillCompletedCount)/\(max(1, model.tradingLensBackfillTotalCount)) · \(model.tradingLensBackfillCurrentPaper)")
                         .font(.caption2)
                         .foregroundStyle(.secondary)
-                } else if missingTradingLensCount > 0 {
-                    Text("\(missingTradingLensCount) papers missing trading lens. Generate to enable trading priority + analytics filters.")
+                } else if missingInsightBriefCount > 0 {
+                    Text("\(missingInsightBriefCount) papers missing insight briefs. Generate to enable application priority and analytics filters.")
                         .font(.caption2)
                         .foregroundStyle(.secondary)
                 }
@@ -160,9 +160,9 @@ struct ReadingPlannerCard: View {
     }
 
     @ViewBuilder
-    private func tradingPrioritySection(_ papers: [Paper]) -> some View {
+    private func insightPrioritySection(_ papers: [Paper]) -> some View {
         if !papers.isEmpty {
-            let rows: [TradingPriorityRow] = papers.map { paper in
+            let rows: [InsightPriorityRow] = papers.map { paper in
                 let verdict = paper.tradingLens?.oneLineVerdict?.trimmingCharacters(in: .whitespacesAndNewlines) ?? ""
                 let subtitle = verdict.isEmpty ? paper.summary : verdict
 
@@ -170,11 +170,11 @@ struct ReadingPlannerCard: View {
                 let priority = (scores?.strategyImpact ?? 0) * (scores?.usability ?? 0) * (scores?.confidence ?? 0)
                 let pill = String(format: "P %.1f", priority)
 
-                return TradingPriorityRow(id: paper.id, paper: paper, subtitle: subtitle, pill: pill)
+                return InsightPriorityRow(id: paper.id, paper: paper, subtitle: subtitle, pill: pill)
             }
 
             Divider().padding(.vertical, 4)
-            Text("Trading priority (impact × usability × confidence)")
+            Text("Application priority (impact × usability × confidence)")
                 .font(.caption)
                 .foregroundStyle(.secondary)
             ForEach(rows) { row in
@@ -229,11 +229,11 @@ struct ReadingPlannerCard: View {
         }
     }
 
-    private func tradingLensFailures() -> [TradingLensFailure] {
+    private func tradingLensFailures() -> [InsightBriefFailure] {
         model.tradingLensFailures
             .compactMap { (id, message) in
                 guard let paper = model.papers.first(where: { $0.id == id }) else { return nil }
-                return TradingLensFailure(id: id, paper: paper, message: message)
+                return InsightBriefFailure(id: id, paper: paper, message: message)
             }
             .sorted { $0.paper.title.localizedCaseInsensitiveCompare($1.paper.title) == .orderedAscending }
     }

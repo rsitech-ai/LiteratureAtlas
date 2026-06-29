@@ -10,7 +10,7 @@ struct TradingScoreStrip: View {
             HStack(spacing: 10) {
                 ScoreBar(label: "N", value: scores?.novelty, maxValue: 10, tint: .pink)
                 ScoreBar(label: "U", value: scores?.usability, maxValue: 10, tint: .mint)
-                ScoreBar(label: "I", value: scores?.strategyImpact, maxValue: 10, tint: .teal)
+                ScoreBar(label: "A", value: scores?.strategyImpact, maxValue: 10, tint: .teal)
                 ScoreBar(label: "C", value: scores?.confidence, maxValue: 1, tint: .indigo)
                 ScoreBar(label: "P", value: priority, maxValue: 100, tint: .orange)
             }

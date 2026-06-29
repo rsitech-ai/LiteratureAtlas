@@ -17,4 +17,4 @@ Question:
 {{question}}
 
 Write a concise answer in 5-10 bullet points.
-If relevant, include 1-2 bullets on "how you would test this in a backtest" using only general safe advice unless specified.
+If relevant, include 1-2 bullets on "how you would test this" using only general safe advice unless specified.

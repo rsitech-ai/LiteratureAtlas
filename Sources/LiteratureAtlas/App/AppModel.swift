@@ -521,9 +521,9 @@ final class AppModel: ObservableObject {
             do {
                 tradingLens = try await tradingLensActor.scorecard(title: title, keywords: keywords, summary: summary, takeaways: takeaways)
                 tradingScores = tradingLens?.scores
-                ingestionLog += "\n  Trading lens generated."
+                ingestionLog += "\n  Insight brief generated."
             } catch {
-                ingestionLog += "\n  Trading lens failed: \(error.localizedDescription)"
+                ingestionLog += "\n  Insight brief failed: \(error.localizedDescription)"
             }
         }
 
@@ -890,7 +890,7 @@ final class AppModel: ObservableObject {
         return Array(urls)
     }
 
-    // MARK: - Strategy projects (Paper → Idea → Feature → Model → Trade → PnL → Feedback)
+    // MARK: - Research projects (Paper -> Idea -> Feature -> Model -> Plan -> Outcome -> Feedback)
 
     private func upsertStrategyProject(_ project: StrategyProject) {
         if let idx = strategyProjects.firstIndex(where: { $0.id == project.id }) {
@@ -940,7 +940,7 @@ final class AppModel: ObservableObject {
 
         if !loaded.isEmpty {
             strategyProjects = loaded
-            ingestionLog += "\nLoaded \(loaded.count) strategy projects from disk (Output folder)."
+            ingestionLog += "\nLoaded \(loaded.count) research projects from disk (Output folder)."
 
             // One-time Obsidian export for existing strategies (create missing + upgrade old format).
             let root = outputRoot
@@ -975,7 +975,7 @@ final class AppModel: ObservableObject {
 
     private func saveStrategyJSON(_ project: StrategyProject) throws -> URL {
         let safeTitle = project.title.trimmingCharacters(in: .whitespacesAndNewlines)
-        let baseName = safeTitle.isEmpty ? "Strategy" : safeTitle
+        let baseName = safeTitle.isEmpty ? "Research Project" : safeTitle
         let sanitized = baseName.replacingOccurrences(of: "/", with: "-")
         let fileName = "\(sanitized) [\(project.id.uuidString)].strategy.json"
         let url = outputRoot.appendingPathComponent("strategies", isDirectory: true).appendingPathComponent(fileName)
@@ -990,7 +990,7 @@ final class AppModel: ObservableObject {
         guard let paper = papers.first(where: { $0.id == paperID }) else { return nil }
 
         let base = paper.title.trimmingCharacters(in: .whitespacesAndNewlines)
-        let title = base.isEmpty ? "Strategy project" : base
+        let title = base.isEmpty ? "Research project" : base
 
         let ideaText: String = {
             if let verdict = paper.tradingLens?.oneLineVerdict?.trimmingCharacters(in: .whitespacesAndNewlines),
@@ -1018,8 +1018,8 @@ final class AppModel: ObservableObject {
         return project
     }
 
-    func createEmptyStrategyProject(title: String = "New strategy") -> StrategyProject {
-        var project = StrategyProject(title: title.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty ? "New strategy" : title)
+    func createEmptyStrategyProject(title: String = "New research project") -> StrategyProject {
+        var project = StrategyProject(title: title.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty ? "New research project" : title)
         project.updatedAt = Date()
         upsertStrategyProject(project)
         _ = try? saveStrategyJSON(project)
@@ -1073,9 +1073,9 @@ final class AppModel: ObservableObject {
             try FileManager.default.createDirectory(at: url.deletingLastPathComponent(), withIntermediateDirectories: true)
             let data = try encoder.encode(snapshot)
             try data.write(to: url, options: .atomic)
-            ingestionLog += "\n[analytics] Wrote quant_kg.json (\(snapshot.nodes.count) nodes, \(snapshot.edges.count) edges)."
+            ingestionLog += "\n[analytics] Wrote knowledge graph snapshot (\(snapshot.nodes.count) nodes, \(snapshot.edges.count) edges)."
         } catch {
-            ingestionLog += "\n[analytics] Failed to write quant_kg.json: \(error.localizedDescription)"
+            ingestionLog += "\n[analytics] Failed to write knowledge graph snapshot: \(error.localizedDescription)"
         }
     }
 
@@ -3482,7 +3482,7 @@ final class AppModel: ObservableObject {
         tradingLensBackfillCompletedCount = 0
         tradingLensBackfillTotalCount = ids.count
 
-        ingestionLog += "\n[>] Trading lens backfill: \(ids.count) papers…"
+        ingestionLog += "\n[>] Insight brief generation: \(ids.count) papers..."
 
         for (i, paperID) in ids.enumerated() {
             if Task.isCancelled { break }
@@ -3499,9 +3499,9 @@ final class AppModel: ObservableObject {
         }
 
         if Task.isCancelled {
-            ingestionLog += "\n[>] Trading lens backfill cancelled after \(tradingLensBackfillCompletedCount)/\(tradingLensBackfillTotalCount)."
+            ingestionLog += "\n[>] Insight brief generation cancelled after \(tradingLensBackfillCompletedCount)/\(tradingLensBackfillTotalCount)."
         } else {
-            ingestionLog += "\n[✓] Trading lens backfill complete: \(tradingLensBackfillCompletedCount)/\(tradingLensBackfillTotalCount)."
+            ingestionLog += "\n[OK] Insight brief generation complete: \(tradingLensBackfillCompletedCount)/\(tradingLensBackfillTotalCount)."
             appendUserEvent(type: "trading_lens_backfill_complete", paperID: nil, extra: [
                 "completed": tradingLensBackfillCompletedCount,
                 "total": tradingLensBackfillTotalCount
@@ -3526,7 +3526,7 @@ final class AppModel: ObservableObject {
             _ = try? PaperMarkdownExporter.write(paper: papers[idx], outputRoot: outputRoot, context: paperObsidianContextSnapshot())
             appendUserEvent(type: "trading_lens_ready", paperID: paperID, extra: [:])
         } catch {
-            ingestionLog += "\nTrading lens failed for \(paper.title): \(error.localizedDescription)"
+            ingestionLog += "\nInsight brief failed for \(paper.title): \(error.localizedDescription)"
             tradingLensFailures[paperID] = error.localizedDescription
         }
     }
@@ -3540,7 +3540,7 @@ final class AppModel: ObservableObject {
         let paper = papers[idx]
 
         let fallbackInstructions = """
-        You are a senior quant researcher. Convert paper context into 1-2 concrete strategy prototypes.
+        You are a senior research lead. Convert paper context into 1-2 concrete research or application plans.
         Be grounded: treat as hypotheses. Do not invent numerical results.
         Output must be Markdown with clear structure and short, actionable bullets.
         """
@@ -3553,26 +3553,26 @@ final class AppModel: ObservableObject {
         Summary:
         {{summary}}
 
-        Trading lens (may be JSON or text):
+        Insight brief (may be JSON or text):
         {{trading_lens}}
 
-        Write 1-2 prototypes with these headings:
+        Write 1-2 plans with these headings:
 
-        # Prototype 1
-        ## Alpha hypothesis
-        ## Universe & horizon
-        ## Signal definition (math / pseudocode)
+        # Plan 1
+        ## Hypothesis
+        ## Scope & timeframe
+        ## Evidence pattern (math / pseudocode if useful)
         ## Model (if any) + features
-        ## Portfolio construction + constraints
-        ## Transaction cost / slippage assumptions
+        ## Application design + constraints
+        ## Cost / feasibility assumptions
         ## Evaluation plan (metrics + splits)
         ## Robustness checks
         ## Fast implementation steps (5-8 bullets)
 
-        (Repeat for Prototype 2 if useful.)
+        (Repeat for Plan 2 if useful.)
 
         Rules:
-        - If you must assume something (e.g., horizon), label it explicitly.
+        - If you must assume something (e.g., timeframe), label it explicitly.
         - Include at least 3 robustness checks.
         """
         let template = PromptStore.loadText("strategy_blueprint.prompt.md", fallback: fallbackTemplate)
@@ -3603,7 +3603,7 @@ final class AppModel: ObservableObject {
             _ = try? PaperMarkdownExporter.write(paper: papers[idx], outputRoot: outputRoot, context: paperObsidianContextSnapshot())
             appendUserEvent(type: "strategy_blueprint_ready", paperID: paperID, extra: [:])
         } catch {
-            ingestionLog += "\nStrategy blueprint failed for \(paper.title): \(error.localizedDescription)"
+            ingestionLog += "\nResearch plan failed for \(paper.title): \(error.localizedDescription)"
         }
     }
 
@@ -3615,27 +3615,27 @@ final class AppModel: ObservableObject {
         guard let idx = papers.firstIndex(where: { $0.id == paperID }) else { return }
         let paper = papers[idx]
         guard let blueprint = paper.strategyBlueprint, !blueprint.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty else {
-            ingestionLog += "\nBacktest audit skipped for \(paper.title): no strategy blueprint yet."
+            ingestionLog += "\nPlan audit skipped for \(paper.title): no research plan yet."
             return
         }
 
         let fallbackInstructions = """
-        You are a quant backtesting auditor. Your goal is to find hidden leakage, bias, unrealistic assumptions, and fragility.
+        You are a research plan auditor. Your goal is to find hidden leakage, bias, unrealistic assumptions, and fragility.
         Be practical and concrete. Prefer checklists.
         Do not require proprietary infrastructure; propose minimal fixes.
         """
         let instructions = PromptStore.loadText("ui.backtest_audit.instructions.md", fallback: fallbackInstructions)
 
         let fallbackTemplate = """
-        Strategy / prototype description:
+        Research plan / prototype description:
         {{strategy_text}}
 
         Audit it with these headings:
 
         # Leakage & Bias Risks
         # Data Assumption Risks
-        # Transaction Costs & Market Impact
-        # Regime & Non-Stationarity
+        # Cost & Operational Assumptions
+        # Drift & Non-Stationarity
         # Overfitting & Validation Design
         # Minimal Fixes (Actionable)
         # Kill Criteria (When to Stop)
@@ -3656,7 +3656,7 @@ final class AppModel: ObservableObject {
             _ = try? PaperMarkdownExporter.write(paper: papers[idx], outputRoot: outputRoot, context: paperObsidianContextSnapshot())
             appendUserEvent(type: "backtest_audit_ready", paperID: paperID, extra: [:])
         } catch {
-            ingestionLog += "\nBacktest audit failed for \(paper.title): \(error.localizedDescription)"
+            ingestionLog += "\nPlan audit failed for \(paper.title): \(error.localizedDescription)"
         }
     }
 
@@ -3750,7 +3750,7 @@ final class AppModel: ObservableObject {
         return Array(scored.sorted { $0.score > $1.score }.prefix(limit).map { $0.paper })
     }
 
-    /// Rank unread papers by trading applicability: strategy_impact * usability * confidence (optionally novelty as tie-breaker).
+    /// Rank unread papers by application priority: impact * usability * confidence (optionally novelty as tie-breaker).
     func tradingPriorityPapers(limit: Int = 5) -> [Paper] {
         let unread = papers.filter { $0.readingStatus != .done }
         let scored: [(paper: Paper, priority: Double, novelty: Double)] = unread.compactMap { paper in

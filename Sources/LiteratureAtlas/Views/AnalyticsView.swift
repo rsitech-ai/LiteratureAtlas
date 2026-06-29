@@ -787,7 +787,7 @@ struct AnalyticsView: View {
                 GlassCard {
                     VStack(alignment: .leading, spacing: 10) {
                         HStack(alignment: .firstTextBaseline) {
-                            Text("Trading lens").font(.headline)
+                            Text("Insight briefs").font(.headline)
                             Spacer()
                             if let count = trading.paperCountWithLens {
                                 let pct = trading.coveragePct ?? (Double(count) / Double(max(1, summary.paperCount)))
@@ -798,14 +798,14 @@ struct AnalyticsView: View {
                         }
 
                         if trading.available != true {
-                            Text(trading.reason ?? "Generate paper trading lens scorecards to populate this section.")
+                            Text(trading.reason ?? "Generate paper insight briefs to populate this section.")
                                 .font(.caption)
                                 .foregroundStyle(.secondary)
                         } else {
                             if !tradingLensPoints.isEmpty {
                                 TradingLensScatterChartView(points: tradingLensPoints, selectedPointID: $selectedTradingPointID)
                                     .frame(height: chartHeight(analyticsContentWidth, ratio: 0.46, min: 420, max: 760))
-                                Text("x=usability · y=novelty · color=strategy impact · opacity=confidence")
+                                Text("x=usability · y=novelty · color=application impact · opacity=confidence")
                                     .font(.caption2)
                                     .foregroundStyle(.secondary)
                             } else {
@@ -819,11 +819,11 @@ struct AnalyticsView: View {
                                     VStack(alignment: .leading, spacing: 2) {
                                         Text(pt.title)
                                             .font(.caption.bold())
-                                        Text(String(format: "Novelty %.1f · Usability %.1f · Impact %.1f · Priority %.1f", pt.novelty, pt.usability, pt.strategyImpact, pt.priority))
+                                        Text(String(format: "Novelty %.1f · Usability %.1f · Application %.1f · Priority %.1f", pt.novelty, pt.usability, pt.strategyImpact, pt.priority))
                                             .font(.caption2)
                                             .foregroundStyle(.secondary)
                                         if let tag = pt.primaryTag, tag != "Unknown" {
-                                            Text("Tag: \(tag)")
+                                            Text("Pattern: \(tag)")
                                                 .font(.caption2)
                                                 .foregroundStyle(.secondary)
                                         }
@@ -848,7 +848,7 @@ struct AnalyticsView: View {
 
                             if let tagCounts = trading.tagCounts, !tagCounts.isEmpty {
                                 VStack(alignment: .leading, spacing: 6) {
-                                    Text("Top trading tags").font(.subheadline.weight(.semibold))
+                                    Text("Top patterns").font(.subheadline.weight(.semibold))
                                     TradingTagBarChartView(
                                         counts: tagCounts.prefix(14).map { TradingTagCount(tag: $0.tag, count: $0.count) }
                                     )
@@ -858,7 +858,7 @@ struct AnalyticsView: View {
 
                             if let trends = trading.tagTrends, !trends.isEmpty {
                                 VStack(alignment: .leading, spacing: 6) {
-                                    Text("Tag frequency over time").font(.subheadline.weight(.semibold))
+                                    Text("Pattern frequency over time").font(.subheadline.weight(.semibold))
                                     TradingTagTrendChartView(
                                         trends: trends.map { TradingTagTrendPoint(tag: $0.tag, year: $0.year, count: $0.count) },
                                         domain: chartYearDomain ?? 1900...Calendar.current.component(.year, from: Date())
@@ -870,7 +870,7 @@ struct AnalyticsView: View {
                             if let top = trading.topPriority, !top.isEmpty {
                                 let paperMap = Dictionary(uniqueKeysWithValues: model.papers.map { ($0.id, $0) })
                                 VStack(alignment: .leading, spacing: 6) {
-                                    Text("Top priority (impact×usability×confidence)").font(.subheadline.weight(.semibold))
+                                    Text("Top application priority (impact x usability x confidence)").font(.subheadline.weight(.semibold))
                                     ForEach(Array(top.prefix(8)), id: \.paperID) { entry in
                                         let label = paperMap[entry.paperID]?.title ?? "Paper"
                                         HStack(alignment: .firstTextBaseline) {
