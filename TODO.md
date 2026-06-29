@@ -1,16 +1,16 @@
 # TODO
 
 ## Tasks
-- [x] Reproduce sidebar click failure (DoD: click target and unchanged view captured)
-- [x] Fix sidebar selection contract (DoD: `RootView` uses explicit sidebar buttons that set `nav.selectedTab`)
-- [x] Remove layout-time bridge analysis (DoD: `BridgingSection.body` no longer calls claim/influence path generation)
-- [x] Runtime-click every sidebar row (DoD: Ingest, Universe, Q&A, Trading, Projects, Analytics all switch views)
-- [x] Run Swift tests (DoD: `swift test` passes)
-- [x] Memory update: sidebar selection and bridge-analysis convention (DoD: `MEMORY.md` updated)
+- [x] Run build/test gates (DoD: app verify, Swift, Python, and Rust FFI checks executed or blocked with reason)
+- [x] Runtime route sweep (DoD: root routes clicked/classified in launched `.app`; AX partials documented)
+- [x] Safe interaction sweep (DoD: reachable non-destructive controls clicked or explicitly marked blocked/not executed)
+- [x] Visual/performance/log pass (DoD: screenshots/process/log evidence captured and classified)
+- [x] Source risk scan (DoD: remaining body-work, duplicate IDs, overlays, and disabled states reviewed)
+- [x] Audit report (DoD: `docs/audits/polish-audit-2026-06-29-round2.md` written with readiness label)
+- [x] Memory update (DoD: durable findings recorded if new)
 
 ## In progress
-- None.
 
 ## Done
-- [x] Verified click reaches the LiteratureAtlas sidebar row text but does not update the selected detail view.
-- [x] Verified the app can route to Literature Atlas/Ingest, Knowledge Universe, Q&A, Trading lens, Projects, and Analytics after the fix.
+- [x] Warmup completed and audit skill loaded.
+- [x] Fresh SwiftUI polish audit completed.

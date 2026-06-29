@@ -5,7 +5,7 @@ private struct ViewWidthPreferenceKey: PreferenceKey {
 
     static func reduce(value: inout CGFloat, nextValue: () -> CGFloat) {
         let next = nextValue()
-        if next > 0 {
+        if next.isFinite, next > 0 {
             value = next
         }
     }

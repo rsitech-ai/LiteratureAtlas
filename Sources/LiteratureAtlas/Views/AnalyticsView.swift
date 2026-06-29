@@ -117,7 +117,7 @@ struct AnalyticsView: View {
     }
 
     private func chartHeight(_ width: CGFloat, ratio: CGFloat, min: CGFloat, max: CGFloat) -> CGFloat {
-        guard width > 0 else { return min }
+        guard width.isFinite, width > 0 else { return min }
         return Swift.min(Swift.max(width * ratio, min), max)
     }
 
@@ -970,7 +970,7 @@ struct AnalyticsView: View {
                     domain: chartYearDomain ?? 1900...Calendar.current.component(.year, from: Date()),
                     height: chartHeight(analyticsContentWidth, ratio: 0.62, min: 620, max: 960)
                 )
-                Text("Factors from embeddings + tags (hybrid PCA/NMF). Stacked area shows topic/method mix by year.")
+                Text("Factors from embeddings + tags (hybrid PCA/NMF). Lines show topic/method mix by year.")
                     .font(.caption2)
                     .foregroundStyle(.secondary)
                 if !summary.factorLabels.isEmpty {
@@ -986,7 +986,7 @@ struct AnalyticsView: View {
         let rows = factorExposures
         Chart {
             ForEach(Array(rows.enumerated()), id: \.offset) { _, row in
-                AreaMark(
+                LineMark(
                     x: .value("Year", row.year),
                     y: .value("Exposure", row.score)
                 )
@@ -2082,7 +2082,7 @@ struct AnalyticsView: View {
                     }
                 }
                 .onWidthChange { width in
-                    guard width > 0, abs(analyticsContentWidth - width) > 1 else { return }
+                    guard width.isFinite, width > 0, width < 10_000, abs(analyticsContentWidth - width) > 1 else { return }
                     analyticsContentWidth = width
                 }
                 .task {
@@ -2379,8 +2379,8 @@ private struct TimelineBarChart: View {
                                     hoveredCount = nil
                                 }
                             )
-                            .frame(width: plotFrame.width, height: plotFrame.height)
-                            .position(x: plotFrame.midX, y: plotFrame.midY)
+                            .frame(width: chartPlotDimension(plotFrame.width), height: chartPlotDimension(plotFrame.height))
+                            .position(x: chartPlotCoordinate(plotFrame.midX), y: chartPlotCoordinate(plotFrame.midY))
                         )
                         #endif
                 }
@@ -2615,7 +2615,7 @@ private struct NoveltyConsensusChartView: View {
                                     if panStartY == nil { panStartY = yDomain }
                                     guard let startX = panStartX, let startY = panStartY else { return }
                                     let width = max(1, plotFrame.width)
-                                    let height = max(1, plotFrame.height)
+                                    let height = chartPlotDimension(plotFrame.height)
                                     let spanX = startX.upperBound - startX.lowerBound
                                     let spanY = startY.upperBound - startY.lowerBound
                                     let deltaX = -Double(value.translation.width / width) * spanX
@@ -2656,8 +2656,8 @@ private struct NoveltyConsensusChartView: View {
                                     hoveredPointID = nil
                                 }
                             )
-                            .frame(width: plotFrame.width, height: plotFrame.height)
-                            .position(x: plotFrame.midX, y: plotFrame.midY)
+                            .frame(width: chartPlotDimension(plotFrame.width), height: chartPlotDimension(plotFrame.height))
+                            .position(x: chartPlotCoordinate(plotFrame.midX), y: chartPlotCoordinate(plotFrame.midY))
                         )
                         #endif
                 }
@@ -2833,8 +2833,8 @@ private struct TopicStreamChart: View {
                                     hoveredCount = nil
                                 }
                             )
-                            .frame(width: plotFrame.width, height: plotFrame.height)
-                            .position(x: plotFrame.midX, y: plotFrame.midY)
+                            .frame(width: chartPlotDimension(plotFrame.width), height: chartPlotDimension(plotFrame.height))
+                            .position(x: chartPlotCoordinate(plotFrame.midX), y: chartPlotCoordinate(plotFrame.midY))
                         )
                         #endif
                 }
@@ -2989,8 +2989,8 @@ private struct MethodCrossoverChart: View {
                                     hoveredYear = nil
                                 }
                             )
-                            .frame(width: plotFrame.width, height: plotFrame.height)
-                            .position(x: plotFrame.midX, y: plotFrame.midY)
+                            .frame(width: chartPlotDimension(plotFrame.width), height: chartPlotDimension(plotFrame.height))
+                            .position(x: chartPlotCoordinate(plotFrame.midX), y: chartPlotCoordinate(plotFrame.midY))
                         )
                         #endif
                 }
@@ -3185,7 +3185,7 @@ private struct ReadingLagChart: View {
                                     if panStartY == nil { panStartY = yDomain }
                                     guard let startX = panStartX, let startY = panStartY else { return }
                                     let width = max(1, plotFrame.width)
-                                    let height = max(1, plotFrame.height)
+                                    let height = chartPlotDimension(plotFrame.height)
                                     let spanX = Double(startX.upperBound - startX.lowerBound)
                                     let spanY = Double(startY.upperBound - startY.lowerBound)
                                     let deltaX = -Double(value.translation.width / width) * spanX
@@ -3239,8 +3239,8 @@ private struct ReadingLagChart: View {
                                     hoveredReadYear = nil
                                 }
                             )
-                            .frame(width: plotFrame.width, height: plotFrame.height)
-                            .position(x: plotFrame.midX, y: plotFrame.midY)
+                            .frame(width: chartPlotDimension(plotFrame.width), height: chartPlotDimension(plotFrame.height))
+                            .position(x: chartPlotCoordinate(plotFrame.midX), y: chartPlotCoordinate(plotFrame.midY))
                         )
                         #endif
                 }
@@ -3276,7 +3276,7 @@ private struct FactorExposureChart: View {
         let xDomain = visibleDomain ?? fullDomain
         Chart {
             ForEach(Array(exposures.enumerated()), id: \.offset) { _, row in
-                AreaMark(
+                LineMark(
                     x: .value("Year", row.year),
                     y: .value("Exposure", row.score)
                 )
@@ -3385,8 +3385,8 @@ private struct FactorExposureChart: View {
                                     hoveredSummary = nil
                                 }
                             )
-                            .frame(width: plotFrame.width, height: plotFrame.height)
-                            .position(x: plotFrame.midX, y: plotFrame.midY)
+                            .frame(width: chartPlotDimension(plotFrame.width), height: chartPlotDimension(plotFrame.height))
+                            .position(x: chartPlotCoordinate(plotFrame.midX), y: chartPlotCoordinate(plotFrame.midY))
                         )
                         #endif
                 }
@@ -3523,7 +3523,7 @@ private struct InfluenceTimelineChart: View {
                                     if panStartY == nil { panStartY = yDomain }
                                     guard let startX = panStartX, let startY = panStartY else { return }
                                     let width = max(1, plotFrame.width)
-                                    let height = max(1, plotFrame.height)
+                                    let height = chartPlotDimension(plotFrame.height)
                                     let spanX = Double(startX.upperBound - startX.lowerBound)
                                     let spanY = startY.upperBound - startY.lowerBound
                                     let deltaX = -Double(value.translation.width / width) * spanX
@@ -3566,8 +3566,8 @@ private struct InfluenceTimelineChart: View {
                                     hoveredPaperID = nil
                                 }
                             )
-                            .frame(width: plotFrame.width, height: plotFrame.height)
-                            .position(x: plotFrame.midX, y: plotFrame.midY)
+                            .frame(width: chartPlotDimension(plotFrame.width), height: chartPlotDimension(plotFrame.height))
+                            .position(x: chartPlotCoordinate(plotFrame.midX), y: chartPlotCoordinate(plotFrame.midY))
                         )
                         #endif
                 }

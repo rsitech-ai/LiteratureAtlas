@@ -47,6 +47,7 @@
 - **Sidebar navigation**: The root sidebar uses explicit full-width buttons that set `AppNavigation.selectedTab`; do not replace this with passive `List(selection:)` rows without a live click smoke because that pattern previously received clicks but did not update the detail view reliably.
 - **Claim graph performance**: Full claim relation inference is corpus-scale and must not run during SwiftUI `body` evaluation or app launch. Use bounded previews for UI cards and keep full graph export off the main actor.
 - **Bridge analysis performance**: `BridgingSection` must not call `influencePath`, `claimPathBetweenClusters`, or other claim graph builders from `body`; bridge search is explicit/on-demand so sidebar navigation stays responsive.
+- **Swift Charts plot geometry**: Hover/tracking overlays must use guarded plot-frame dimensions/coordinates from `ChartPlotGeometry.swift`. Filled `AreaMark`s over signed/negative analytics values can produce oversized CoreAnimation paint layers; prefer bounded line charts or explicit safe domains.
 - **Background progress UX**: Long-running clustering may show progress, but global overlays must not intercept normal app clicks unless the task has an enabled cancel/stop action.
 
 ## Conventions
@@ -85,3 +86,4 @@
 - 2026-06-26: Fixed Knowledge Universe graph interaction so cluster taps inspect instead of auto-navigating, paper selection drives the right inspector, paper graph nodes are labeled/draggable, and animation cadence is bounded for a responsive debug build (`Sources/LiteratureAtlas/Views/MapView.swift`)
 - 2026-06-29: Added `script/build_and_run.sh` and `.codex/environments/environment.toml` as the canonical macOS app-bundle smoke path; fixed bundle-launched data loading with `AppPaths`, cleaned visible cluster labels with `DisplayText`, made the Universe inspector scrollable, replaced an unavailable project SF Symbol with standard folder symbols, and recorded the end-to-end SwiftUI polish audit in `docs/audits/polish-audit-2026-06-29.md`.
 - 2026-06-29: Fixed the left sidebar click regression by replacing inert `List(selection:)` rows with explicit sidebar buttons and moving bridge paper search out of `BridgingSection.body`; process sampling showed the previous bridge section could pin the main thread at 100% CPU.
+- 2026-06-29: Round-2 polish audit fixed Analytics CoreAnimation bogus layer-size warnings by clamping chart plot geometry and replacing signed factor exposure `AreaMark`s with `LineMark`s; final strict app log scan was clean (`docs/audits/polish-audit-2026-06-29-round2.md`).
