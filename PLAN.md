@@ -1,60 +1,49 @@
 # Plan
 
 ## Context
-- The user requested an end-to-end SwiftUI polish audit for LiteratureAtlas.
-- Recent work changed the app shell and Knowledge Universe graph, so launch behavior, navigation, visual polish, animation cost, and real UI workflows need fresh evidence.
-- The repo is a SwiftPM macOS/iOS package; current audit target is the macOS SwiftUI app.
+- The user reports the LiteratureAtlas left sidebar is not clickable.
+- Runtime reproduction confirms the click reaches the sidebar row text, but the selected view remains on Knowledge Universe.
+- Sampling found a second root cause: when two clusters are selected, `BridgingSection.body` repeatedly runs claim/bridge analysis during SwiftUI layout and can pin the main thread at 100% CPU.
 
 ## Assumptions
-- "End to end" means repo-wide audit coverage across build, tests, launch, primary navigation, major workflows, visual states, logs, and performance signals.
-- App Store/release-candidate readiness is not the target unless signing/notarization/release packaging is explicitly requested.
-- The app may require Apple Foundation Models availability for the full UI; unavailable model state is still a valid state to audit.
+- "Left panel" means the LiteratureAtlas app sidebar with Ingest, Universe, Q&A, Trading, Projects, and Analytics.
+- Success means each sidebar row switches the detail view when clicked in the launched `.app` bundle.
 
 ## Constraints
-- Do not overwrite unrelated user work.
-- Keep app code changes out of scope unless a concrete blocker or high-confidence polish defect is reproduced.
-- Use `swiftui-polish-auditor` plus macOS build/test routing.
-- Use a project-local audit report under `docs/audits/`.
-- Use the weakest truthful readiness label.
+- Keep the fix narrowly scoped to navigation/hit testing.
+- Do not mutate corpus data or run import/export side effects.
+- Verify against the real app bundle, not only source review.
 
 ## Options considered
-1. Static source audit only.
-2. Build/test/launch plus source-guided feature matrix and runtime smoke.
-3. Full release hardening with signing, notarization, Instruments traces, accessibility automation, and packaging.
+1. Add a broad overlay/hit-testing workaround around the sidebar.
+2. Fix the SwiftUI selection/tag contract in `RootView`.
+3. Replace the sidebar `List` with explicit buttons.
 
-Chosen: 2 because it matches the request, gives real evidence beyond tests, and avoids claiming release-candidate quality without release-gate work.
+Chosen: 2 plus removing layout-time bridge analysis because reproduction shows events reach the row but selection does not change, and process sampling shows the main thread can be saturated by `BridgingSection.body`.
 
 ## Execution plan
-1. Establish project baseline: git state, package shape, app target, entry point, workflow map.
-2. Add/update the macOS `script/build_and_run.sh` and Codex Run action for reproducible launch.
-3. Run build/test quality gates: Swift build/test plus existing Python/Rust checks where feasible.
-4. Launch the app through the run script and capture screenshot/process evidence.
-5. Exercise primary navigation/workflows: Ingest, Universe, Q&A, Trading, Projects, Analytics, paper detail/glossary where reachable.
-6. Inspect runtime logs and process health after smoke.
-7. Perform a code-first SwiftUI polish/performance scan for obvious body work, global animations, unstable identity, and blocking overlays.
-8. Write `docs/audits/polish-audit-2026-06-29.md` with feature matrix, evidence, issues, and readiness label.
-9. Update TODO, MEMORY if durable workflow/tooling knowledge changed, and reflection notes.
+1. Replace inert `List(selection:)` rows with explicit sidebar buttons that set `nav.selectedTab`.
+2. Move expensive bridge paper analysis out of `BridgingSection.body`; make bridge search explicit/on-demand.
+3. Rebuild and relaunch through `./script/build_and_run.sh --verify`.
+4. Click Ingest, Universe, Q&A, Trading, Projects, and Analytics in the live app.
+5. Capture verification evidence and run `swift test`.
+6. Update TODO, MEMORY if durable knowledge changed, and record final notes.
 
 ## Test plan
-- `./script/build_and_run.sh --verify`
-- `swift build`
-- `swift test`
-- Existing available lint/test checks from `MEMORY.md` where dependencies are present.
-- Runtime screenshot and process check.
-- Unified log sample for app process after launch/smoke.
+- Runtime click smoke for all sidebar tabs in `dist/LiteratureAtlas.app`.
+- Process sample/CPU check after removing body-time bridge work.
+- `swift test`.
 
 ## Risks and rollback
-- Risk: Foundation Models unavailable blocks full UI smoke.
-  - Rollback: classify full workflow smoke as blocked and audit unsupported state honestly.
-- Risk: UI automation cannot reliably click native SwiftUI controls by coordinates.
-  - Rollback: use screenshots, Accessibility metadata, process/log evidence, and code-backed workflow matrix without overstating verification.
-- Risk: run script launch semantics differ from `swift run`.
-  - Rollback: compare with direct `swift run` only for diagnosis, keeping the script as the canonical app-bundle path.
+- Risk: row selection still fails because another overlay captures clicks.
+  - Rollback: inspect AX hit targets and convert the sidebar to explicit native buttons.
+- Risk: switching to concrete tags breaks compilation.
+  - Rollback: restore optional tags and use an explicit `onTapGesture` per row after confirming the compiler/runtime behavior.
 
 ## Memory impact
-- Record the new canonical run script and audit report location if verified.
+- Record the fixed sidebar selection convention if verified.
 
 ## Notes / Results
-- Changes: added the reproducible macOS app-bundle run script and Codex Run action; fixed bundle-launched data loading by routing repo-relative paths through `AppPaths`; made the Knowledge Universe inspector scrollable; stripped visible markdown bold markers from cluster labels with `DisplayText`; reduced always-on Universe animation cadence; replaced an unavailable SF Symbol with standard folder symbols; wrote the audit report at `docs/audits/polish-audit-2026-06-29.md`.
-- Tests run: `./script/build_and_run.sh --verify` passed; `swift test` passed with 51 tests and 1 existing opt-in ingestion smoke skipped; `.venv/bin/python -m ruff check analytics/` passed; `.venv/bin/python -m pytest analytics/tests -v` passed with 9 tests; `cargo test --manifest-path analytics/ffi/Cargo.toml` passed with 3 tests.
-- Tradeoffs: full native tab-walk UI automation was not completed because the available tooling was simulator-oriented or produced a shallow AX tree; import/export and expensive write actions were source-reviewed but not executed; debug Universe still shows about 25% CPU after launch and needs Release/Instruments follow-up before any release-quality performance claim.
+- Changes: replaced the sidebar `List(selection:)` rows with explicit full-width native-style buttons that set `nav.selectedTab`; moved bridge paper search out of `BridgingSection.body` and behind an explicit `Find bridging papers` button to stop layout-time claim graph recomputation.
+- Tests run: `./script/build_and_run.sh --verify` passed; focused `swift test --filter AppPathsTests` passed; full `swift test` passed with 51 tests and 1 expected opt-in ingestion smoke skipped.
+- Tradeoffs: bridge influence/claim paths are no longer auto-rendered during selection because that made normal UI navigation unusable; bridge paper search remains available on demand.

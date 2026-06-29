@@ -1768,7 +1768,7 @@ struct AnalyticsView: View {
                                     MethodCrossoverChart(signal: first, papers: papersForAnalytics)
                                         .frame(height: chartHeight(analyticsContentWidth, ratio: 0.34, min: 360, max: 680))
                                 }
-                                ForEach(methodSignals, id: \.a) { sig in
+                                ForEach(Array(methodSignals.enumerated()), id: \.offset) { _, sig in
                                     let detail: String = {
                                         if let year = sig.crossingYear {
                                             return "crossed in \(year)"

@@ -2969,6 +2969,8 @@ private struct StatPill: View {
 struct BridgingSection: View {
     @EnvironmentObject private var model: AppModel
     @Binding var selectedClusterIDs: Set<Int>
+    @State private var loadedPair: Set<Int>? = nil
+    @State private var bridges: [BridgingResult] = []
 
     var body: some View {
         VStack(alignment: .leading, spacing: 8) {
@@ -2976,80 +2978,68 @@ struct BridgingSection: View {
                 .font(.headline)
                 .foregroundStyle(.white)
 
-            let selected = Array(selectedClusterIDs)
+            let selected = Array(selectedClusterIDs).sorted()
             if selected.count != 2 {
                 Text("Select exactly two clusters in the map to find bridging papers.")
                     .font(.caption)
                     .foregroundStyle(.white.opacity(0.7))
             } else {
-                if let path = influencePath(selected: selected), !path.isEmpty {
-                    Text("Influence path")
-                        .font(.subheadline.bold())
-                        .foregroundStyle(.white)
-                    Text(path.joined(separator: " → "))
-                        .font(.caption2)
-                        .foregroundStyle(.white.opacity(0.8))
-                        .lineLimit(3)
-                }
-                if let claims = claimPath(selected: selected), !claims.isEmpty {
-                    Text("Claim path")
-                        .font(.subheadline.bold())
-                        .foregroundStyle(.white)
-                    ForEach(claims.prefix(4), id: \.self) { stmt in
-                        Text("• \(stmt)")
-                            .font(.caption2)
-                            .foregroundStyle(.white.opacity(0.85))
-                    }
-                }
-
-                let bridges = model.bridgingPapers(between: selected[0], and: selected[1])
-                if bridges.isEmpty {
-                    Text("No strong bridging papers found.")
+                if loadedPair != selectedClusterIDs {
+                    Text("Bridge search runs on demand to keep the map responsive.")
                         .font(.caption)
                         .foregroundStyle(.white.opacity(0.7))
+                    Button {
+                        bridges = model.bridgingPapers(between: selected[0], and: selected[1])
+                        loadedPair = selectedClusterIDs
+                    } label: {
+                        Label("Find bridging papers", systemImage: "link")
+                    }
+                    .buttonStyle(.bordered)
                 } else {
-                    ScrollView {
-                        VStack(alignment: .leading, spacing: 8) {
-                            ForEach(bridges) { result in
-                                VStack(alignment: .leading, spacing: 2) {
-                                    Text(result.paper.title)
-                                        .font(.subheadline.bold())
-                                        .foregroundStyle(.white)
-                                    Text(
-                                        String(
-                                            format: "Bridge score: %.3f (c1=%.3f, c2=%.3f)",
-                                            result.combinedScore,
-                                            result.scoreToFirst,
-                                            result.scoreToSecond
+                    if bridges.isEmpty {
+                        Text("No strong bridging papers found.")
+                            .font(.caption)
+                            .foregroundStyle(.white.opacity(0.7))
+                    } else {
+                        ScrollView {
+                            VStack(alignment: .leading, spacing: 8) {
+                                ForEach(bridges) { result in
+                                    VStack(alignment: .leading, spacing: 2) {
+                                        Text(result.paper.title)
+                                            .font(.subheadline.bold())
+                                            .foregroundStyle(.white)
+                                        Text(
+                                            String(
+                                                format: "Bridge score: %.3f (c1=%.3f, c2=%.3f)",
+                                                result.combinedScore,
+                                                result.scoreToFirst,
+                                                result.scoreToSecond
+                                            )
                                         )
-                                    )
-                                    .font(.caption2)
-                                    .foregroundStyle(.white.opacity(0.7))
-                                    Text(result.paper.summary)
                                         .font(.caption2)
-                                        .foregroundStyle(.white.opacity(0.85))
-                                        .lineLimit(4)
+                                        .foregroundStyle(.white.opacity(0.7))
+                                        Text(result.paper.summary)
+                                            .font(.caption2)
+                                            .foregroundStyle(.white.opacity(0.85))
+                                            .lineLimit(4)
+                                    }
+                                    .padding(8)
+                                    .background(Color.white.opacity(0.05))
+                                    .clipShape(RoundedRectangle(cornerRadius: 10))
                                 }
-                                .padding(8)
-                                .background(Color.white.opacity(0.05))
-                                .clipShape(RoundedRectangle(cornerRadius: 10))
                             }
                         }
+                        .frame(maxHeight: 200)
                     }
-                    .frame(maxHeight: 200)
                 }
             }
         }
-    }
-
-    private func influencePath(selected: [Int]) -> [String]? {
-        guard selected.count == 2 else { return nil }
-        return model.influencePath(between: selected[0], and: selected[1])
-    }
-
-    private func claimPath(selected: [Int]) -> [String]? {
-        guard selected.count == 2 else { return nil }
-        return model.claimPathBetweenClusters(selected[0], selected[1])
+        .onChange(of: selectedClusterIDs) { _, newValue in
+            if loadedPair != newValue {
+                bridges = []
+                loadedPair = nil
+            }
+        }
     }
 }
 

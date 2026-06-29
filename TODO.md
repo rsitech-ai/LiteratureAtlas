@@ -1,17 +1,16 @@
 # TODO
 
 ## Tasks
-- [x] Establish audit baseline (DoD: repo state, package shape, app target, entry point, and workflow surface documented)
-- [x] Add reproducible macOS run entrypoint (DoD: `script/build_and_run.sh --verify` launches the app bundle and Codex Run action points at it)
-- [x] Run build/test/lint gates (DoD: relevant checks executed or blocked with reason)
-- [x] Exercise runtime UI smoke (DoD: app launches, screenshots captured, primary surfaces inspected)
-- [x] Inspect logs and performance signals (DoD: process health and log findings captured)
-- [x] Complete polish/performance source scan (DoD: SwiftUI risks classified with evidence)
-- [x] Write audit report (DoD: `docs/audits/polish-audit-2026-06-29.md` includes matrix, evidence, issues, and readiness label)
-- [x] Memory update: audit/run workflow (DoD: `MEMORY.md` records verified durable workflow if changed)
+- [x] Reproduce sidebar click failure (DoD: click target and unchanged view captured)
+- [x] Fix sidebar selection contract (DoD: `RootView` uses explicit sidebar buttons that set `nav.selectedTab`)
+- [x] Remove layout-time bridge analysis (DoD: `BridgingSection.body` no longer calls claim/influence path generation)
+- [x] Runtime-click every sidebar row (DoD: Ingest, Universe, Q&A, Trading, Projects, Analytics all switch views)
+- [x] Run Swift tests (DoD: `swift test` passes)
+- [x] Memory update: sidebar selection and bridge-analysis convention (DoD: `MEMORY.md` updated)
 
 ## In progress
 - None.
 
 ## Done
-- [x] SwiftUI polish audit completed with a truthful readiness label: smoke-clean for primary Knowledge Universe, not polish-ready/release-candidate.
+- [x] Verified click reaches the LiteratureAtlas sidebar row text but does not update the selected detail view.
+- [x] Verified the app can route to Literature Atlas/Ingest, Knowledge Universe, Q&A, Trading lens, Projects, and Analytics after the fix.
