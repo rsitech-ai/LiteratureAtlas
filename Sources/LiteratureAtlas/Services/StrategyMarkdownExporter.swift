@@ -28,7 +28,7 @@ enum StrategyMarkdownExporter {
     }
 
     static func markdownFileName(for project: StrategyProject) -> String {
-        let baseName = project.title.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty ? "Strategy" : project.title
+        let baseName = project.title.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty ? "Research Project" : project.title
         let sanitized = sanitizeFileName(baseName, maxLength: 140)
         return "\(sanitized) [\(project.id.uuidString)].md"
     }
@@ -89,7 +89,7 @@ enum StrategyMarkdownExporter {
         managed.append("type: strategy")
         managed.append("obsidian_format_version: \(obsidianFormatVersion)")
         managed.append("id: \(yamlString(project.id.uuidString))")
-        managed.append("title: \(yamlString(project.title.isEmpty ? "Strategy" : project.title))")
+        managed.append("title: \(yamlString(project.title.isEmpty ? "Research Project" : project.title))")
         managed.append("cssclass: atlas-strategy")
         let aliases = [ObsidianIDs.strategyAlias(project.id), project.title].filter { !$0.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty }
         managed.append("aliases: \(yamlStringArray(aliases))")
@@ -124,7 +124,7 @@ enum StrategyMarkdownExporter {
     private static func renderManagedBlock(for project: StrategyProject, paperTitlesByID: [UUID: String]) -> String {
         var lines: [String] = []
         lines.append(managedBlockBegin)
-        lines.append("# \(project.title.isEmpty ? "Strategy" : project.title)")
+        lines.append("# \(project.title.isEmpty ? "Research Project" : project.title)")
         lines.append("")
 
         if !project.paperIDs.isEmpty {
@@ -181,14 +181,14 @@ enum StrategyMarkdownExporter {
             .compactMap { $0?.trimmingCharacters(in: .whitespacesAndNewlines) }
             .contains(where: { !$0.isEmpty })
             if hasAny {
-                lines.append("## Trade Plan")
-                if let v = trade.universe?.trimmingCharacters(in: .whitespacesAndNewlines), !v.isEmpty { lines.append("- Universe: \(v)") }
-                if let v = trade.horizon?.trimmingCharacters(in: .whitespacesAndNewlines), !v.isEmpty { lines.append("- Horizon: \(v)") }
-                if let v = trade.signalDefinition?.trimmingCharacters(in: .whitespacesAndNewlines), !v.isEmpty { lines.append("- Signal: \(v)") }
-                if let v = trade.portfolioConstruction?.trimmingCharacters(in: .whitespacesAndNewlines), !v.isEmpty { lines.append("- Portfolio: \(v)") }
-                if let v = trade.costsAndSlippage?.trimmingCharacters(in: .whitespacesAndNewlines), !v.isEmpty { lines.append("- Costs: \(v)") }
+                lines.append("## Application Plan")
+                if let v = trade.universe?.trimmingCharacters(in: .whitespacesAndNewlines), !v.isEmpty { lines.append("- Scope / domain: \(v)") }
+                if let v = trade.horizon?.trimmingCharacters(in: .whitespacesAndNewlines), !v.isEmpty { lines.append("- Timeframe: \(v)") }
+                if let v = trade.signalDefinition?.trimmingCharacters(in: .whitespacesAndNewlines), !v.isEmpty { lines.append("- Evidence pattern: \(v)") }
+                if let v = trade.portfolioConstruction?.trimmingCharacters(in: .whitespacesAndNewlines), !v.isEmpty { lines.append("- Application design: \(v)") }
+                if let v = trade.costsAndSlippage?.trimmingCharacters(in: .whitespacesAndNewlines), !v.isEmpty { lines.append("- Costs and constraints: \(v)") }
                 if let v = trade.constraints?.trimmingCharacters(in: .whitespacesAndNewlines), !v.isEmpty { lines.append("- Constraints: \(v)") }
-                if let v = trade.executionNotes?.trimmingCharacters(in: .whitespacesAndNewlines), !v.isEmpty { lines.append("- Execution: \(v)") }
+                if let v = trade.executionNotes?.trimmingCharacters(in: .whitespacesAndNewlines), !v.isEmpty { lines.append("- Implementation: \(v)") }
                 lines.append("")
             }
         }
@@ -212,9 +212,9 @@ enum StrategyMarkdownExporter {
                 var parts: [String] = []
                 parts.append(o.kind.label)
                 parts.append(iso8601(o.measuredAt))
-                if let sharpe = o.metrics?.sharpe { parts.append("Sharpe \(String(format: "%.3f", sharpe))") }
-                if let pnl = o.metrics?.pnl { parts.append("PnL \(String(format: "%.3f", pnl))") }
-                if let dd = o.metrics?.maxDrawdown { parts.append("MaxDD \(String(format: "%.3f", dd))") }
+                if let sharpe = o.metrics?.sharpe { parts.append("Score \(String(format: "%.3f", sharpe))") }
+                if let pnl = o.metrics?.pnl { parts.append("Result \(String(format: "%.3f", pnl))") }
+                if let dd = o.metrics?.maxDrawdown { parts.append("Risk \(String(format: "%.3f", dd))") }
                 lines.append("- \(parts.joined(separator: " · "))")
                 if let notes = o.notes?.trimmingCharacters(in: .whitespacesAndNewlines), !notes.isEmpty {
                     lines.append("  - \(notes)")

@@ -306,7 +306,7 @@ enum PaperMarkdownExporter {
         if let lens = paper.tradingLens {
             let lensText = renderTradingLensBlock(lens)
             if !lensText.isEmpty {
-                lines.append(contentsOf: callout(type: "tip", title: "Trading Lens", body: lensText))
+                lines.append(contentsOf: callout(type: "tip", title: "Insight Brief", body: lensText))
                 lines.append("")
             }
         }
@@ -338,7 +338,7 @@ enum PaperMarkdownExporter {
         if let blueprint = paper.strategyBlueprint, !blueprint.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty {
             lines.append(contentsOf: callout(
                 type: "todo",
-                title: "Strategy Blueprint",
+                title: "Research Plan",
                 body: demoteMarkdownHeadings(blueprint.trimmingCharacters(in: .whitespacesAndNewlines), by: 2),
                 collapsedByDefault: true
             ))
@@ -348,7 +348,7 @@ enum PaperMarkdownExporter {
         if let audit = paper.backtestAudit, !audit.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty {
             lines.append(contentsOf: callout(
                 type: "warning",
-                title: "Backtest Audit",
+                title: "Plan Audit",
                 body: demoteMarkdownHeadings(audit.trimmingCharacters(in: .whitespacesAndNewlines), by: 2),
                 collapsedByDefault: true
             ))
@@ -624,24 +624,24 @@ enum PaperMarkdownExporter {
         if let scores = lens.scores {
             if let novelty = scores.novelty { scoreParts.append(String(format: "novelty=%.1f", novelty)) }
             if let usability = scores.usability { scoreParts.append(String(format: "usability=%.1f", usability)) }
-            if let impact = scores.strategyImpact { scoreParts.append(String(format: "impact=%.1f", impact)) }
+            if let impact = scores.strategyImpact { scoreParts.append(String(format: "application=%.1f", impact)) }
             if let conf = scores.confidence { scoreParts.append(String(format: "confidence=%.2f", conf)) }
         }
 
         var rows: [(String, String)] = []
         rows.append(("Verdict", cell(lens.oneLineVerdict)))
         rows.append(("Scores", scoreParts.isEmpty ? "—" : scoreParts.joined(separator: ", ")))
-        rows.append(("Trading tags", listCell(lens.tradingTags)))
-        rows.append(("Asset classes", listCell(lens.assetClasses)))
-        rows.append(("Horizons", listCell(lens.horizons)))
-        rows.append(("Signal archetypes", listCell(lens.signalArchetypes)))
+        rows.append(("Patterns", listCell(lens.tradingTags)))
+        rows.append(("Domains", listCell(lens.assetClasses)))
+        rows.append(("Timeframes", listCell(lens.horizons)))
+        rows.append(("Pattern types", listCell(lens.signalArchetypes)))
         rows.append(("Primary use", cell(lens.whereItFits?.primaryUse)))
         rows.append(("Pipeline stage", listCell(lens.whereItFits?.pipelineStage)))
         rows.append(("Must-have data", listCell(lens.dataRequirements?.mustHave)))
         rows.append(("Nice-to-have data", listCell(lens.dataRequirements?.niceToHave)))
         rows.append(("Recommended metrics", listCell(lens.evaluationNotes?.recommendedMetrics)))
         rows.append(("Must-check", listCell(lens.evaluationNotes?.mustCheck)))
-        rows.append(("Risk flags", listCell(lens.riskFlags)))
+        rows.append(("Caveats", listCell(lens.riskFlags)))
 
         var out: [String] = []
         out.append("| Field | Value |")
@@ -652,13 +652,13 @@ enum PaperMarkdownExporter {
 
         if let hyps = lens.alphaHypotheses, !hyps.isEmpty {
             out.append("")
-            out.append("**Alpha hypotheses**")
+            out.append("**Hypotheses**")
             for h in hyps.prefix(3) {
                 let hypothesis = h.hypothesis?.trimmingCharacters(in: .whitespacesAndNewlines) ?? ""
                 guard !hypothesis.isEmpty else { continue }
                 var bits: [String] = []
                 if let target = h.target?.trimmingCharacters(in: .whitespacesAndNewlines), !target.isEmpty { bits.append("target: \(target)") }
-                if let horizon = h.horizon?.trimmingCharacters(in: .whitespacesAndNewlines), !horizon.isEmpty { bits.append("horizon: \(horizon)") }
+                if let horizon = h.horizon?.trimmingCharacters(in: .whitespacesAndNewlines), !horizon.isEmpty { bits.append("timeframe: \(horizon)") }
                 if let features = h.features, !features.isEmpty { bits.append("features: \(features.prefix(6).joined(separator: ", "))") }
                 let suffix = bits.isEmpty ? "" : " — " + bits.joined(separator: "; ")
                 out.append("- \(hypothesis)\(suffix)")

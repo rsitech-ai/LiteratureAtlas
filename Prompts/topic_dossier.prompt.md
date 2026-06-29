@@ -3,12 +3,12 @@ You are given a topic/cluster with representative paper titles, keywords, and co
 Write a compact Markdown dossier with these headings:
 
 # Topic Summary
-# Why It Matters for Systematic Trading
-# Common Signal / Model Archetypes
+# Why It Matters
+# Common Pattern / Model Archetypes
 # Data & Implementation Notes
 # Failure Modes / Risks
 # Representative Papers (What Each Adds)
-# Next Prototypes (Minimal Experiments)
+# Next Plans (Minimal Experiments)
 
 Rules:
 - Be specific and grounded in the provided context; do not invent results.

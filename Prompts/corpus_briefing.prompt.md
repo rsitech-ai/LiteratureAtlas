@@ -1,5 +1,5 @@
 You are given a topic hierarchy (mega-topics and subtopics) with sample paper titles and keyword themes.
-The goal is to summarize the corpus at a high level for a technically savvy quant researcher.
+The goal is to summarize the corpus at a high level for a technically savvy researcher.
 
 Write a Markdown briefing with these sections (use these exact headings):
 
@@ -14,7 +14,7 @@ Rules:
 - Be concise but specific; prefer concrete phrases over vague claims.
 - Use the provided topic names, keywords, and sample titles.
 - If something is not supported by the context, say "Not enough evidence in the provided metadata."
-- Add a trading translation throughout: where a theme might map to alpha generation, regime detection, risk modeling, or execution.
+- Add an application translation throughout: where a theme might map to decisions, workflows, modeling, evaluation, or implementation.
 - Keep the whole response under ~900 words.
 
 Context:

@@ -342,7 +342,7 @@ actor PaperTradingLensActor {
 
     init() {
         let fallbackInstructions = """
-        You are a quant research assistant. Your job is to convert a paper summary into a trading applicability scorecard.
+        You are a research synthesis assistant. Your job is to convert a paper summary into a general insight applicability scorecard.
         OUTPUT MUST BE VALID JSON ONLY (no Markdown fences, no extra text).
         Be grounded in the provided context. If missing, use null, empty lists, or "Unknown".
         """
@@ -414,7 +414,7 @@ actor PaperTradingLensActor {
             ])
             do {
                 // A LanguageModelSession can retain conversation context; use a fresh session per attempt to avoid growth
-                // across many scorecards (e.g., trading-lens backfills).
+                // across many scorecards (e.g., insight brief backfills).
                 let session = LanguageModelSession(instructions: instructions)
                 let response = try await session.respond(to: prompt)
                 return try ModelJSON.decodeFirstJSON(PaperTradingLens.self, from: response.content)
@@ -425,7 +425,7 @@ actor PaperTradingLensActor {
             }
         }
 
-        throw lastError ?? NSError(domain: "PaperTradingLens", code: 1, userInfo: [NSLocalizedDescriptionKey: "Failed to generate trading lens scorecard."])
+        throw lastError ?? NSError(domain: "PaperTradingLens", code: 1, userInfo: [NSLocalizedDescriptionKey: "Failed to generate insight brief scorecard."])
     }
 }
 
@@ -517,7 +517,7 @@ actor ClusterSummarizerActor {
         if let metaRange = content.range(of: "Meta-summary:") {
             let rest = content[metaRange.upperBound...]
             let text = rest.trimmingCharacters(in: .whitespacesAndNewlines)
-            if let lens = text.range(of: "Trading lens:") {
+            if let lens = text.range(of: "Insight brief:") ?? text.range(of: "Trading lens:") {
                 let onlyMeta = text[..<lens.lowerBound].trimmingCharacters(in: .whitespacesAndNewlines)
                 if !onlyMeta.isEmpty { meta = onlyMeta }
                 let lensText = text[lens.lowerBound...].trimmingCharacters(in: .whitespacesAndNewlines)

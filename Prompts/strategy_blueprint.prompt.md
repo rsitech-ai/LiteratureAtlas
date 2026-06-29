@@ -4,24 +4,24 @@ Keywords: {{keywords}}
 Summary:
 {{summary}}
 
-Trading lens (may be JSON or text):
+Insight brief (may be JSON or text):
 {{trading_lens}}
 
-Write 1-2 prototypes with these headings:
+Write 1-2 plans with these headings:
 
-# Prototype 1
-## Alpha hypothesis
-## Universe & horizon
-## Signal definition (math / pseudocode)
+# Plan 1
+## Hypothesis
+## Scope & timeframe
+## Evidence pattern (math / pseudocode if useful)
 ## Model (if any) + features
-## Portfolio construction + constraints
-## Transaction cost / slippage assumptions
+## Application design + constraints
+## Cost / feasibility assumptions
 ## Evaluation plan (metrics + splits)
 ## Robustness checks
 ## Fast implementation steps (5-8 bullets)
 
-(Repeat for Prototype 2 if useful.)
+(Repeat for Plan 2 if useful.)
 
 Rules:
-- If you must assume something (e.g., horizon), label it explicitly.
+- If you must assume something (e.g., timeframe), label it explicitly.
 - Include at least 3 robustness checks.

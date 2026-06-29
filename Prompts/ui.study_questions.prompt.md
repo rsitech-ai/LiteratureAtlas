@@ -3,7 +3,7 @@ Use the summary and takeaways.
 Mix:
 - 2 conceptual questions
 - 2 implementation/evaluation questions (data, horizon, leakage, costs, robustness)
-- 1 "turn it into a tradeable hypothesis" question
+- 1 "turn it into an applied hypothesis" question
 
 Summary:
 {{summary}}

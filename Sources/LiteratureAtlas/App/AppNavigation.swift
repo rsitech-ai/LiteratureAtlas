@@ -19,7 +19,7 @@ final class AppNavigation: ObservableObject {
             case .ingest: return "Ingest"
             case .map: return "Universe"
             case .qa: return "Q&A"
-            case .trading: return "Trading"
+            case .trading: return "Insights"
             case .projects: return "Projects"
             case .analytics: return "Analytics"
             }
@@ -30,7 +30,7 @@ final class AppNavigation: ObservableObject {
             case .ingest: return "tray.and.arrow.down"
             case .map: return "sparkles"
             case .qa: return "questionmark.circle"
-            case .trading: return "dollarsign.circle"
+            case .trading: return "lightbulb"
             case .projects: return "folder"
             case .analytics: return "chart.xyaxis.line"
             }

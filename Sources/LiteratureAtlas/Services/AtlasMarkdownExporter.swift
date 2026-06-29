@@ -138,7 +138,7 @@ enum AtlasMarkdownExporter {
         if let corpusVersion { meta.append("- Corpus version: `\(corpusVersion)`") }
         meta.append("- Papers: \(papers.count)")
         meta.append("- Clusters: \(clusters.count)")
-        meta.append("- Strategies: \(strategyProjects.count)")
+        meta.append("- Research projects: \(strategyProjects.count)")
         meta.append("- Updated: \(iso8601(Date()))")
         lines.append(contentsOf: callout(type: "info", title: "Status", body: meta.joined(separator: "\n")))
         lines.append("")
@@ -149,7 +149,7 @@ enum AtlasMarkdownExporter {
         lines.append("## Inbox")
         lines.append("- [ ] Review newest papers")
         lines.append("- [ ] Pin 2–3 clusters to focus this week")
-        lines.append("- [ ] Convert 1 paper into a strategy project")
+        lines.append("- [ ] Convert 1 paper into a research project")
         lines.append("")
 
         // Recent papers (static)
@@ -194,11 +194,11 @@ enum AtlasMarkdownExporter {
                 .sorted { $0.updatedAt > $1.updatedAt }
                 .prefix(10)
                 .map { p in
-                    let title = p.title.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty ? "Strategy" : p.title
+                    let title = p.title.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty ? "Research Project" : p.title
                     return "- [[\(ObsidianIDs.strategyAlias(p.id))|\(title)]]"
                 }
                 .joined(separator: "\n")
-            lines.append(contentsOf: callout(type: "tip", title: "Strategy Projects", body: body, collapsedByDefault: true))
+            lines.append(contentsOf: callout(type: "tip", title: "Research Projects", body: body, collapsedByDefault: true))
             lines.append("")
         }
 
