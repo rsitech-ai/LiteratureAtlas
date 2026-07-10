@@ -118,14 +118,18 @@ echo "[smoke] rebuilding analytics"
   "${PYTHON}" analytics/rebuild_analytics.py --base "${SMOKE_BASE}"
 )
 
-echo "[smoke] building ANN edges"
-(
-  cd "${REPO_ROOT}"
-  cargo run --manifest-path analytics/rust/Cargo.toml --release -- \
-    --emb "${SMOKE_OUTPUT}/analytics/paper_embeddings.parquet" \
-    --out "${SMOKE_OUTPUT}/analytics/ann_edges.json" \
-    --k 8
-)
+if [[ -f "${REPO_ROOT}/analytics/rust/Cargo.toml" ]]; then
+  echo "[smoke] building ANN edges"
+  (
+    cd "${REPO_ROOT}"
+    cargo run --manifest-path analytics/rust/Cargo.toml --release -- \
+      --emb "${SMOKE_OUTPUT}/analytics/paper_embeddings.parquet" \
+      --out "${SMOKE_OUTPUT}/analytics/ann_edges.json" \
+      --k 8
+  )
+else
+  echo "[smoke] skipping ANN edge build; analytics/rust CLI is not present in this checkout"
+fi
 
 echo "[smoke] running output artifact audit"
 (

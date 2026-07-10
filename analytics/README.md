@@ -1,4 +1,4 @@
-# Local Analytics Backend (Python + DuckDB + Rust helpers)
+# Local Analytics Backend (Python + DuckDB + Rust FFI)
 
 This directory houses the fully local analytics pipeline that the SwiftUI app can regenerate on demand. All reads/writes stay under `Output/`—no cloud dependencies.
 
@@ -43,16 +43,7 @@ pip install -r analytics/requirements.txt
 - `--db` : custom DuckDB path (default: `Output/atlas.duckdb`).
 - `--counterfactual-cutoffs` : list of year thresholds for counterfactual scenarios (default: `2010 2015 2020`).
 
-## Rust helpers
-- **ANN graph CLI** (`analytics/rust`): builds k-NN edges from `paper_embeddings.parquet`.
-  ```bash
-  cargo run --manifest-path analytics/rust/Cargo.toml --release -- \
-    --emb Output/analytics/paper_embeddings.parquet \
-    --out Output/analytics/ann_edges.json \
-    --k 8
-  ```
-  See `analytics/rust/README.md` for flags.
-
+## Rust FFI
 - **Swift FFI library** (`analytics/ffi`): exposes HNSW search and lightweight graph analytics.
   ```bash
   cargo build --manifest-path analytics/ffi/Cargo.toml --release
@@ -60,6 +51,9 @@ pip install -r analytics/requirements.txt
   # Library: analytics/ffi/target/release/libatlas_ffi.{dylib,a}
   ```
   The Swift target links against this library (see `Package.swift`).
+
+The legacy `analytics/rust` ANN CLI is not present in this checkout. Do not run or document
+`cargo run --manifest-path analytics/rust/Cargo.toml` unless that manifest is restored.
 
 ## Notebooks & extension points
 - Open `Output/atlas.duckdb` in Jupyter/duckdb for custom analyses (UMAP, graph stats, topic modeling). Keep heavy experiments here; only small artifacts should flow back into `analytics.json`.
