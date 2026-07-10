@@ -3,7 +3,11 @@ import Foundation
 struct Paper: Identifiable, Codable, Equatable {
     // Order here drives JSON field order (encoder keeps declaration order).
     var version: Int
+    var sourceKind: SourceKind
     var filePath: String
+    var sourceChecksum: String?
+    var sourceModifiedAt: Date?
+    var extractStatus: DocumentExtractStatus?
     var id: UUID
     var originalFilename: String
     var title: String
@@ -30,6 +34,9 @@ struct Paper: Identifiable, Codable, Equatable {
     var year: Int?
     var embedding: [Float]
     var clusterIndex: Int?
+    var citationAnchors: [CitationAnchor]?
+    var sections: [DocumentSection]?
+    var compiledArtifacts: [CompiledArtifactRef]?
     // Claim-level reasoning fields
     var claims: [PaperClaim]?
     var assumptions: [String]?
@@ -43,17 +50,22 @@ struct Paper: Identifiable, Codable, Equatable {
     var fileURL: URL { URL(fileURLWithPath: filePath) }
 
     enum CodingKeys: String, CodingKey {
-        case version, filePath, id, originalFilename, title, introSummary, summary, methodSummary, resultsSummary, takeaways, keywords
+        case version, sourceKind, filePath, sourceChecksum, sourceModifiedAt, extractStatus, id, originalFilename, title, introSummary, summary, methodSummary, resultsSummary, takeaways, keywords
         case tradingLens = "trading_lens"
         case tradingScores = "scores"
         case strategyBlueprint = "strategy_blueprint"
         case backtestAudit = "backtest_audit"
         case userNotes, userTags, isImportant, readingStatus, noteEmbedding, userQuestions, flashcards, firstReadAt, ingestedAt, pageCount, year, embedding, clusterIndex, fingerprint, status
+        case citationAnchors, sections, compiledArtifacts
         case claims, assumptions, evaluationContext, methodPipeline
     }
 
     init(version: Int = 1,
+         sourceKind: SourceKind = .pdf,
          filePath: String,
+         sourceChecksum: String? = nil,
+         sourceModifiedAt: Date? = nil,
+         extractStatus: DocumentExtractStatus? = nil,
          id: UUID,
          originalFilename: String,
          title: String,
@@ -73,10 +85,13 @@ struct Paper: Identifiable, Codable, Equatable {
         readingStatus: ReadingStatus?,
         noteEmbedding: [Float]?,
         userQuestions: [String]?,
-        flashcards: [Flashcard]?,
-        year: Int?,
+         flashcards: [Flashcard]?,
+         year: Int?,
          embedding: [Float],
          clusterIndex: Int?,
+         citationAnchors: [CitationAnchor]? = nil,
+         sections: [DocumentSection]? = nil,
+         compiledArtifacts: [CompiledArtifactRef]? = nil,
          claims: [PaperClaim]? = nil,
          assumptions: [String]? = nil,
          evaluationContext: EvaluationContext? = nil,
@@ -85,7 +100,11 @@ struct Paper: Identifiable, Codable, Equatable {
          ingestedAt: Date? = nil,
          pageCount: Int? = nil) {
         self.version = version
+        self.sourceKind = sourceKind
         self.filePath = filePath
+        self.sourceChecksum = sourceChecksum
+        self.sourceModifiedAt = sourceModifiedAt
+        self.extractStatus = extractStatus
         self.id = id
         self.originalFilename = originalFilename
         self.title = title
@@ -112,6 +131,9 @@ struct Paper: Identifiable, Codable, Equatable {
         self.year = year
         self.embedding = embedding
         self.clusterIndex = clusterIndex
+        self.citationAnchors = citationAnchors
+        self.sections = sections
+        self.compiledArtifacts = compiledArtifacts
         self.claims = claims
         self.assumptions = assumptions
         self.evaluationContext = evaluationContext
@@ -121,7 +143,11 @@ struct Paper: Identifiable, Codable, Equatable {
     init(from decoder: Decoder) throws {
         let container = try decoder.container(keyedBy: CodingKeys.self)
         version = try container.decodeIfPresent(Int.self, forKey: .version) ?? 1
+        sourceKind = try container.decodeIfPresent(SourceKind.self, forKey: .sourceKind) ?? .pdf
         filePath = try container.decode(String.self, forKey: .filePath)
+        sourceChecksum = try container.decodeIfPresent(String.self, forKey: .sourceChecksum)
+        sourceModifiedAt = try container.decodeIfPresent(Date.self, forKey: .sourceModifiedAt)
+        extractStatus = try container.decodeIfPresent(DocumentExtractStatus.self, forKey: .extractStatus)
         id = try container.decode(UUID.self, forKey: .id)
         originalFilename = try container.decode(String.self, forKey: .originalFilename)
         title = try container.decode(String.self, forKey: .title)
@@ -153,6 +179,9 @@ struct Paper: Identifiable, Codable, Equatable {
         year = try container.decodeIfPresent(Int.self, forKey: .year)
         embedding = try container.decode([Float].self, forKey: .embedding)
         clusterIndex = try container.decodeIfPresent(Int.self, forKey: .clusterIndex)
+        citationAnchors = try container.decodeIfPresent([CitationAnchor].self, forKey: .citationAnchors)
+        sections = try container.decodeIfPresent([DocumentSection].self, forKey: .sections)
+        compiledArtifacts = try container.decodeIfPresent([CompiledArtifactRef].self, forKey: .compiledArtifacts)
         claims = try container.decodeIfPresent([PaperClaim].self, forKey: .claims)
         assumptions = try container.decodeIfPresent([String].self, forKey: .assumptions)
         evaluationContext = try container.decodeIfPresent(EvaluationContext.self, forKey: .evaluationContext)
@@ -162,7 +191,11 @@ struct Paper: Identifiable, Codable, Equatable {
     func encode(to encoder: Encoder) throws {
         var container = encoder.container(keyedBy: CodingKeys.self)
         try container.encode(version, forKey: .version)
+        try container.encode(sourceKind, forKey: .sourceKind)
         try container.encode(filePath, forKey: .filePath)
+        try container.encodeIfPresent(sourceChecksum, forKey: .sourceChecksum)
+        try container.encodeIfPresent(sourceModifiedAt, forKey: .sourceModifiedAt)
+        try container.encodeIfPresent(extractStatus, forKey: .extractStatus)
         try container.encode(id, forKey: .id)
         try container.encode(originalFilename, forKey: .originalFilename)
         try container.encode(title, forKey: .title)
@@ -189,6 +222,9 @@ struct Paper: Identifiable, Codable, Equatable {
         try container.encodeIfPresent(year, forKey: .year)
         try container.encode(embedding, forKey: .embedding)
         try container.encodeIfPresent(clusterIndex, forKey: .clusterIndex)
+        try container.encodeIfPresent(citationAnchors, forKey: .citationAnchors)
+        try container.encodeIfPresent(sections, forKey: .sections)
+        try container.encodeIfPresent(compiledArtifacts, forKey: .compiledArtifacts)
         try container.encodeIfPresent(claims, forKey: .claims)
         try container.encodeIfPresent(assumptions, forKey: .assumptions)
         try container.encodeIfPresent(evaluationContext, forKey: .evaluationContext)

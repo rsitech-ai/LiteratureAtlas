@@ -63,6 +63,24 @@ final class ClaimGraphTests: XCTestCase {
         XCTAssertNotNil(extensionEdge, "a should extend to c")
     }
 
+    func testRelationInferenceCanReturnBoundedPreview() {
+        let claims = (0..<8).map { index in
+            PaperClaim(
+                id: UUID(),
+                paperID: UUID(),
+                statement: "Model \(index) improves accuracy on CIFAR-10.",
+                assumptions: ["iid"],
+                evaluation: EvaluationContext(dataset: "CIFAR-10", period: nil, metrics: ["accuracy"]),
+                year: 2020 + index,
+                strength: 0.5
+            )
+        }
+
+        let edges = ClaimRelationInferencer.inferEdges(for: claims, limit: 3)
+
+        XCTAssertEqual(edges.count, 3)
+    }
+
     func testAssumptionStressTestReturnsDependentClaims() {
         let assumption = "infinite liquidity"
         let paperA = Paper(version: 1, filePath: "a", id: UUID(), originalFilename: "a.pdf", title: "A", introSummary: nil, summary: "", methodSummary: nil, resultsSummary: nil, takeaways: nil, keywords: nil, userNotes: nil, userTags: nil, isImportant: nil, readingStatus: nil, noteEmbedding: nil, userQuestions: nil, flashcards: nil, year: 2021, embedding: [1, 0], clusterIndex: nil, claims: [

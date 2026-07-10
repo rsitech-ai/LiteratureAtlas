@@ -27,8 +27,7 @@ enum PromptStore {
             if fm.fileExists(atPath: url.path) { return url }
         }
 
-        let cwd = URL(fileURLWithPath: fm.currentDirectoryPath, isDirectory: true)
-        let defaultBase = cwd.appendingPathComponent("Prompts", isDirectory: true)
+        let defaultBase = AppPaths.promptsRoot()
         let url = defaultBase.appendingPathComponent(relativePath)
         if fm.fileExists(atPath: url.path) { return url }
 

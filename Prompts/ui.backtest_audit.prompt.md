@@ -1,12 +1,12 @@
-Strategy / prototype description:
+Research plan / prototype description:
 {{strategy_text}}
 
 Audit it with these headings:
 
 # Leakage & Bias Risks
 # Data Assumption Risks
-# Transaction Costs & Market Impact
-# Regime & Non-Stationarity
+# Cost & Operational Assumptions
+# Drift & Non-Stationarity
 # Overfitting & Validation Design
 # Minimal Fixes (Actionable)
 # Kill Criteria (When to Stop)

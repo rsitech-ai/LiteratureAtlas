@@ -28,7 +28,7 @@ struct StrategyProjectsView: View {
             case .needsIdea: return "Needs idea"
             case .needsFeatures: return "Needs features"
             case .needsModel: return "Needs model"
-            case .needsTradePlan: return "Needs trade plan"
+            case .needsTradePlan: return "Needs plan"
             case .needsOutcome: return "Needs outcome"
             case .hasOutcome: return "Has outcome"
             }
@@ -47,7 +47,7 @@ struct StrategyProjectsView: View {
             switch self {
             case .recent: return "Recent"
             case .title: return "Title"
-            case .sharpe: return "Sharpe"
+            case .sharpe: return "Score"
             case .outcomes: return "Outcomes"
             }
         }
@@ -83,8 +83,8 @@ struct StrategyProjectsView: View {
             if filtered.isEmpty {
                 GlassCard {
                     VStack(alignment: .leading, spacing: 8) {
-                        Text("No strategy projects yet").font(.headline)
-                        Text("Create one from a paper (Paper → Create project) or start an empty project here.")
+                        Text("No research projects yet").font(.headline)
+                        Text("Create one from a paper (Paper -> Create research project) or start an empty project here.")
                             .font(.caption)
                             .foregroundStyle(.secondary)
                     }
@@ -116,7 +116,7 @@ struct StrategyProjectsView: View {
                                     model.updateStrategyProject(updated)
                                 }
                                 Divider()
-                                Button("Export KG snapshot") {
+                                Button("Export knowledge graph") {
                                     model.exportQuantKnowledgeGraphSnapshot()
                                 }
                                 Divider()
@@ -157,7 +157,7 @@ struct StrategyProjectsView: View {
         GlassCard {
             VStack(alignment: .leading, spacing: 10) {
                 HStack {
-                    Text("Projects").font(.title2.bold())
+                    Text("Research Projects").font(.title2.bold())
                     Spacer()
                     Button {
                         let project = model.createEmptyStrategyProject()
@@ -170,7 +170,7 @@ struct StrategyProjectsView: View {
                     Button {
                         model.exportQuantKnowledgeGraphSnapshot()
                     } label: {
-                        Label("Export KG", systemImage: "square.and.arrow.up")
+                        Label("Export Graph", systemImage: "square.and.arrow.up")
                     }
                     .buttonStyle(.bordered)
                 }
@@ -212,7 +212,7 @@ struct StrategyProjectsView: View {
         let archived = projects.count - active
         let withOutcome = projects.filter { !$0.outcomes.isEmpty }.count
         let sharpeAvg = averageLatestSharpe(in: projects.filter { !($0.archived ?? false) })
-        let sharpeText = sharpeAvg == nil ? "Sharpe n/a" : String(format: "Sharpe %.2f", sharpeAvg ?? 0)
+        let sharpeText = sharpeAvg == nil ? "Score n/a" : String(format: "Score %.2f", sharpeAvg ?? 0)
         return "\(filtered.count) shown · \(projects.count) total · \(active) active · \(archived) archived · \(withOutcome) w/ outcomes · \(sharpeText)"
     }
 

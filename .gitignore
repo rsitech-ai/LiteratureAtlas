@@ -1,9 +1,12 @@
 # Swift / Xcode
 .build/
 .DS_Store
+dist/
+docs/audits/*.png
 
 # Derived data / caches
 Output/
+.superpowers/
 
 # Python
 .venv/

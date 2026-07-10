@@ -84,7 +84,7 @@ struct PaperActionRow: View {
                 Button("Open Obsidian note") { PlatformOpen.open(url: noteURL) }
             }
             if isMissingTradingLens {
-                Button("Generate trading lens") { model.generateTradingLens(for: paper.id) }
+                Button("Generate insight brief") { model.generateTradingLens(for: paper.id) }
             }
             Divider()
             Menu("Mark status") {
@@ -128,7 +128,7 @@ struct PaperActionRow: View {
                     Image(systemName: "sparkles")
                 }
                 .buttonStyle(.borderless)
-                .help("Generate trading lens")
+                .help("Generate insight brief")
             }
 
             Menu {

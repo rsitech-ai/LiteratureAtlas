@@ -34,6 +34,7 @@ final class AppModel: ObservableObject {
             // Avoid O(n²) recomputes during batch ingestion/clustering loops.
             guard !isIngesting, !isClustering else { return }
             recomputeCorpusYearDomain()
+            recomputeSourceKindCounts()
         }
     }
     @Published var strategyProjects: [StrategyProject] = []
@@ -65,6 +66,7 @@ final class AppModel: ObservableObject {
     @Published var ingestionCurrentFile: String = ""
     @Published var ingestionCompletedCount: Int = 0
     @Published var ingestionTotalCount: Int = 0
+    @Published private(set) var sourceKindCounts: [SourceKind: Int] = [:]
 
     @Published var tradingLensBackfillInFlight: Bool = false
     @Published var tradingLensBackfillProgress: Double = 0
@@ -105,7 +107,8 @@ final class AppModel: ObservableObject {
 
     // Services
     private let pdfProcessor = PDFProcessor()
-    private let summarizer = PaperSummarizerActor()
+    private let markdownProcessor = MarkdownProcessor()
+    private let documentCompiler: any DocumentCompilerProviding
     private let tradingLensActor = PaperTradingLensActor()
     private let clusterSummarizer = ClusterSummarizerActor()
     private let questionAnswerer = QuestionAnswerActor()
@@ -125,6 +128,7 @@ final class AppModel: ObservableObject {
     private var questionEmbeddings: [[Float]] = []
 
     init(skipInitialLoad: Bool = false, customOutputRoot: URL? = nil) {
+        documentCompiler = DocumentCompilerProviderFactory.makeDefault()
         if let custom = customOutputRoot {
             outputRoot = custom
             legacyOutputRoot = custom
@@ -146,15 +150,13 @@ final class AppModel: ObservableObject {
                 await loadSavedGalaxyIfPresent()
                 await loadSavedCorpusBriefingIfPresent()
                 await loadAnalyticsSummaryIfPresent()
-                exportObsidianVaultArtifacts(force: false)
             }
         }
     }
 
     private static func makePrimaryOutputRoot() -> URL {
         // Constrain all persisted data to the app directory (repo Output folder) so nothing leaks into ~/Documents.
-        let cwd = URL(fileURLWithPath: FileManager.default.currentDirectoryPath)
-        let root = cwd.appendingPathComponent("Output", isDirectory: true)
+        let root = AppPaths.outputRoot()
         prepareOutputRoot(root)
         return root
     }
@@ -167,6 +169,14 @@ final class AppModel: ObservableObject {
             logger.error("Failed to create Output root at \(root.path, privacy: .public): \(error.localizedDescription, privacy: .public)")
         }
         for folder in ["papers", "qa", "clusters", "chunks", "analytics", "reports", "strategies", "obsidian/papers", "obsidian/strategies", "obsidian/clusters", "obsidian/.obsidian/snippets"] {
+            let url = root.appendingPathComponent(folder, isDirectory: true)
+            do {
+                try FileManager.default.createDirectory(at: url, withIntermediateDirectories: true)
+            } catch {
+                logger.error("Failed to create Output subfolder \(url.path, privacy: .public): \(error.localizedDescription, privacy: .public)")
+            }
+        }
+        for folder in ["documents", "compiled/documents", "compiled/topics", "compiled/entities", "graph"] {
             let url = root.appendingPathComponent(folder, isDirectory: true)
             do {
                 try FileManager.default.createDirectory(at: url, withIntermediateDirectories: true)
@@ -310,6 +320,10 @@ final class AppModel: ObservableObject {
         explorationPaperIDs = Set(filtered.map(\.id))
     }
 
+    private func recomputeSourceKindCounts() {
+        sourceKindCounts = Dictionary(grouping: papers, by: \.sourceKind).mapValues(\.count)
+    }
+
     // MARK: - Ingestion
 
     func ingestFolder(url: URL) {
@@ -344,194 +358,63 @@ final class AppModel: ObservableObject {
         await loadSavedChunksIfNeeded()
 
         let fm = FileManager.default
-        guard let items = try? fm.contentsOfDirectory(at: folderURL, includingPropertiesForKeys: nil, options: [.skipsHiddenFiles]) else {
+        guard fm.fileExists(atPath: folderURL.path) else {
             ingestionLog += "\nFailed to read folder."
             isIngesting = false
             return
         }
 
-        let pdfs = items.filter { $0.pathExtension.lowercased() == "pdf" }
-        guard !pdfs.isEmpty else {
-            ingestionLog += "\nNo PDF files found in folder."
-            logger.info("[Ingest] No PDFs found in folder \(folderURL.path, privacy: .public)")
+        let sourceFiles = discoverSourceDocuments(in: folderURL)
+        guard !sourceFiles.isEmpty else {
+            ingestionLog += "\nNo PDF or Markdown files found in folder."
+            logger.info("[Ingest] No source documents found in folder \(folderURL.path, privacy: .public)")
             isIngesting = false
             return
         }
 
-        ingestionTotalCount = pdfs.count
+        ingestionTotalCount = sourceFiles.count
 
-        for (index, pdfURL) in pdfs.enumerated() {
+        for (index, sourceURL) in sourceFiles.enumerated() {
             #if os(iOS) || os(macOS)
-            let needsAccess = pdfURL.startAccessingSecurityScopedResource()
-            defer { if needsAccess { pdfURL.stopAccessingSecurityScopedResource() } }
+            let needsAccess = sourceURL.startAccessingSecurityScopedResource()
+            defer { if needsAccess { sourceURL.stopAccessingSecurityScopedResource() } }
             #endif
 
-            ingestionCurrentFile = pdfURL.lastPathComponent
-            ingestionLog += "\n\n[>] Processing \(pdfURL.lastPathComponent)..."
-            logger.info("[Ingest] Processing: \(pdfURL.lastPathComponent, privacy: .public)")
+            ingestionCurrentFile = sourceURL.lastPathComponent
+            ingestionLog += "\n\n[>] Processing \(sourceURL.lastPathComponent)..."
+            logger.info("[Ingest] Processing: \(sourceURL.lastPathComponent, privacy: .public)")
 
             if Task.isCancelled { break }
 
-            let existingPaper = papers.first(where: { $0.filePath == pdfURL.path })
-            if shouldSkipPDF(pdfURL: pdfURL, existingPaper: existingPaper) {
+            let existingPaper = papers.first(where: { $0.filePath == sourceURL.path })
+            if shouldSkipSource(sourceURL: sourceURL, existingPaper: existingPaper) {
                 ingestionLog += "\n  Skipped: up to date."
-                ingestionProgress = Double(index + 1) / Double(max(pdfs.count, 1))
+                ingestionProgress = Double(index + 1) / Double(max(sourceFiles.count, 1))
                 ingestionCompletedCount = index + 1
                 continue
             }
 
             do {
                 if Task.isCancelled { break }
-                let text = try pdfProcessor.extractFirstPagesText(from: pdfURL, maxPages: 3)
-                ingestionLog += "\n  Extracted \(text.count) characters."
-
-                if Task.isCancelled { break }
-                let title = pdfProcessor.inferTitle(for: pdfURL, text: text)
-                var year = pdfProcessor.inferYear(from: pdfURL)
-
-                let summary: String
-                let introSummary: String?
-                let methodSummary: String?
-                let resultsSummary: String?
-                let takeaways: [String]?
-                let keywords: [String]
-
-                // Preserve existing trading lens if regeneration fails.
-                var tradingLens: PaperTradingLens? = existingPaper?.tradingLens
-                var tradingScores: TradingLensScores? = existingPaper?.tradingScores ?? existingPaper?.tradingLens?.scores
-
-                if smokeFastMode {
-                    summary = String(text.prefix(1200)).trimmingCharacters(in: .whitespacesAndNewlines)
-                    let fallback = summary.isEmpty ? "Summary unavailable." : summary
-                    introSummary = String(fallback.prefix(500))
-                    methodSummary = nil
-                    resultsSummary = nil
-                    let heuristic = heuristicTakeaways(from: fallback)
-                    takeaways = heuristic.isEmpty ? nil : heuristic
-                    keywords = extractKeywords(title: title, summary: fallback)
-                    ingestionLog += "\n  Smoke-fast mode: skipped on-device LLM calls."
-                } else {
-                    ingestionLog += "\n  Summarizing with on-device model (chunked)..."
-                    let summaryOutput = try await summarizer.summarize(title: title, text: text)
-                    summary = summaryOutput.summary
-                    ingestionLog += "\n  Summary length: \(summary.count). Chunks: \(summaryOutput.chunksUsed) (max chars used: \(summaryOutput.maxChunkCharsUsed))."
-
-                    // Section summaries (rough slicing)
-                    let thirds = max(1, text.count / 3)
-                    let introText = String(text.prefix(thirds))
-                    let methodText = text.count > thirds ? String(text.dropFirst(thirds).prefix(thirds)) : introText
-                    let resultsText = text.count > 2 * thirds ? String(text.dropFirst(2 * thirds)) : methodText
-
-                    introSummary = try? await summarizer.summarizeSection(title: title, sectionName: "Introduction", text: introText)
-                    methodSummary = try? await summarizer.summarizeSection(title: title, sectionName: "Methods", text: methodText)
-                    resultsSummary = try? await summarizer.summarizeSection(title: title, sectionName: "Results", text: resultsText)
-                    takeaways = try? await summarizer.generateTakeaways(title: title, text: summary)
-                    keywords = extractKeywords(title: title, summary: summary)
-
-                    do {
-                        tradingLens = try await tradingLensActor.scorecard(title: title, keywords: keywords, summary: summary, takeaways: takeaways)
-                        tradingScores = tradingLens?.scores
-                        ingestionLog += "\n  Trading lens generated."
-                    } catch {
-                        ingestionLog += "\n  Trading lens failed: \(error.localizedDescription)"
-                    }
+                let paper = try await ingestSourceDocument(
+                    at: sourceURL,
+                    existingPaper: existingPaper,
+                    smokeFastMode: smokeFastMode
+                )
+                upsertPaper(paper)
+                let jsonURL = try savePaperJSON(paper)
+                _ = try? saveDocumentJSON(paper)
+                ingestionLog += "\n  Saved JSON: \(jsonURL.lastPathComponent)"
+                if let mdURL = try? PaperMarkdownExporter.write(paper: paper, outputRoot: outputRoot, context: paperObsidianContextSnapshot()) {
+                    ingestionLog += "\n  Saved MD: \(mdURL.lastPathComponent)"
                 }
-                // Heuristic claim/assumption extraction for later evidence graph.
-                let preliminaryPaperID = existingPaper?.id ?? UUID()
-                let claimExtraction = ClaimExtractor.heuristicExtraction(summary: summary, paperID: preliminaryPaperID, year: year)
-                // Derive a lightweight method pipeline from the method summary if available.
-                let pipelineSource = methodSummary ?? summary
-                let pipeline = MethodPipelineExtractor.extract(from: pipelineSource)
-
-                if year == nil {
-                    year = pdfProcessor.inferYear(fromText: text)
-                }
-                let pageCount = pdfProcessor.pageCount(for: pdfURL)
-                if let y = year {
-                    ingestionLog += "\n  Inferred year: \(y)"
-                } else {
-                    ingestionLog += "\n  Year unknown."
-                }
-                if let pages = pageCount {
-                    ingestionLog += "\n  Pages: \(pages)"
-                }
-
-                let fingerprint = "\(title)\n\(summary)"
-                var embedding: [Float] = []
-                if !smokeFastMode {
-                    embedding = normalizeEmbedding(await embedder.encode(for: fingerprint) ?? [])
-                }
-                if embedding.isEmpty {
-                    embedding = normalizeEmbedding(fallbackEmbedding(for: fingerprint))
-                    ingestionLog += smokeFastMode
-                        ? "\n  Smoke-fast mode: using fallback hashing embedding (dim=\(embedding.count))."
-                        : "\n  Embedding unavailable; using fallback hashing embedding (dim=\(embedding.count))."
-                } else {
-                    ingestionLog += "\n  Embedding dimension: \(embedding.count)."
-                }
-
-                if embedding.isEmpty {
-                    ingestionLog += "\n  Skipped: embedding unavailable."
-                } else {
-                    // Use the pre-generated UUID so claim extraction references match.
-                    let paperID = preliminaryPaperID
-                    let paper = Paper(
-                        version: 1,
-                        filePath: pdfURL.path,
-                        id: paperID,
-                        originalFilename: pdfURL.lastPathComponent,
-                        title: title,
-                        introSummary: introSummary,
-                        summary: summary,
-                        methodSummary: methodSummary,
-                        resultsSummary: resultsSummary,
-                        takeaways: takeaways,
-                        keywords: keywords,
-                        tradingLens: tradingLens,
-                        tradingScores: tradingScores ?? tradingLens?.scores,
-                        strategyBlueprint: existingPaper?.strategyBlueprint,
-                        backtestAudit: existingPaper?.backtestAudit,
-                        userNotes: existingPaper?.userNotes,
-                        userTags: existingPaper?.userTags,
-                        isImportant: existingPaper?.isImportant,
-                        readingStatus: existingPaper?.readingStatus,
-                        noteEmbedding: existingPaper?.noteEmbedding,
-                        userQuestions: existingPaper?.userQuestions,
-                        flashcards: existingPaper?.flashcards,
-                        year: year,
-                        embedding: embedding,
-                        clusterIndex: existingPaper?.clusterIndex,
-                        claims: claimExtraction.claims,
-                        assumptions: claimExtraction.assumptions,
-                        evaluationContext: claimExtraction.evaluation,
-                        methodPipeline: pipeline,
-                        firstReadAt: existingPaper?.firstReadAt,
-                        ingestedAt: Date(),
-                        pageCount: pageCount
-                    )
-                    // Chunk-level embeddings for RAG.
-                    let chunks = await buildChunks(for: text, paperID: paperID)
-                    if !chunks.isEmpty {
-                        paperChunks.removeAll(where: { $0.paperID == paperID })
-                        paperChunks.append(contentsOf: chunks)
-                        invalidateChunkLookupCache()
-                    }
-
-                    upsertPaper(paper)
-
-                    let jsonURL = try savePaperJSON(paper)
-                    ingestionLog += "\n  Saved JSON: \(jsonURL.lastPathComponent)"
-                    if let mdURL = try? PaperMarkdownExporter.write(paper: paper, outputRoot: outputRoot, context: paperObsidianContextSnapshot()) {
-                        ingestionLog += "\n  Saved MD: \(mdURL.lastPathComponent)"
-                    }
-                    saveChunkIndex()
-                }
+                saveChunkIndex()
             } catch {
                 ingestionLog += "\n  Error: \(error.localizedDescription)"
                 logger.error("[Ingest] Error: \(error.localizedDescription, privacy: .public)")
             }
 
-            ingestionProgress = Double(index + 1) / Double(max(pdfs.count, 1))
+            ingestionProgress = Double(index + 1) / Double(max(sourceFiles.count, 1))
             ingestionCompletedCount = index + 1
         }
 
@@ -552,6 +435,184 @@ final class AppModel: ObservableObject {
         saveChunkIndex()
         recomputeCorpusYearDomain()
         isIngesting = false
+    }
+
+    private func discoverSourceDocuments(in folderURL: URL) -> [URL] {
+        let fm = FileManager.default
+        guard let enumerator = fm.enumerator(
+            at: folderURL,
+            includingPropertiesForKeys: [.isRegularFileKey],
+            options: [.skipsHiddenFiles]
+        ) else {
+            return []
+        }
+
+        var files: [URL] = []
+        for case let fileURL as URL in enumerator {
+            let ext = fileURL.pathExtension.lowercased()
+            guard ["pdf", "md", "markdown"].contains(ext) else { continue }
+            let values = try? fileURL.resourceValues(forKeys: [.isRegularFileKey])
+            if values?.isRegularFile == true {
+                files.append(fileURL)
+            }
+        }
+        return files.sorted { $0.lastPathComponent.localizedStandardCompare($1.lastPathComponent) == .orderedAscending }
+    }
+
+    private func ingestSourceDocument(
+        at sourceURL: URL,
+        existingPaper: Paper?,
+        smokeFastMode: Bool
+    ) async throws -> Paper {
+        let sourceKind: SourceKind = {
+            switch sourceURL.pathExtension.lowercased() {
+            case "md", "markdown":
+                return .markdown
+            default:
+                return .pdf
+            }
+        }()
+
+        let preliminaryPaperID = existingPaper?.id ?? UUID()
+        let extraction = try await extractDocument(
+            at: sourceURL,
+            documentID: preliminaryPaperID,
+            sourceKind: sourceKind
+        )
+        ingestionLog += "\n  Extracted \(extraction.text.count) characters from \(sourceKind.label)."
+
+        let title = extraction.title
+        let summary: String
+        let introSummary: String?
+        let methodSummary: String?
+        let resultsSummary: String?
+        let takeaways: [String]?
+        let keywords: [String]
+        var tradingLens: PaperTradingLens? = existingPaper?.tradingLens
+        var tradingScores: TradingLensScores? = existingPaper?.tradingScores ?? existingPaper?.tradingLens?.scores
+
+        if smokeFastMode {
+            summary = String(extraction.text.prefix(1200)).trimmingCharacters(in: .whitespacesAndNewlines)
+            let fallback = summary.isEmpty ? "Summary unavailable." : summary
+            introSummary = String(fallback.prefix(500))
+            methodSummary = nil
+            resultsSummary = nil
+            let heuristic = heuristicTakeaways(from: fallback)
+            takeaways = heuristic.isEmpty ? nil : heuristic
+            keywords = Array(Set((extraction.keywords + extractKeywords(title: title, summary: fallback)))).sorted()
+            ingestionLog += "\n  Smoke-fast mode: skipped model compilation."
+        } else {
+            ingestionLog += "\n  Summarizing with model pipeline..."
+            let summaryOutput = try await documentCompiler.summarizeDocument(title: title, text: extraction.text)
+            summary = summaryOutput.summary
+            ingestionLog += "\n  Summary length: \(summary.count). Chunks: \(summaryOutput.chunksUsed) (max chars used: \(summaryOutput.maxChunkCharsUsed))."
+
+            let thirds = max(1, extraction.text.count / 3)
+            let introText = String(extraction.text.prefix(thirds))
+            let methodText = extraction.text.count > thirds ? String(extraction.text.dropFirst(thirds).prefix(thirds)) : introText
+            let resultsText = extraction.text.count > 2 * thirds ? String(extraction.text.dropFirst(2 * thirds)) : methodText
+
+            introSummary = try? await documentCompiler.summarizeSection(title: title, sectionName: "Introduction", text: introText)
+            methodSummary = try? await documentCompiler.summarizeSection(title: title, sectionName: "Methods", text: methodText)
+            resultsSummary = try? await documentCompiler.summarizeSection(title: title, sectionName: "Results", text: resultsText)
+            takeaways = try? await documentCompiler.generateTakeaways(title: title, text: summary)
+            keywords = Array(Set((extraction.keywords + extractKeywords(title: title, summary: summary)))).sorted()
+
+            do {
+                tradingLens = try await tradingLensActor.scorecard(title: title, keywords: keywords, summary: summary, takeaways: takeaways)
+                tradingScores = tradingLens?.scores
+                ingestionLog += "\n  Insight brief generated."
+            } catch {
+                ingestionLog += "\n  Insight brief failed: \(error.localizedDescription)"
+            }
+        }
+
+        let claimExtraction = ClaimExtractor.heuristicExtraction(summary: summary, paperID: preliminaryPaperID, year: extraction.year)
+        let pipeline = MethodPipelineExtractor.extract(from: methodSummary ?? summary)
+        let fingerprint = "\(title)\n\(summary)"
+        var embedding: [Float] = []
+        if !smokeFastMode {
+            embedding = normalizeEmbedding(await embedder.encode(for: fingerprint) ?? [])
+        }
+        if embedding.isEmpty {
+            embedding = normalizeEmbedding(fallbackEmbedding(for: fingerprint))
+            ingestionLog += smokeFastMode
+                ? "\n  Smoke-fast mode: using fallback hashing embedding (dim=\(embedding.count))."
+                : "\n  Embedding unavailable; using fallback hashing embedding (dim=\(embedding.count))."
+        } else {
+            ingestionLog += "\n  Embedding dimension: \(embedding.count)."
+        }
+
+        let chunks = await buildChunks(for: extraction.sections, paperID: preliminaryPaperID)
+        paperChunks.removeAll(where: { $0.paperID == preliminaryPaperID })
+        if !chunks.isEmpty {
+            paperChunks.append(contentsOf: chunks)
+            invalidateChunkLookupCache()
+        } else {
+            invalidateChunkLookupCache()
+        }
+
+        let compiledArtifacts = compiledArtifactRefs(for: preliminaryPaperID, title: title)
+        return Paper(
+            version: 2,
+            sourceKind: sourceKind,
+            filePath: sourceURL.path,
+            sourceChecksum: extraction.checksum,
+            sourceModifiedAt: extraction.modifiedAt,
+            extractStatus: sourceKind == .pdf && extraction.sections.isEmpty ? .failed : .extracted,
+            id: preliminaryPaperID,
+            originalFilename: sourceURL.lastPathComponent,
+            title: title,
+            introSummary: introSummary,
+            summary: summary,
+            methodSummary: methodSummary,
+            resultsSummary: resultsSummary,
+            takeaways: takeaways,
+            keywords: keywords,
+            tradingLens: tradingLens,
+            tradingScores: tradingScores ?? tradingLens?.scores,
+            strategyBlueprint: existingPaper?.strategyBlueprint,
+            backtestAudit: existingPaper?.backtestAudit,
+            userNotes: existingPaper?.userNotes,
+            userTags: existingPaper?.userTags,
+            isImportant: existingPaper?.isImportant,
+            readingStatus: existingPaper?.readingStatus,
+            noteEmbedding: existingPaper?.noteEmbedding,
+            userQuestions: existingPaper?.userQuestions,
+            flashcards: existingPaper?.flashcards,
+            year: extraction.year,
+            embedding: embedding,
+            clusterIndex: existingPaper?.clusterIndex,
+            citationAnchors: extraction.sections.map(\.anchor),
+            sections: extraction.sections,
+            compiledArtifacts: compiledArtifacts,
+            claims: claimExtraction.claims,
+            assumptions: claimExtraction.assumptions,
+            evaluationContext: claimExtraction.evaluation,
+            methodPipeline: pipeline,
+            firstReadAt: existingPaper?.firstReadAt,
+            ingestedAt: Date(),
+            pageCount: extraction.pageCount
+        )
+    }
+
+    private func extractDocument(at sourceURL: URL, documentID: UUID, sourceKind: SourceKind) async throws -> PDFExtractionResult {
+        switch sourceKind {
+        case .pdf:
+            return try pdfProcessor.extractDocument(from: sourceURL, documentID: documentID)
+        case .markdown:
+            let extraction = try markdownProcessor.extract(from: sourceURL, documentID: documentID)
+            return PDFExtractionResult(
+                title: extraction.title,
+                text: extraction.text,
+                sections: extraction.sections,
+                pageCount: nil,
+                year: pdfProcessor.inferYear(fromText: extraction.text),
+                checksum: extraction.checksum,
+                modifiedAt: extraction.modifiedAt,
+                keywords: extraction.keywords
+            )
+        }
     }
 
     private func savePaperJSON(_ paper: Paper) throws -> URL {
@@ -595,10 +656,22 @@ final class AppModel: ObservableObject {
         return url
     }
 
-    private func shouldSkipPDF(pdfURL: URL, existingPaper: Paper?) -> Bool {
+    private func saveDocumentJSON(_ paper: Paper) throws -> URL {
+        let baseName = paper.title.isEmpty ? paper.originalFilename : paper.title
+        let safeName = baseName.replacingOccurrences(of: "/", with: "-")
+        let documentsDir = outputRoot.appendingPathComponent("documents", isDirectory: true)
+        let url = documentsDir.appendingPathComponent("\(safeName) [\(paper.id.uuidString.uppercased())].document.json")
+        let encoder = JSONEncoder()
+        encoder.outputFormatting = [.prettyPrinted]
+        let data = try encoder.encode(paper)
+        try data.write(to: url, options: .atomic)
+        return url
+    }
+
+    private func shouldSkipSource(sourceURL: URL, existingPaper: Paper?) -> Bool {
         let fm = FileManager.default
         guard let existingPaper else { return false }
-        guard let attr = try? fm.attributesOfItem(atPath: pdfURL.path),
+        guard let attr = try? fm.attributesOfItem(atPath: sourceURL.path),
               let modDate = attr[.modificationDate] as? Date else { return false }
         guard let ingestedAt = existingPaper.ingestedAt else { return false }
         guard !existingPaper.summary.isEmpty, !existingPaper.embedding.isEmpty else { return false }
@@ -609,11 +682,13 @@ final class AppModel: ObservableObject {
         return false
     }
 
-    private func buildChunks(for text: String, paperID: UUID) async -> [PaperChunk] {
+    private func buildChunks(for sections: [DocumentSection], paperID: UUID) async -> [PaperChunk] {
         let smokeFastMode = ProcessInfo.processInfo.environment["LITERATURE_ATLAS_SMOKE_FAST"] == "1"
-        let segments = chunk(text: text, maxChars: 1800, overlap: 200, maxChunks: 20)
         var results: [PaperChunk] = []
-        for (idx, segment) in segments.enumerated() {
+        for (idx, section) in sections.prefix(20).enumerated() {
+            let segment = chunk(text: section.text, maxChars: 1800, overlap: 200, maxChunks: 3)
+                .joined(separator: "\n")
+            guard !segment.isEmpty else { continue }
             var vec: [Float] = []
             if !smokeFastMode {
                 vec = normalizeEmbedding(await embedder.encode(for: segment) ?? [])
@@ -622,10 +697,25 @@ final class AppModel: ObservableObject {
                 vec = normalizeEmbedding(fallbackEmbedding(for: segment))
             }
             guard !vec.isEmpty else { continue }
-            let chunk = PaperChunk(id: UUID(), paperID: paperID, text: segment, embedding: vec, order: idx, pageHint: nil)
+            let chunk = PaperChunk(
+                id: UUID(),
+                paperID: paperID,
+                text: segment,
+                embedding: vec,
+                order: idx,
+                pageHint: section.anchor.pageStart,
+                citationAnchor: section.anchor
+            )
             results.append(chunk)
         }
         return results
+    }
+
+    private func compiledArtifactRefs(for documentID: UUID, title: String) -> [CompiledArtifactRef] {
+        let documentPath = CompiledKnowledgePaths.documentPath(title: title, documentID: documentID, outputRoot: outputRoot)
+        return [
+            CompiledArtifactRef(kind: .documentNote, path: documentPath, generatedAt: nil, citations: nil)
+        ]
     }
 
     private func chunk(text: String, maxChars: Int, overlap: Int, maxChunks: Int) -> [String] {
@@ -775,34 +865,6 @@ final class AppModel: ObservableObject {
                 }
             }
 
-            // One-time Obsidian export for existing papers (create missing + upgrade old format).
-            let root = outputRoot
-            let ctx = PaperMarkdownExporter.Context(allPapers: loaded)
-            Task.detached(priority: .utility) {
-                let fm = FileManager.default
-                let folder = root
-                    .appendingPathComponent("obsidian", isDirectory: true)
-                    .appendingPathComponent("papers", isDirectory: true)
-
-                let existing = (try? fm.contentsOfDirectory(at: folder, includingPropertiesForKeys: [.isRegularFileKey], options: [.skipsHiddenFiles])) ?? []
-
-                func existingFile(for token: String) -> URL? {
-                    existing.first(where: { $0.lastPathComponent.contains(token) })
-                }
-
-                func needsUpgrade(_ url: URL) -> Bool {
-                    guard let text = try? String(contentsOf: url, encoding: .utf8) else { return true }
-                    return !text.contains("obsidian_format_version: \(PaperMarkdownExporter.obsidianFormatVersion)")
-                }
-
-                for paper in loaded {
-                    let token = paper.id.uuidString
-                    if let url = existingFile(for: token) {
-                        if !needsUpgrade(url) { continue }
-                    }
-                    _ = try? PaperMarkdownExporter.write(paper: paper, outputRoot: root, context: ctx)
-                }
-            }
         }
     }
 
@@ -817,12 +879,18 @@ final class AppModel: ObservableObject {
                     urls.insert(file)
                 }
             }
+            let documentsFolder = root.appendingPathComponent("documents", isDirectory: true)
+            if let files = try? fm.contentsOfDirectory(at: documentsFolder, includingPropertiesForKeys: [.isRegularFileKey], options: [.skipsHiddenFiles]) {
+                for file in files where file.lastPathComponent.hasSuffix(".document.json") {
+                    urls.insert(file)
+                }
+            }
         }
 
         return Array(urls)
     }
 
-    // MARK: - Strategy projects (Paper → Idea → Feature → Model → Trade → PnL → Feedback)
+    // MARK: - Research projects (Paper -> Idea -> Feature -> Model -> Plan -> Outcome -> Feedback)
 
     private func upsertStrategyProject(_ project: StrategyProject) {
         if let idx = strategyProjects.firstIndex(where: { $0.id == project.id }) {
@@ -872,7 +940,7 @@ final class AppModel: ObservableObject {
 
         if !loaded.isEmpty {
             strategyProjects = loaded
-            ingestionLog += "\nLoaded \(loaded.count) strategy projects from disk (Output folder)."
+            ingestionLog += "\nLoaded \(loaded.count) research projects from disk (Output folder)."
 
             // One-time Obsidian export for existing strategies (create missing + upgrade old format).
             let root = outputRoot
@@ -907,7 +975,7 @@ final class AppModel: ObservableObject {
 
     private func saveStrategyJSON(_ project: StrategyProject) throws -> URL {
         let safeTitle = project.title.trimmingCharacters(in: .whitespacesAndNewlines)
-        let baseName = safeTitle.isEmpty ? "Strategy" : safeTitle
+        let baseName = safeTitle.isEmpty ? "Research Project" : safeTitle
         let sanitized = baseName.replacingOccurrences(of: "/", with: "-")
         let fileName = "\(sanitized) [\(project.id.uuidString)].strategy.json"
         let url = outputRoot.appendingPathComponent("strategies", isDirectory: true).appendingPathComponent(fileName)
@@ -922,7 +990,7 @@ final class AppModel: ObservableObject {
         guard let paper = papers.first(where: { $0.id == paperID }) else { return nil }
 
         let base = paper.title.trimmingCharacters(in: .whitespacesAndNewlines)
-        let title = base.isEmpty ? "Strategy project" : base
+        let title = base.isEmpty ? "Research project" : base
 
         let ideaText: String = {
             if let verdict = paper.tradingLens?.oneLineVerdict?.trimmingCharacters(in: .whitespacesAndNewlines),
@@ -950,8 +1018,8 @@ final class AppModel: ObservableObject {
         return project
     }
 
-    func createEmptyStrategyProject(title: String = "New strategy") -> StrategyProject {
-        var project = StrategyProject(title: title.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty ? "New strategy" : title)
+    func createEmptyStrategyProject(title: String = "New research project") -> StrategyProject {
+        var project = StrategyProject(title: title.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty ? "New research project" : title)
         project.updatedAt = Date()
         upsertStrategyProject(project)
         _ = try? saveStrategyJSON(project)
@@ -1005,9 +1073,9 @@ final class AppModel: ObservableObject {
             try FileManager.default.createDirectory(at: url.deletingLastPathComponent(), withIntermediateDirectories: true)
             let data = try encoder.encode(snapshot)
             try data.write(to: url, options: .atomic)
-            ingestionLog += "\n[analytics] Wrote quant_kg.json (\(snapshot.nodes.count) nodes, \(snapshot.edges.count) edges)."
+            ingestionLog += "\n[analytics] Wrote knowledge graph snapshot (\(snapshot.nodes.count) nodes, \(snapshot.edges.count) edges)."
         } catch {
-            ingestionLog += "\n[analytics] Failed to write quant_kg.json: \(error.localizedDescription)"
+            ingestionLog += "\n[analytics] Failed to write knowledge graph snapshot: \(error.localizedDescription)"
         }
     }
 
@@ -1755,7 +1823,7 @@ final class AppModel: ObservableObject {
         let corpusVersion = currentCorpusVersion()
         let inputs: [(id: UUID, embedding: [Float])] = validPapers.map { ($0.id, $0.embedding) }
 
-        let compute = await Task.detached(priority: .userInitiated) { () -> GalaxyComputeResult in
+        let compute = await Task.detached(priority: .utility) { () -> GalaxyComputeResult in
             let count = inputs.count
             let kMega = min(
                 max(level0Range.lowerBound, count / max(1, count / 6)),
@@ -2362,12 +2430,14 @@ final class AppModel: ObservableObject {
         let allClustersSnapshot = AppModel.flattenClustersForObsidian(megaClusters: megaClustersSnapshot, clusters: clustersSnapshot)
         let papersByIDSnapshot = Dictionary(uniqueKeysWithValues: papersSnapshot.map { ($0.id, $0) })
         let paperContextSnapshot = PaperMarkdownExporter.Context(allPapers: papersSnapshot, clusters: allClustersSnapshot, clusterNameSources: sourcesSnapshot)
+        let claimsSnapshot = papersSnapshot.flatMap { $0.claims ?? [] }
 
         Task.detached(priority: .utility) {
             let fm = FileManager.default
             let papersByID = papersByIDSnapshot
             let allClusters = allClustersSnapshot
             let paperContext = paperContextSnapshot
+            let claimEdgesSnapshot = ClaimRelationInferencer.inferEdges(for: claimsSnapshot)
 
             func extractBracketToken(from fileName: String) -> String? {
                 guard let start = fileName.lastIndex(of: "["),
@@ -2403,6 +2473,17 @@ final class AppModel: ObservableObject {
 
             // Vault assets (CSS snippet + setup note)
             _ = try? ObsidianVaultAssetsExporter.write(outputRoot: root)
+
+            // Compiled knowledge artifacts
+            CompiledKnowledgeExporter.writeDocumentNotes(papers: papersSnapshot, outputRoot: root)
+            CompiledKnowledgeExporter.writeTopicBriefs(clusters: allClusters, papersByID: papersByID, outputRoot: root)
+            CompiledKnowledgeExporter.writeEntityNotes(papers: papersSnapshot, outputRoot: root)
+            DocumentGraphExporter.write(
+                papers: papersSnapshot,
+                clusters: allClusters,
+                claimEdges: claimEdgesSnapshot,
+                outputRoot: root
+            )
 
             // Papers (upgrade old format or regenerate on force)
             let paperFolder = root.appendingPathComponent("obsidian", isDirectory: true).appendingPathComponent("papers", isDirectory: true)
@@ -3401,7 +3482,7 @@ final class AppModel: ObservableObject {
         tradingLensBackfillCompletedCount = 0
         tradingLensBackfillTotalCount = ids.count
 
-        ingestionLog += "\n[>] Trading lens backfill: \(ids.count) papers…"
+        ingestionLog += "\n[>] Insight brief generation: \(ids.count) papers..."
 
         for (i, paperID) in ids.enumerated() {
             if Task.isCancelled { break }
@@ -3418,9 +3499,9 @@ final class AppModel: ObservableObject {
         }
 
         if Task.isCancelled {
-            ingestionLog += "\n[>] Trading lens backfill cancelled after \(tradingLensBackfillCompletedCount)/\(tradingLensBackfillTotalCount)."
+            ingestionLog += "\n[>] Insight brief generation cancelled after \(tradingLensBackfillCompletedCount)/\(tradingLensBackfillTotalCount)."
         } else {
-            ingestionLog += "\n[✓] Trading lens backfill complete: \(tradingLensBackfillCompletedCount)/\(tradingLensBackfillTotalCount)."
+            ingestionLog += "\n[OK] Insight brief generation complete: \(tradingLensBackfillCompletedCount)/\(tradingLensBackfillTotalCount)."
             appendUserEvent(type: "trading_lens_backfill_complete", paperID: nil, extra: [
                 "completed": tradingLensBackfillCompletedCount,
                 "total": tradingLensBackfillTotalCount
@@ -3445,7 +3526,7 @@ final class AppModel: ObservableObject {
             _ = try? PaperMarkdownExporter.write(paper: papers[idx], outputRoot: outputRoot, context: paperObsidianContextSnapshot())
             appendUserEvent(type: "trading_lens_ready", paperID: paperID, extra: [:])
         } catch {
-            ingestionLog += "\nTrading lens failed for \(paper.title): \(error.localizedDescription)"
+            ingestionLog += "\nInsight brief failed for \(paper.title): \(error.localizedDescription)"
             tradingLensFailures[paperID] = error.localizedDescription
         }
     }
@@ -3459,7 +3540,7 @@ final class AppModel: ObservableObject {
         let paper = papers[idx]
 
         let fallbackInstructions = """
-        You are a senior quant researcher. Convert paper context into 1-2 concrete strategy prototypes.
+        You are a senior research lead. Convert paper context into 1-2 concrete research or application plans.
         Be grounded: treat as hypotheses. Do not invent numerical results.
         Output must be Markdown with clear structure and short, actionable bullets.
         """
@@ -3472,26 +3553,26 @@ final class AppModel: ObservableObject {
         Summary:
         {{summary}}
 
-        Trading lens (may be JSON or text):
+        Insight brief (may be JSON or text):
         {{trading_lens}}
 
-        Write 1-2 prototypes with these headings:
+        Write 1-2 plans with these headings:
 
-        # Prototype 1
-        ## Alpha hypothesis
-        ## Universe & horizon
-        ## Signal definition (math / pseudocode)
+        # Plan 1
+        ## Hypothesis
+        ## Scope & timeframe
+        ## Evidence pattern (math / pseudocode if useful)
         ## Model (if any) + features
-        ## Portfolio construction + constraints
-        ## Transaction cost / slippage assumptions
+        ## Application design + constraints
+        ## Cost / feasibility assumptions
         ## Evaluation plan (metrics + splits)
         ## Robustness checks
         ## Fast implementation steps (5-8 bullets)
 
-        (Repeat for Prototype 2 if useful.)
+        (Repeat for Plan 2 if useful.)
 
         Rules:
-        - If you must assume something (e.g., horizon), label it explicitly.
+        - If you must assume something (e.g., timeframe), label it explicitly.
         - Include at least 3 robustness checks.
         """
         let template = PromptStore.loadText("strategy_blueprint.prompt.md", fallback: fallbackTemplate)
@@ -3522,7 +3603,7 @@ final class AppModel: ObservableObject {
             _ = try? PaperMarkdownExporter.write(paper: papers[idx], outputRoot: outputRoot, context: paperObsidianContextSnapshot())
             appendUserEvent(type: "strategy_blueprint_ready", paperID: paperID, extra: [:])
         } catch {
-            ingestionLog += "\nStrategy blueprint failed for \(paper.title): \(error.localizedDescription)"
+            ingestionLog += "\nResearch plan failed for \(paper.title): \(error.localizedDescription)"
         }
     }
 
@@ -3534,27 +3615,27 @@ final class AppModel: ObservableObject {
         guard let idx = papers.firstIndex(where: { $0.id == paperID }) else { return }
         let paper = papers[idx]
         guard let blueprint = paper.strategyBlueprint, !blueprint.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty else {
-            ingestionLog += "\nBacktest audit skipped for \(paper.title): no strategy blueprint yet."
+            ingestionLog += "\nPlan audit skipped for \(paper.title): no research plan yet."
             return
         }
 
         let fallbackInstructions = """
-        You are a quant backtesting auditor. Your goal is to find hidden leakage, bias, unrealistic assumptions, and fragility.
+        You are a research plan auditor. Your goal is to find hidden leakage, bias, unrealistic assumptions, and fragility.
         Be practical and concrete. Prefer checklists.
         Do not require proprietary infrastructure; propose minimal fixes.
         """
         let instructions = PromptStore.loadText("ui.backtest_audit.instructions.md", fallback: fallbackInstructions)
 
         let fallbackTemplate = """
-        Strategy / prototype description:
+        Research plan / prototype description:
         {{strategy_text}}
 
         Audit it with these headings:
 
         # Leakage & Bias Risks
         # Data Assumption Risks
-        # Transaction Costs & Market Impact
-        # Regime & Non-Stationarity
+        # Cost & Operational Assumptions
+        # Drift & Non-Stationarity
         # Overfitting & Validation Design
         # Minimal Fixes (Actionable)
         # Kill Criteria (When to Stop)
@@ -3575,7 +3656,7 @@ final class AppModel: ObservableObject {
             _ = try? PaperMarkdownExporter.write(paper: papers[idx], outputRoot: outputRoot, context: paperObsidianContextSnapshot())
             appendUserEvent(type: "backtest_audit_ready", paperID: paperID, extra: [:])
         } catch {
-            ingestionLog += "\nBacktest audit failed for \(paper.title): \(error.localizedDescription)"
+            ingestionLog += "\nPlan audit failed for \(paper.title): \(error.localizedDescription)"
         }
     }
 
@@ -3669,7 +3750,7 @@ final class AppModel: ObservableObject {
         return Array(scored.sorted { $0.score > $1.score }.prefix(limit).map { $0.paper })
     }
 
-    /// Rank unread papers by trading applicability: strategy_impact * usability * confidence (optionally novelty as tie-breaker).
+    /// Rank unread papers by application priority: impact * usability * confidence (optionally novelty as tie-breaker).
     func tradingPriorityPapers(limit: Int = 5) -> [Paper] {
         let unread = papers.filter { $0.readingStatus != .done }
         let scored: [(paper: Paper, priority: Double, novelty: Double)] = unread.compactMap { paper in
@@ -3916,12 +3997,19 @@ final class AppModel: ObservableObject {
 
         let candidatePaperIDs = candidatePapers.map { $0.paper.id }
         let evidenceLimit = max(12, topK * 3)
-        let evidenceChunks = topChunks(
+        let compiledEvidence = compiledNoteEvidence(
+            for: queryVec,
+            candidatePapers: candidatePapers,
+            limit: min(8, evidenceLimit),
+            paperTitleByID: paperTitleByID
+        )
+        let rawEvidence = topChunks(
             for: queryVec,
             limit: evidenceLimit,
             candidatePaperIDs: candidatePaperIDs,
             paperTitleByID: paperTitleByID
         )
+        let evidenceChunks = Array((compiledEvidence + rawEvidence).prefix(evidenceLimit))
 
         if evidenceChunks.isEmpty {
             let top = Array(candidatePapers.prefix(topK))
@@ -4056,6 +4144,55 @@ final class AppModel: ObservableObject {
             }
         }
 
+        return Array(results.sorted { $0.score > $1.score }.prefix(limit))
+    }
+
+    private func compiledNoteEvidence(
+        for queryVec: [Float],
+        candidatePapers: [ScoredPaper],
+        limit: Int,
+        paperTitleByID: [UUID: String]
+    ) -> [ChunkEvidence] {
+        guard !candidatePapers.isEmpty, limit > 0 else { return [] }
+        var results: [ChunkEvidence] = []
+        for scored in candidatePapers.prefix(limit * 2) {
+            let paper = scored.paper
+            let compiledText = [
+                paper.summary,
+                paper.methodSummary,
+                paper.resultsSummary,
+                paper.takeaways?.joined(separator: "\n")
+            ]
+            .compactMap { value -> String? in
+                guard let value, !value.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty else { return nil }
+                return value
+            }
+            .joined(separator: "\n\n")
+            .trimmingCharacters(in: .whitespacesAndNewlines)
+
+            guard !compiledText.isEmpty else { continue }
+            let embedding = normalizeEmbedding(fallbackEmbedding(for: compiledText))
+            guard embedding.count == queryVec.count else { continue }
+            let score = cosineSimilarity(embedding, queryVec)
+            guard !score.isNaN else { continue }
+            let citation = paper.citationAnchors?.first
+            let chunk = PaperChunk(
+                id: UUID(),
+                paperID: paper.id,
+                text: compiledText,
+                embedding: embedding,
+                order: -1,
+                pageHint: citation?.pageStart,
+                citationAnchor: citation
+            )
+            results.append(
+                ChunkEvidence(
+                    chunk: chunk,
+                    score: score + 0.15,
+                    paperTitle: paperTitleByID[paper.id] ?? paper.title
+                )
+            )
+        }
         return Array(results.sorted { $0.score > $1.score }.prefix(limit))
     }
 

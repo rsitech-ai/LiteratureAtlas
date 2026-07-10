@@ -49,8 +49,8 @@ final class PaperMarkdownExporterTests: XCTestCase {
             oneLineVerdict: "Strong idea"
         )
         paper.strategyBlueprint = """
-        # Prototype 1
-        ## Alpha hypothesis
+        # Plan 1
+        ## Hypothesis
         - Use embeddings to detect regime shifts.
 
         ```python
@@ -87,18 +87,18 @@ final class PaperMarkdownExporterTests: XCTestCase {
         XCTAssertTrue(original.contains("> - T3"))
         XCTAssertFalse(original.contains("- -"))
 
-        XCTAssertTrue(original.contains("> [!tip] Trading Lens"))
+        XCTAssertTrue(original.contains("> [!tip] Insight Brief"))
         XCTAssertTrue(original.contains("> | Field | Value |"))
         XCTAssertTrue(original.contains("novelty=7.0"))
         XCTAssertTrue(original.contains("confidence=0.50"))
 
-        XCTAssertTrue(original.contains("> [!todo]- Strategy Blueprint"))
-        XCTAssertTrue(original.contains("### Prototype 1"))
-        XCTAssertTrue(original.contains("#### Alpha hypothesis"))
+        XCTAssertTrue(original.contains("> [!todo]- Research Plan"))
+        XCTAssertTrue(original.contains("### Plan 1"))
+        XCTAssertTrue(original.contains("#### Hypothesis"))
         XCTAssertTrue(original.contains("```python"))
         XCTAssertTrue(original.contains("# inside code fence"))
 
-        XCTAssertTrue(original.contains("> [!warning]- Backtest Audit"))
+        XCTAssertTrue(original.contains("> [!warning]- Plan Audit"))
         XCTAssertTrue(original.contains("### Leakage & Bias Risks"))
 
         // User edits after the managed block should survive future writes.

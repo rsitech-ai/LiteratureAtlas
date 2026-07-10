@@ -1,5 +1,17 @@
 import Foundation
+import CryptoKit
 import PDFKit
+
+struct PDFExtractionResult: Equatable {
+    let title: String
+    let text: String
+    let sections: [DocumentSection]
+    let pageCount: Int?
+    let year: Int?
+    let checksum: String
+    let modifiedAt: Date?
+    let keywords: [String]
+}
 
 struct PDFProcessor {
     private static func plausibleYear(_ year: Int) -> Int? {
@@ -108,6 +120,86 @@ struct PDFProcessor {
             return plausible
         }
         return nil
+    }
+
+    func extractDocument(from url: URL, documentID: UUID, maxPages: Int? = nil) throws -> PDFExtractionResult {
+        let data = try Data(contentsOf: url)
+        let checksum = SHA256.hash(data: data).compactMap { String(format: "%02x", $0) }.joined()
+        let attrs = try? FileManager.default.attributesOfItem(atPath: url.path)
+        let modifiedAt = attrs?[.modificationDate] as? Date
+
+        guard let doc = PDFDocument(url: url) else {
+            throw PDFError.failedToOpen
+        }
+
+        let totalPages = doc.pageCount
+        guard totalPages > 0 else {
+            throw PDFError.noPages
+        }
+
+        let pagesToRead = min(maxPages ?? totalPages, totalPages)
+        var sections: [DocumentSection] = []
+        var combined: [String] = []
+        for index in 0..<pagesToRead {
+            guard let page = doc.page(at: index),
+                  let pageText = page.string?.trimmingCharacters(in: .whitespacesAndNewlines),
+                  !pageText.isEmpty else {
+                continue
+            }
+            let pageNumber = index + 1
+            let anchor = CitationAnchor(
+                documentID: documentID,
+                sourceKind: .pdf,
+                pageStart: pageNumber,
+                pageEnd: pageNumber,
+                headingPath: nil,
+                lineStart: nil,
+                lineEnd: nil,
+                charStart: nil,
+                charEnd: nil
+            )
+            sections.append(
+                DocumentSection(
+                    id: UUID(),
+                    order: index,
+                    title: "Page \(pageNumber)",
+                    text: pageText,
+                    anchor: anchor
+                )
+            )
+            combined.append(pageText)
+        }
+
+        let combinedText = combined.joined(separator: "\n\n")
+        let title = inferTitle(for: url, text: combinedText)
+        let year = inferYear(from: url) ?? inferYear(fromText: combinedText)
+        return PDFExtractionResult(
+            title: title,
+            text: combinedText,
+            sections: sections,
+            pageCount: totalPages,
+            year: year,
+            checksum: checksum,
+            modifiedAt: modifiedAt,
+            keywords: inferKeywords(from: title + "\n" + combinedText)
+        )
+    }
+
+    private func inferKeywords(from text: String, limit: Int = 12) -> [String] {
+        let tokens = text.lowercased().split(whereSeparator: { !$0.isLetter && !$0.isNumber })
+        var counts: [String: Int] = [:]
+        for token in tokens where token.count > 3 {
+            counts[String(token), default: 0] += 1
+        }
+        return counts
+            .sorted { lhs, rhs in
+                if lhs.value == rhs.value {
+                    return lhs.key < rhs.key
+                }
+                return lhs.value > rhs.value
+            }
+            .prefix(limit)
+            .map(\.key)
     }
 
     enum PDFError: LocalizedError {

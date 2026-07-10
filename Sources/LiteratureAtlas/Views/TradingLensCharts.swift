@@ -87,7 +87,7 @@ struct TradingLensScatterChartView: View {
                 .foregroundStyle(.white)
                 .symbolSize(260)
                 .annotation(position: .top, alignment: .leading) {
-                    Text("\(focus.title)\nN \(String(format: "%.1f", focus.novelty)) · U \(String(format: "%.1f", focus.usability)) · I \(String(format: "%.1f", focus.strategyImpact))")
+                    Text("\(focus.title)\nN \(String(format: "%.1f", focus.novelty)) · U \(String(format: "%.1f", focus.usability)) · A \(String(format: "%.1f", focus.strategyImpact))")
                         .font(.caption2.weight(.semibold))
                         .padding(.horizontal, 8)
                         .padding(.vertical, 6)
@@ -126,8 +126,8 @@ struct TradingLensScatterChartView: View {
                                     hoveredPointID = nil
                                 }
                             )
-                            .frame(width: plotFrame.width, height: plotFrame.height)
-                            .position(x: plotFrame.midX, y: plotFrame.midY)
+                            .frame(width: chartPlotDimension(plotFrame.width), height: chartPlotDimension(plotFrame.height))
+                            .position(x: chartPlotCoordinate(plotFrame.midX), y: chartPlotCoordinate(plotFrame.midY))
                         )
                         #endif
                 }
@@ -185,7 +185,7 @@ struct TradingTagBarChartView: View {
             }
         }
         .chartXAxisLabel("Papers")
-        .chartYAxisLabel("Tag")
+        .chartYAxisLabel("Pattern")
     }
 }
 
@@ -205,7 +205,7 @@ struct TradingTagTrendChartView: View {
                     x: .value("Year", entry.year),
                     y: .value("Count", entry.count)
                 )
-                .foregroundStyle(by: .value("Tag", entry.tag))
+                .foregroundStyle(by: .value("Pattern", entry.tag))
                 .interpolationMethod(.catmullRom)
             }
         }
@@ -215,4 +215,3 @@ struct TradingTagTrendChartView: View {
         .chartLegend(position: .bottom)
     }
 }
-

@@ -3,21 +3,34 @@ import SwiftUI
 @available(macOS 26, iOS 26, *)
 struct GlobalProgressOverlay: View {
     @EnvironmentObject private var model: AppModel
+    @Environment(\.accessibilityReduceMotion) private var reduceMotion
 
     var body: some View {
         VStack {
             Spacer()
             if model.isIngesting || model.isClustering {
-                GlassCard {
+                GlassCard(tint: model.isIngesting ? GalaxyTheme.cometMint : GalaxyTheme.nebulaViolet, prominence: .hero) {
                     HStack(spacing: 12) {
-                        ProgressView(value: progressValue)
-                            .frame(width: 200)
+                        ZStack {
+                            Circle()
+                                .fill((model.isIngesting ? GalaxyTheme.cometMint : GalaxyTheme.nebulaViolet).opacity(0.18))
+                            Image(systemName: model.isIngesting ? "tray.and.arrow.down.fill" : "circle.hexagongrid.fill")
+                                .foregroundStyle(model.isIngesting ? GalaxyTheme.cometMint : GalaxyTheme.nebulaViolet)
+                                .font(.title3.bold())
+                        }
+                        .frame(width: 44, height: 44)
+
                         VStack(alignment: .leading, spacing: 4) {
                             Text(statusText)
                                 .font(.headline)
                             Text(subtitleText)
                                 .font(.caption)
                                 .foregroundStyle(.secondary)
+                                .lineLimit(1)
+                                .truncationMode(.middle)
+                            ProgressView(value: progressValue)
+                                .tint(model.isIngesting ? GalaxyTheme.cometMint : GalaxyTheme.nebulaViolet)
+                                .frame(width: 240)
                         }
                         Spacer(minLength: 10)
                         Button {
@@ -32,12 +45,12 @@ struct GlobalProgressOverlay: View {
                 }
                 .padding(.bottom, 16)
                 .transition(.move(edge: .bottom).combined(with: .opacity))
-                .animation(.easeInOut, value: model.isIngesting || model.isClustering)
+                .animation(reduceMotion ? nil : .spring(response: 0.35, dampingFraction: 0.9), value: model.isIngesting || model.isClustering)
             }
         }
         .padding(.horizontal, 16)
         .ignoresSafeArea(edges: .bottom)
-        .allowsHitTesting(model.isIngesting || model.isClustering)
+        .allowsHitTesting(model.isIngesting)
     }
 
     private var progressValue: Double {

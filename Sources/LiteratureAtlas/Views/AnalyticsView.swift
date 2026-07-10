@@ -117,12 +117,40 @@ struct AnalyticsView: View {
     }
 
     private func chartHeight(_ width: CGFloat, ratio: CGFloat, min: CGFloat, max: CGFloat) -> CGFloat {
-        guard width > 0 else { return min }
+        guard width.isFinite, width > 0 else { return min }
         return Swift.min(Swift.max(width * ratio, min), max)
     }
 
     private var papersForAnalytics: [Paper] {
         model.explorationPapers
+    }
+
+    private var totalDocumentCount: Int {
+        model.papers.count
+    }
+
+    private var pdfDocumentCount: Int {
+        model.sourceKindCounts[.pdf] ?? 0
+    }
+
+    private var markdownDocumentCount: Int {
+        model.sourceKindCounts[.markdown] ?? 0
+    }
+
+    private var citationCoverageCount: Int {
+        model.papers.filter { !($0.citationAnchors ?? []).isEmpty }.count
+    }
+
+    private var compiledCoverageCount: Int {
+        model.papers.filter { !($0.compiledArtifacts ?? []).isEmpty }.count
+    }
+
+    private var staleCompiledCount: Int {
+        model.papers.filter(isCompiledArtifactStale).count
+    }
+
+    private var graphReadyCount: Int {
+        model.papers.filter { !($0.claims ?? []).isEmpty || $0.clusterIndex != nil }.count
     }
 
     private var chartYearDomain: ClosedRange<Int>? {
@@ -138,7 +166,7 @@ struct AnalyticsView: View {
             let years = cluster.memberPaperIDs.compactMap { yearByID[$0] }
             guard !years.isEmpty else { return nil }
             let total = years.reduce(0, +)
-            return (cluster.name, Double(total) / Double(years.count))
+            return (DisplayText.clusterName(cluster.name), Double(total) / Double(years.count))
         }
     }
 
@@ -159,6 +187,23 @@ struct AnalyticsView: View {
             .split(separator: ",")
             .map { $0.trimmingCharacters(in: .whitespacesAndNewlines).lowercased() }
             .filter { !$0.isEmpty }
+    }
+
+    private func isCompiledArtifactStale(_ paper: Paper) -> Bool {
+        guard let modifiedAt = paper.sourceModifiedAt else {
+            return (paper.compiledArtifacts ?? []).isEmpty
+        }
+        let generatedDates = (paper.compiledArtifacts ?? []).compactMap { artifact -> Date? in
+            if let generatedAt = artifact.generatedAt {
+                return generatedAt
+            }
+            let url = URL(fileURLWithPath: artifact.path)
+            return (try? url.resourceValues(forKeys: [.contentModificationDateKey]))?.contentModificationDate
+        }
+        guard let latestGeneratedAt = generatedDates.max() else {
+            return true
+        }
+        return latestGeneratedAt < modifiedAt
     }
 
     private func scheduleTimelineRecompute() {
@@ -742,7 +787,7 @@ struct AnalyticsView: View {
                 GlassCard {
                     VStack(alignment: .leading, spacing: 10) {
                         HStack(alignment: .firstTextBaseline) {
-                            Text("Trading lens").font(.headline)
+                            Text("Insight briefs").font(.headline)
                             Spacer()
                             if let count = trading.paperCountWithLens {
                                 let pct = trading.coveragePct ?? (Double(count) / Double(max(1, summary.paperCount)))
@@ -753,14 +798,14 @@ struct AnalyticsView: View {
                         }
 
                         if trading.available != true {
-                            Text(trading.reason ?? "Generate paper trading lens scorecards to populate this section.")
+                            Text(trading.reason ?? "Generate paper insight briefs to populate this section.")
                                 .font(.caption)
                                 .foregroundStyle(.secondary)
                         } else {
                             if !tradingLensPoints.isEmpty {
                                 TradingLensScatterChartView(points: tradingLensPoints, selectedPointID: $selectedTradingPointID)
                                     .frame(height: chartHeight(analyticsContentWidth, ratio: 0.46, min: 420, max: 760))
-                                Text("x=usability · y=novelty · color=strategy impact · opacity=confidence")
+                                Text("x=usability · y=novelty · color=application impact · opacity=confidence")
                                     .font(.caption2)
                                     .foregroundStyle(.secondary)
                             } else {
@@ -774,11 +819,11 @@ struct AnalyticsView: View {
                                     VStack(alignment: .leading, spacing: 2) {
                                         Text(pt.title)
                                             .font(.caption.bold())
-                                        Text(String(format: "Novelty %.1f · Usability %.1f · Impact %.1f · Priority %.1f", pt.novelty, pt.usability, pt.strategyImpact, pt.priority))
+                                        Text(String(format: "Novelty %.1f · Usability %.1f · Application %.1f · Priority %.1f", pt.novelty, pt.usability, pt.strategyImpact, pt.priority))
                                             .font(.caption2)
                                             .foregroundStyle(.secondary)
                                         if let tag = pt.primaryTag, tag != "Unknown" {
-                                            Text("Tag: \(tag)")
+                                            Text("Pattern: \(tag)")
                                                 .font(.caption2)
                                                 .foregroundStyle(.secondary)
                                         }
@@ -803,7 +848,7 @@ struct AnalyticsView: View {
 
                             if let tagCounts = trading.tagCounts, !tagCounts.isEmpty {
                                 VStack(alignment: .leading, spacing: 6) {
-                                    Text("Top trading tags").font(.subheadline.weight(.semibold))
+                                    Text("Top patterns").font(.subheadline.weight(.semibold))
                                     TradingTagBarChartView(
                                         counts: tagCounts.prefix(14).map { TradingTagCount(tag: $0.tag, count: $0.count) }
                                     )
@@ -813,7 +858,7 @@ struct AnalyticsView: View {
 
                             if let trends = trading.tagTrends, !trends.isEmpty {
                                 VStack(alignment: .leading, spacing: 6) {
-                                    Text("Tag frequency over time").font(.subheadline.weight(.semibold))
+                                    Text("Pattern frequency over time").font(.subheadline.weight(.semibold))
                                     TradingTagTrendChartView(
                                         trends: trends.map { TradingTagTrendPoint(tag: $0.tag, year: $0.year, count: $0.count) },
                                         domain: chartYearDomain ?? 1900...Calendar.current.component(.year, from: Date())
@@ -825,7 +870,7 @@ struct AnalyticsView: View {
                             if let top = trading.topPriority, !top.isEmpty {
                                 let paperMap = Dictionary(uniqueKeysWithValues: model.papers.map { ($0.id, $0) })
                                 VStack(alignment: .leading, spacing: 6) {
-                                    Text("Top priority (impact×usability×confidence)").font(.subheadline.weight(.semibold))
+                                    Text("Top application priority (impact x usability x confidence)").font(.subheadline.weight(.semibold))
                                     ForEach(Array(top.prefix(8)), id: \.paperID) { entry in
                                         let label = paperMap[entry.paperID]?.title ?? "Paper"
                                         HStack(alignment: .firstTextBaseline) {
@@ -876,6 +921,42 @@ struct AnalyticsView: View {
         }
     }
 
+    @ViewBuilder private func corpusHealthCard() -> some View {
+        GlassCard {
+            VStack(alignment: .leading, spacing: 10) {
+                HStack(alignment: .firstTextBaseline) {
+                    Text("Corpus health").font(.headline)
+                    Spacer()
+                    Text("\(totalDocumentCount) documents")
+                        .font(.caption2)
+                        .foregroundStyle(.secondary)
+                }
+
+                HStack(spacing: 10) {
+                    analyticsKPI(label: "PDF", value: "\(pdfDocumentCount)")
+                    analyticsKPI(label: "Markdown", value: "\(markdownDocumentCount)")
+                    analyticsKPI(label: "Cited", value: "\(citationCoverageCount)")
+                    analyticsKPI(label: "Compiled", value: "\(compiledCoverageCount)")
+                    analyticsKPI(label: "Stale", value: "\(staleCompiledCount)")
+                    analyticsKPI(label: "Graph-ready", value: "\(graphReadyCount)")
+                }
+
+                Text(
+                    "Citation coverage \(percentageString(citationCoverageCount, total: totalDocumentCount)) • compiled-note coverage \(percentageString(compiledCoverageCount, total: totalDocumentCount)) • graph-ready coverage \(percentageString(graphReadyCount, total: totalDocumentCount))"
+                )
+                .font(.caption)
+                .foregroundStyle(.secondary)
+
+                if let citations = analyticsSummary?.citations?.graph,
+                   citations.available == true {
+                    Text("Citation graph metrics are available in this analytics snapshot.")
+                        .font(.caption2)
+                        .foregroundStyle(.secondary)
+                }
+            }
+        }
+    }
+
     @ViewBuilder private func factorCard(_ summary: AnalyticsSummary) -> some View {
         GlassCard {
             VStack(alignment: .leading, spacing: 8) {
@@ -889,7 +970,7 @@ struct AnalyticsView: View {
                     domain: chartYearDomain ?? 1900...Calendar.current.component(.year, from: Date()),
                     height: chartHeight(analyticsContentWidth, ratio: 0.62, min: 620, max: 960)
                 )
-                Text("Factors from embeddings + tags (hybrid PCA/NMF). Stacked area shows topic/method mix by year.")
+                Text("Factors from embeddings + tags (hybrid PCA/NMF). Lines show topic/method mix by year.")
                     .font(.caption2)
                     .foregroundStyle(.secondary)
                 if !summary.factorLabels.isEmpty {
@@ -905,7 +986,7 @@ struct AnalyticsView: View {
         let rows = factorExposures
         Chart {
             ForEach(Array(rows.enumerated()), id: \.offset) { _, row in
-                AreaMark(
+                LineMark(
                     x: .value("Year", row.year),
                     y: .value("Exposure", row.score)
                 )
@@ -1412,23 +1493,27 @@ struct AnalyticsView: View {
     }
 
     @ViewBuilder private func backendAnalyticsCard() -> some View {
-        GlassCard {
-            VStack(alignment: .leading, spacing: 8) {
-                Text("Backend analytics (DuckDB / Python)")
-                    .font(.headline)
+        GlassCard(tint: GalaxyTheme.nebulaBlue) {
+            VStack(alignment: .leading, spacing: 10) {
+                GalaxySectionHeader(
+                    "Backend analytics",
+                    subtitle: "DuckDB / Python rebuild, reload, and health-check controls.",
+                    systemImage: "server.rack",
+                    tint: GalaxyTheme.nebulaBlue
+                )
                 HStack {
                     Button("Reload analytics.json") {
                         model.reloadAnalyticsSummary()
                     }
                     .buttonStyle(.borderedProminent)
+                    .tint(GalaxyTheme.nebulaBlue)
                     Text("Reads Output/analytics/analytics.json")
                         .font(.caption2)
                         .foregroundStyle(.secondary)
 #if os(macOS)
                     Spacer()
                     Button {
-                        let cwd = URL(fileURLWithPath: FileManager.default.currentDirectoryPath)
-                        let folder = cwd.appendingPathComponent("Output", isDirectory: true)
+                        let folder = AppPaths.outputRoot()
                             .appendingPathComponent("analytics", isDirectory: true)
                         PlatformOpen.revealInFinder(url: folder)
                     } label: {
@@ -1567,16 +1652,31 @@ struct AnalyticsView: View {
         }
     }
 
+    private var analyticsHero: some View {
+        GalaxyHeroCard(
+            eyebrow: "Research telemetry",
+            title: "Analytics",
+            subtitle: "Position, flow, influence, drift, and corpus health across the knowledge galaxy.",
+            systemImage: "chart.xyaxis.line",
+            tint: GalaxyTheme.nebulaBlue
+        ) {
+            HStack(spacing: 10) {
+                GalaxyStatusPill("\(model.papers.count) papers", systemImage: "doc.text.fill", tint: GalaxyTheme.nebulaBlue)
+                if let summary = analyticsSummary {
+                    GalaxyStatusPill("dim \(summary.vectorDim)", systemImage: "point.3.filled.connected.trianglepath.dotted", tint: GalaxyTheme.nebulaViolet)
+                }
+            }
+        }
+    }
+
     var body: some View {
         NavigationStack {
             ScrollView {
                 VStack(alignment: .leading, spacing: 16) {
-                    Text("Analytics")
-                        .font(.title.bold())
-                    Text("Position (novelty/consensus) + Flow (influence/drift) across your corpus.")
-                        .foregroundStyle(.secondary)
+                    analyticsHero
 
                     corpusBriefingCard()
+                    corpusHealthCard()
 
                     backendAnalyticsCard()
 
@@ -1668,7 +1768,7 @@ struct AnalyticsView: View {
                                     MethodCrossoverChart(signal: first, papers: papersForAnalytics)
                                         .frame(height: chartHeight(analyticsContentWidth, ratio: 0.34, min: 360, max: 680))
                                 }
-                                ForEach(methodSignals, id: \.a) { sig in
+                                ForEach(Array(methodSignals.enumerated()), id: \.offset) { _, sig in
                                     let detail: String = {
                                         if let year = sig.crossingYear {
                                             return "crossed in \(year)"
@@ -1795,7 +1895,7 @@ struct AnalyticsView: View {
                                         set: { debateLeftClusterID = $0 }
                                     )) {
                                         ForEach(model.clusters, id: \.id) { cluster in
-                                            Text(cluster.name).tag(Optional(cluster.id))
+                                            Text(DisplayText.clusterName(cluster.name)).tag(Optional(cluster.id))
                                         }
                                     }
                                     .pickerStyle(.menu)
@@ -1818,7 +1918,7 @@ struct AnalyticsView: View {
                                             set: { debateLeftClusterID = $0 }
                                         )) {
                                             ForEach(model.clusters, id: \.id) { cluster in
-                                                Text(cluster.name).tag(Optional(cluster.id))
+                                                Text(DisplayText.clusterName(cluster.name)).tag(Optional(cluster.id))
                                             }
                                         }
                                         .pickerStyle(.menu)
@@ -1828,7 +1928,7 @@ struct AnalyticsView: View {
                                             set: { debateRightClusterID = $0 }
                                         )) {
                                             ForEach(model.clusters, id: \.id) { cluster in
-                                                Text(cluster.name).tag(Optional(cluster.id))
+                                                Text(DisplayText.clusterName(cluster.name)).tag(Optional(cluster.id))
                                             }
                                         }
                                         .pickerStyle(.menu)
@@ -1982,6 +2082,7 @@ struct AnalyticsView: View {
                     }
                 }
                 .onWidthChange { width in
+                    guard width.isFinite, width > 0, width < 10_000, abs(analyticsContentWidth - width) > 1 else { return }
                     analyticsContentWidth = width
                 }
                 .task {
@@ -2084,6 +2185,28 @@ struct AnalyticsView: View {
             }
         }
         #endif
+    }
+
+    private func analyticsKPI(label: String, value: String) -> some View {
+        VStack(alignment: .leading, spacing: 2) {
+            Text(label)
+                .font(.caption2)
+                .foregroundStyle(.secondary)
+            Text(value)
+                .font(.subheadline.monospacedDigit().weight(.semibold))
+        }
+        .padding(.horizontal, 10)
+        .padding(.vertical, 8)
+        .background(GalaxyTheme.nebulaBlue.opacity(0.08), in: RoundedRectangle(cornerRadius: 10, style: .continuous))
+        .overlay(
+            RoundedRectangle(cornerRadius: 10, style: .continuous)
+                .stroke(GalaxyTheme.nebulaBlue.opacity(0.16), lineWidth: 1)
+        )
+    }
+
+    private func percentageString(_ numerator: Int, total: Int) -> String {
+        guard total > 0 else { return "0%" }
+        return String(format: "%.0f%%", (Double(numerator) / Double(total)) * 100)
     }
 }
 
@@ -2256,8 +2379,8 @@ private struct TimelineBarChart: View {
                                     hoveredCount = nil
                                 }
                             )
-                            .frame(width: plotFrame.width, height: plotFrame.height)
-                            .position(x: plotFrame.midX, y: plotFrame.midY)
+                            .frame(width: chartPlotDimension(plotFrame.width), height: chartPlotDimension(plotFrame.height))
+                            .position(x: chartPlotCoordinate(plotFrame.midX), y: chartPlotCoordinate(plotFrame.midY))
                         )
                         #endif
                 }
@@ -2492,7 +2615,7 @@ private struct NoveltyConsensusChartView: View {
                                     if panStartY == nil { panStartY = yDomain }
                                     guard let startX = panStartX, let startY = panStartY else { return }
                                     let width = max(1, plotFrame.width)
-                                    let height = max(1, plotFrame.height)
+                                    let height = chartPlotDimension(plotFrame.height)
                                     let spanX = startX.upperBound - startX.lowerBound
                                     let spanY = startY.upperBound - startY.lowerBound
                                     let deltaX = -Double(value.translation.width / width) * spanX
@@ -2533,8 +2656,8 @@ private struct NoveltyConsensusChartView: View {
                                     hoveredPointID = nil
                                 }
                             )
-                            .frame(width: plotFrame.width, height: plotFrame.height)
-                            .position(x: plotFrame.midX, y: plotFrame.midY)
+                            .frame(width: chartPlotDimension(plotFrame.width), height: chartPlotDimension(plotFrame.height))
+                            .position(x: chartPlotCoordinate(plotFrame.midX), y: chartPlotCoordinate(plotFrame.midY))
                         )
                         #endif
                 }
@@ -2710,8 +2833,8 @@ private struct TopicStreamChart: View {
                                     hoveredCount = nil
                                 }
                             )
-                            .frame(width: plotFrame.width, height: plotFrame.height)
-                            .position(x: plotFrame.midX, y: plotFrame.midY)
+                            .frame(width: chartPlotDimension(plotFrame.width), height: chartPlotDimension(plotFrame.height))
+                            .position(x: chartPlotCoordinate(plotFrame.midX), y: chartPlotCoordinate(plotFrame.midY))
                         )
                         #endif
                 }
@@ -2866,8 +2989,8 @@ private struct MethodCrossoverChart: View {
                                     hoveredYear = nil
                                 }
                             )
-                            .frame(width: plotFrame.width, height: plotFrame.height)
-                            .position(x: plotFrame.midX, y: plotFrame.midY)
+                            .frame(width: chartPlotDimension(plotFrame.width), height: chartPlotDimension(plotFrame.height))
+                            .position(x: chartPlotCoordinate(plotFrame.midX), y: chartPlotCoordinate(plotFrame.midY))
                         )
                         #endif
                 }
@@ -3062,7 +3185,7 @@ private struct ReadingLagChart: View {
                                     if panStartY == nil { panStartY = yDomain }
                                     guard let startX = panStartX, let startY = panStartY else { return }
                                     let width = max(1, plotFrame.width)
-                                    let height = max(1, plotFrame.height)
+                                    let height = chartPlotDimension(plotFrame.height)
                                     let spanX = Double(startX.upperBound - startX.lowerBound)
                                     let spanY = Double(startY.upperBound - startY.lowerBound)
                                     let deltaX = -Double(value.translation.width / width) * spanX
@@ -3116,8 +3239,8 @@ private struct ReadingLagChart: View {
                                     hoveredReadYear = nil
                                 }
                             )
-                            .frame(width: plotFrame.width, height: plotFrame.height)
-                            .position(x: plotFrame.midX, y: plotFrame.midY)
+                            .frame(width: chartPlotDimension(plotFrame.width), height: chartPlotDimension(plotFrame.height))
+                            .position(x: chartPlotCoordinate(plotFrame.midX), y: chartPlotCoordinate(plotFrame.midY))
                         )
                         #endif
                 }
@@ -3153,7 +3276,7 @@ private struct FactorExposureChart: View {
         let xDomain = visibleDomain ?? fullDomain
         Chart {
             ForEach(Array(exposures.enumerated()), id: \.offset) { _, row in
-                AreaMark(
+                LineMark(
                     x: .value("Year", row.year),
                     y: .value("Exposure", row.score)
                 )
@@ -3262,8 +3385,8 @@ private struct FactorExposureChart: View {
                                     hoveredSummary = nil
                                 }
                             )
-                            .frame(width: plotFrame.width, height: plotFrame.height)
-                            .position(x: plotFrame.midX, y: plotFrame.midY)
+                            .frame(width: chartPlotDimension(plotFrame.width), height: chartPlotDimension(plotFrame.height))
+                            .position(x: chartPlotCoordinate(plotFrame.midX), y: chartPlotCoordinate(plotFrame.midY))
                         )
                         #endif
                 }
@@ -3400,7 +3523,7 @@ private struct InfluenceTimelineChart: View {
                                     if panStartY == nil { panStartY = yDomain }
                                     guard let startX = panStartX, let startY = panStartY else { return }
                                     let width = max(1, plotFrame.width)
-                                    let height = max(1, plotFrame.height)
+                                    let height = chartPlotDimension(plotFrame.height)
                                     let spanX = Double(startX.upperBound - startX.lowerBound)
                                     let spanY = startY.upperBound - startY.lowerBound
                                     let deltaX = -Double(value.translation.width / width) * spanX
@@ -3443,8 +3566,8 @@ private struct InfluenceTimelineChart: View {
                                     hoveredPaperID = nil
                                 }
                             )
-                            .frame(width: plotFrame.width, height: plotFrame.height)
-                            .position(x: plotFrame.midX, y: plotFrame.midY)
+                            .frame(width: chartPlotDimension(plotFrame.width), height: chartPlotDimension(plotFrame.height))
+                            .position(x: chartPlotCoordinate(plotFrame.midX), y: chartPlotCoordinate(plotFrame.midY))
                         )
                         #endif
                 }

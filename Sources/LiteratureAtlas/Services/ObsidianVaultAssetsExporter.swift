@@ -59,7 +59,7 @@ enum ObsidianVaultAssetsExporter {
           font-weight: 700;
         }
 
-        /* Slightly denser tables for Trading Lens blocks. */
+        /* Slightly denser tables for Insight Brief blocks. */
         .atlas-dashboard table,
         .atlas-paper table,
         .atlas-strategy table {
@@ -211,13 +211,13 @@ enum ObsidianVaultAssetsExporter {
         lines.append("")
 
         lines.append("> [!tip] Enable CSS Snippet")
-        lines.append("> - Obsidian → Settings → Appearance → CSS snippets → enable `literature-atlas`")
+        lines.append("> - Obsidian -> Settings -> Appearance -> CSS snippets -> enable `literature-atlas`")
         lines.append("> - Snippet file: `.obsidian/snippets/literature-atlas.css`")
         lines.append("")
 
         lines.append("> [!example] Suggested Workflow")
         lines.append("> - Start in [[Atlas]] and pin 2–3 clusters to focus this week")
-        lines.append("> - Read a paper, add 2–3 `## Notes`, then turn it into a strategy project")
+        lines.append("> - Read a paper, add 2-3 `## Notes`, then turn it into a research project")
         lines.append("> - Use the Related Papers callout to snowball into nearby work")
         lines.append("")
 
