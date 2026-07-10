@@ -37,6 +37,20 @@ struct PaperDetailView: View {
             VStack(alignment: .leading, spacing: 16) {
                 header
 
+                documentMetadataCard
+
+                if let latest = latestPaper(),
+                   let artifacts = latest.compiledArtifacts,
+                   !artifacts.isEmpty {
+                    compiledArtifactsCard(artifacts)
+                }
+
+                if let latest = latestPaper(),
+                   let anchors = latest.citationAnchors,
+                   !anchors.isEmpty {
+                    citationsCard(anchors)
+                }
+
                 GlassCard {
                     VStack(alignment: .leading, spacing: 8) {
                         Text("Summary").font(.headline)
@@ -96,7 +110,7 @@ struct PaperDetailView: View {
                 GlassCard {
                     VStack(alignment: .leading, spacing: 8) {
                         HStack {
-                            Text("Trading lens").font(.headline)
+                            Text("Insight brief").font(.headline)
                             Spacer()
                             Button {
                                 model.generateTradingLens(for: paper.id)
@@ -108,7 +122,7 @@ struct PaperDetailView: View {
                             Button {
                                 createdStrategyProject = model.createStrategyProject(from: paper.id)
                             } label: {
-                                Label("Create project", systemImage: "point.3.connected.trianglepath")
+                                Label("Create research project", systemImage: "folder.badge.plus")
                             }
                             .buttonStyle(.bordered)
                         }
@@ -125,7 +139,7 @@ struct PaperDetailView: View {
                                 HStack {
                                     if let novelty = scores.novelty { MetricPill(label: "Novelty", value: novelty, tint: .orange) }
                                     if let usability = scores.usability { MetricPill(label: "Usability", value: usability, tint: .mint) }
-                                    if let impact = scores.strategyImpact { MetricPill(label: "Impact", value: impact, tint: .blue) }
+                                    if let impact = scores.strategyImpact { MetricPill(label: "Application", value: impact, tint: .blue) }
                                     if let conf = scores.confidence { MetricPill(label: "Conf.", value: conf * 10, tint: .purple) }
                                 }
                                 Text("Conf. shown on a 0–10 scale.")
@@ -135,19 +149,19 @@ struct PaperDetailView: View {
 
                             Group {
                                 if let tags = lens.tradingTags, !tags.isEmpty {
-                                    Text("Tags: \(tags.joined(separator: ", "))")
+                                    Text("Patterns: \(tags.joined(separator: ", "))")
                                 }
                                 if let assets = lens.assetClasses, !assets.isEmpty {
-                                    Text("Assets: \(assets.joined(separator: ", "))")
+                                    Text("Domains: \(assets.joined(separator: ", "))")
                                 }
                                 if let horizons = lens.horizons, !horizons.isEmpty {
-                                    Text("Horizon: \(horizons.joined(separator: ", "))")
+                                    Text("Timeframe: \(horizons.joined(separator: ", "))")
                                 }
                                 if let archetypes = lens.signalArchetypes, !archetypes.isEmpty {
-                                    Text("Archetypes: \(archetypes.joined(separator: ", "))")
+                                    Text("Pattern types: \(archetypes.joined(separator: ", "))")
                                 }
                                 if let flags = lens.riskFlags, !flags.isEmpty {
-                                    Text("Risk flags: \(flags.joined(separator: ", "))")
+                                    Text("Caveats: \(flags.joined(separator: ", "))")
                                 }
                             }
                             .font(.caption)
@@ -155,7 +169,7 @@ struct PaperDetailView: View {
 
                             if let hyps = lens.alphaHypotheses, !hyps.isEmpty {
                                 Divider().padding(.vertical, 4)
-                                Text("Alpha hypotheses").font(.subheadline.bold())
+                                Text("Hypotheses").font(.subheadline.bold())
                                 ForEach(Array(hyps.prefix(3).enumerated()), id: \.offset) { _, h in
                                     let text = h.hypothesis ?? "Unknown"
                                     VStack(alignment: .leading, spacing: 2) {
@@ -164,13 +178,13 @@ struct PaperDetailView: View {
                                             Text("target: \(target)").font(.caption2).foregroundStyle(.secondary)
                                         }
                                         if let horizon = h.horizon, !horizon.isEmpty {
-                                            Text("horizon: \(horizon)").font(.caption2).foregroundStyle(.secondary)
+                                            Text("timeframe: \(horizon)").font(.caption2).foregroundStyle(.secondary)
                                         }
                                     }
                                 }
                             }
                         } else {
-                            Text("No trading lens scorecard yet.")
+                            Text("No insight brief yet.")
                                 .font(.caption)
                                 .foregroundStyle(.secondary)
                         }
@@ -268,7 +282,7 @@ struct PaperDetailView: View {
 
                 GlassCard {
                     VStack(alignment: .leading, spacing: 10) {
-                        Text("Strategy prototypes").font(.headline)
+                        Text("Research plans").font(.headline)
                         HStack {
                             Button {
                                 model.generateStrategyBlueprint(for: paper.id)
@@ -280,7 +294,7 @@ struct PaperDetailView: View {
                             Button {
                                 model.auditBacktest(for: paper.id)
                             } label: {
-                                Label("Audit backtest", systemImage: "checkmark.shield")
+                                Label("Audit plan", systemImage: "checkmark.shield")
                             }
                             .buttonStyle(.bordered)
                             .disabled((latestPaper()?.strategyBlueprint ?? "").isEmpty)
@@ -290,7 +304,7 @@ struct PaperDetailView: View {
 
                         if let blueprint = latestPaper()?.strategyBlueprint, !blueprint.isEmpty {
                             Divider().padding(.vertical, 4)
-                            Text("Blueprint").font(.subheadline.bold())
+                            Text("Research plan").font(.subheadline.bold())
                             ScrollView {
                                 Text(blueprint)
                                     .font(.system(.footnote, design: .monospaced))
@@ -298,14 +312,14 @@ struct PaperDetailView: View {
                             }
                             .frame(minHeight: 120, maxHeight: 280)
                         } else {
-                            Text("No strategy blueprint yet.")
+                            Text("No research plan yet.")
                                 .font(.caption)
                                 .foregroundStyle(.secondary)
                         }
 
                         if let audit = latestPaper()?.backtestAudit, !audit.isEmpty {
                             Divider().padding(.vertical, 4)
-                            Text("Backtest audit").font(.subheadline.bold())
+                            Text("Plan audit").font(.subheadline.bold())
                             ScrollView {
                                 Text(audit)
                                     .font(.system(.footnote, design: .monospaced))
@@ -499,12 +513,23 @@ struct PaperDetailView: View {
                         .foregroundStyle(.secondary)
                 }
 
-                Button {
-                    openPDF(at: paper.fileURL)
-                } label: {
-                    Label("Open PDF", systemImage: "doc.richtext")
+                HStack {
+                    Button {
+                        openFile(at: paper.fileURL)
+                    } label: {
+                        Label(paper.sourceKind == .markdown ? "Open Markdown source" : "Open PDF source", systemImage: paper.sourceKind == .markdown ? "doc.text" : "doc.richtext")
+                    }
+                    .buttonStyle(.bordered)
+
+                    if let firstArtifact = latestPaper()?.compiledArtifacts?.first {
+                        Button {
+                            openPath(firstArtifact.path)
+                        } label: {
+                            Label("Open compiled note", systemImage: "text.document")
+                        }
+                        .buttonStyle(.bordered)
+                    }
                 }
-                .buttonStyle(.bordered)
             }
         }
         .sheet(item: $createdStrategyProject) { project in
@@ -522,12 +547,94 @@ struct PaperDetailView: View {
         }
     }
 
-    private func openPDF(at url: URL) {
+    private var documentMetadataCard: some View {
+        let latest = latestPaper() ?? paper
+        return GlassCard {
+            VStack(alignment: .leading, spacing: 8) {
+                Text("Document metadata").font(.headline)
+                LabeledContent("Source kind", value: latest.sourceKind.label)
+                LabeledContent("Extract status", value: latest.extractStatus?.label ?? "Unknown")
+                LabeledContent("Checksum", value: latest.sourceChecksum.map { String($0.prefix(12)) } ?? "Unknown")
+                LabeledContent("Citation anchors", value: "\(latest.citationAnchors?.count ?? 0)")
+                LabeledContent("Compiled artifacts", value: "\(latest.compiledArtifacts?.count ?? 0)")
+                if let modifiedAt = latest.sourceModifiedAt {
+                    LabeledContent("Source modified", value: relativeDate(modifiedAt))
+                }
+            }
+        }
+    }
+
+    private func compiledArtifactsCard(_ artifacts: [CompiledArtifactRef]) -> some View {
+        GlassCard {
+            VStack(alignment: .leading, spacing: 8) {
+                Text("Compiled artifacts").font(.headline)
+                ForEach(Array(artifacts.prefix(6).enumerated()), id: \.offset) { _, artifact in
+                    VStack(alignment: .leading, spacing: 4) {
+                        HStack {
+                            Text(artifact.kind.label)
+                                .font(.subheadline.weight(.semibold))
+                            Spacer()
+                            Button {
+                                openPath(artifact.path)
+                            } label: {
+                                Label("Open", systemImage: "arrow.up.forward.app")
+                            }
+                            .buttonStyle(.bordered)
+                        }
+                        Text(URL(fileURLWithPath: artifact.path).lastPathComponent)
+                            .font(.caption)
+                            .foregroundStyle(.secondary)
+                        Text("Generated \(artifactTimestamp(for: artifact).map(relativeDate) ?? "unknown")")
+                            .font(.caption2)
+                            .foregroundStyle(.secondary)
+                    }
+                    if artifact.path != artifacts.prefix(6).last?.path {
+                        Divider().opacity(0.3)
+                    }
+                }
+            }
+        }
+    }
+
+    private func citationsCard(_ anchors: [CitationAnchor]) -> some View {
+        GlassCard {
+            VStack(alignment: .leading, spacing: 8) {
+                Text("Citation anchors").font(.headline)
+                Text("Compiled summaries and answers should resolve back to these source anchors.")
+                    .font(.caption)
+                    .foregroundStyle(.secondary)
+                ForEach(Array(anchors.prefix(8).enumerated()), id: \.offset) { _, anchor in
+                    Text("• \(anchor.displayLabel)")
+                        .font(.footnote)
+                        .frame(maxWidth: .infinity, alignment: .leading)
+                }
+                if anchors.count > 8 {
+                    Text("+ \(anchors.count - 8) more anchors")
+                        .font(.caption2)
+                        .foregroundStyle(.secondary)
+                }
+            }
+        }
+    }
+
+    private func openFile(at url: URL) {
 #if os(macOS)
         NSWorkspace.shared.open(url)
 #else
         // On iPadOS a Link can be used.
 #endif
+    }
+
+    private func openPath(_ path: String) {
+        openFile(at: URL(fileURLWithPath: path))
+    }
+
+    private func artifactTimestamp(for artifact: CompiledArtifactRef) -> Date? {
+        if let generatedAt = artifact.generatedAt {
+            return generatedAt
+        }
+        let url = URL(fileURLWithPath: artifact.path)
+        return (try? url.resourceValues(forKeys: [.contentModificationDateKey]))?.contentModificationDate
     }
 
     private func saveUserData(notes: String, tags: String, status: ReadingStatus? = nil) {

@@ -20,5 +20,5 @@ one_line_verdict.
 
 Rules:
 - If not specified, use "Unknown" or [].
-- alpha_hypotheses: 1-3 items max.
+- alpha_hypotheses: 1-3 general hypotheses max.
 - risk_flags: 0-4 items max.

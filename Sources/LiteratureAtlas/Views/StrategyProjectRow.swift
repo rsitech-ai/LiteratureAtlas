@@ -34,7 +34,7 @@ struct StrategyProjectRow: View {
     private var header: some View {
         VStack(alignment: .leading, spacing: 6) {
             HStack(alignment: .firstTextBaseline, spacing: 10) {
-                Text(project.title.isEmpty ? "Untitled strategy" : project.title)
+                Text(project.title.isEmpty ? "Untitled research project" : project.title)
                     .font(.headline)
                     .lineLimit(2)
                 Spacer()
@@ -76,7 +76,7 @@ struct StrategyProjectRow: View {
             StageDot(label: "Idea", done: stages.idea)
             StageDot(label: "Features", done: stages.features)
             StageDot(label: "Model", done: stages.model)
-            StageDot(label: "Trade", done: stages.tradePlan)
+            StageDot(label: "Plan", done: stages.tradePlan)
             StageDot(label: "Outcome", done: stages.outcomes)
             Spacer()
 
@@ -89,10 +89,10 @@ struct StrategyProjectRow: View {
 
     private func metricsRow(_ m: QuantBacktestMetrics) -> some View {
         HStack(spacing: 10) {
-            MetricPill(label: "Sharpe", value: m.sharpe, tint: .mint)
-            MetricPill(label: "CAGR", value: m.cagr, tint: .teal)
-            MetricPill(label: "MaxDD", value: m.maxDrawdown, tint: .red)
-            MetricPill(label: "Turn", value: m.turnover, tint: .orange)
+            MetricPill(label: "Score", value: m.sharpe, tint: .mint)
+            MetricPill(label: "Growth", value: m.cagr, tint: .teal)
+            MetricPill(label: "Risk", value: m.maxDrawdown, tint: .red)
+            MetricPill(label: "Effort", value: m.turnover, tint: .orange)
             MetricPill(label: "Hit", value: m.hitRate, tint: .indigo)
             Spacer()
         }
@@ -219,4 +219,3 @@ private struct Sparkline: View {
         .padding(.top, 2)
     }
 }
-

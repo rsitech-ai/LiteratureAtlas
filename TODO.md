@@ -1,20 +1,16 @@
 # TODO
 
 ## Tasks
-- [x] Integrate analytics health checks into app rebuild flow (DoD: rebuild triggers output + topic audits automatically)
-- [x] Add app state + UI visibility for health-check status/logs (DoD: Analytics view shows message and log panel)
-- [x] Add manual app trigger for health checks (DoD: button in Analytics backend card works)
-- [x] Verify app/CLI sync with regression tests + smoke run (DoD: swift test + python tests + `scripts/run_example_smoke.sh --count 10` pass)
-- [x] Memory update: record app-sync behavior (DoD: MEMORY.md updated)
+- [x] Generalize navigation and planner chrome (DoD: sidebar and planner no longer present trading as a product concept)
+- [x] Generalize Insights lens UI (DoD: screen title, filters, chart labels, context actions, and hypotheses use generic terminology)
+- [x] Generalize paper detail/actions (DoD: insight brief/research plan labels replace trading lens/strategy labels)
+- [x] Generalize project UI (DoD: visible project screens use research project language)
+- [x] Generalize analytics/export/prompt copy (DoD: markdown labels, fallback prompts, and logs use generic terminology where user-facing)
+- [x] Update docs/tests/memory (DoD: assertions and durable repo notes match the new product model)
+- [x] Verify end to end (DoD: relevant tests, app launch, and runtime log scan pass)
 
 ## In progress
-- none
 
 ## Done
-- [x] Refresh `PLAN.md` for integration + sample-run scope
-- [x] Added `LITERATURE_ATLAS_SMOKE_FAST` env mode for deterministic ingestion smoke path
-- [x] Tuned smoke-run primary-topic threshold to `ceil(40% of sample)` to avoid small-sample false negatives
-- [x] Verified two separate random 10-paper smoke runs pass end-to-end
-- [x] Root-caused full-corpus drop from 115 -> 114 to paper JSON title-collision overwrite (`My Articles`)
-- [x] Fixed `savePaperJSON` to use id-suffixed filenames and safe legacy migration/removal for matching papers only
-- [x] Ran full corpus ingest into repo `Output/` and validated analytics + ANN + audits (all pass)
+- [x] Design spec and implementation plan written and committed.
+- [x] Full product generalization implemented and verified.

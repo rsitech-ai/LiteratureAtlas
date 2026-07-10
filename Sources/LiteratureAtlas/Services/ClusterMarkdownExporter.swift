@@ -159,7 +159,7 @@ enum ClusterMarkdownExporter {
         }
 
         if let lens = cluster.tradingLens?.trimmingCharacters(in: .whitespacesAndNewlines), !lens.isEmpty {
-            lines.append(contentsOf: callout(type: "tip", title: "Trading Lens", body: lens, collapsedByDefault: true))
+            lines.append(contentsOf: callout(type: "tip", title: "Insight Brief", body: lens, collapsedByDefault: true))
             lines.append("")
         }
 
@@ -339,4 +339,3 @@ enum ClusterMarkdownExporter {
         return "\n" + tail + "\n"
     }
 }
-
