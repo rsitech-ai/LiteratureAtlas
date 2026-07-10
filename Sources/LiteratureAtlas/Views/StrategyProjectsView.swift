@@ -135,7 +135,7 @@ struct StrategyProjectsView: View {
             StrategyProjectDetailView(strategyID: project.id)
                 .environmentObject(model)
         }
-        .onChange(of: nav.requestedStrategyProjectID) { requestedID in
+        .onChange(of: nav.requestedStrategyProjectID) { _, requestedID in
             guard let requestedID else { return }
 
             if let project = model.strategyProjects.first(where: { $0.id == requestedID }) {
