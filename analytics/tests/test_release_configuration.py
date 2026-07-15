@@ -41,6 +41,14 @@ class ReleaseConfigurationTests(unittest.TestCase):
         payload = json.loads(result.stdout)
         self.assertTrue(payload["gates"]["security_scoped_ingest"]["passed"])
 
+    def test_logs_and_analytics_minimize_document_context(self):
+        repo_root = Path(__file__).resolve().parents[2]
+
+        result = self.run_validator(repo_root)
+
+        payload = json.loads(result.stdout)
+        self.assertTrue(payload["gates"]["privacy_safe_diagnostics"]["passed"])
+
 
 if __name__ == "__main__":
     unittest.main()

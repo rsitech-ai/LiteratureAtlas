@@ -155,7 +155,7 @@ final class AppModel: ObservableObject {
     }
 
     private static func makePrimaryOutputRoot() -> URL {
-        // App Store builds persist inside the app container; SwiftPM development keeps the repo-local Output workflow.
+        // Distributed builds persist inside the app container; SwiftPM development keeps the repo-local Output workflow.
         let root = AppPaths.outputRoot()
         prepareOutputRoot(root)
         return root
@@ -166,14 +166,14 @@ final class AppModel: ObservableObject {
         do {
             try FileManager.default.createDirectory(at: root, withIntermediateDirectories: true)
         } catch {
-            logger.error("Failed to create Output root at \(root.path, privacy: .public): \(error.localizedDescription, privacy: .public)")
+            logger.error("Failed to create Output root at \(root.path, privacy: .private(mask: .hash)): \(error.localizedDescription, privacy: .private)")
         }
         for folder in ["papers", "qa", "clusters", "chunks", "analytics", "reports", "strategies", "obsidian/papers", "obsidian/strategies", "obsidian/clusters", "obsidian/.obsidian/snippets"] {
             let url = root.appendingPathComponent(folder, isDirectory: true)
             do {
                 try FileManager.default.createDirectory(at: url, withIntermediateDirectories: true)
             } catch {
-                logger.error("Failed to create Output subfolder \(url.path, privacy: .public): \(error.localizedDescription, privacy: .public)")
+                logger.error("Failed to create Output subfolder \(url.path, privacy: .private(mask: .hash)): \(error.localizedDescription, privacy: .private)")
             }
         }
         for folder in ["documents", "compiled/documents", "compiled/topics", "compiled/entities", "graph"] {
@@ -181,7 +181,7 @@ final class AppModel: ObservableObject {
             do {
                 try FileManager.default.createDirectory(at: url, withIntermediateDirectories: true)
             } catch {
-                logger.error("Failed to create Output subfolder \(url.path, privacy: .public): \(error.localizedDescription, privacy: .public)")
+                logger.error("Failed to create Output subfolder \(url.path, privacy: .private(mask: .hash)): \(error.localizedDescription, privacy: .private)")
             }
         }
     }
@@ -329,7 +329,7 @@ final class AppModel: ObservableObject {
     func ingestFolder(url: URL) {
         selectedFolder = url
         ingestionLog = "Selected folder: \(url.lastPathComponent)"
-        logger.info("[Ingest] Selected folder: \(url.path, privacy: .public)")
+        logger.info("[Ingest] Selected folder: \(url.path, privacy: .private(mask: .hash))")
         ingestionTask?.cancel()
         ingestionTask = Task { await runIngestion(folderURL: url) }
     }
@@ -376,7 +376,7 @@ final class AppModel: ObservableObject {
         let sourceFiles = discoverSourceDocuments(in: folderURL)
         guard !sourceFiles.isEmpty else {
             ingestionLog += "\nNo PDF or Markdown files found in folder."
-            logger.info("[Ingest] No source documents found in folder \(folderURL.path, privacy: .public)")
+            logger.info("[Ingest] No source documents found in folder \(folderURL.path, privacy: .private(mask: .hash))")
             isIngesting = false
             return
         }
@@ -391,7 +391,7 @@ final class AppModel: ObservableObject {
 
             ingestionCurrentFile = sourceURL.lastPathComponent
             ingestionLog += "\n\n[>] Processing \(sourceURL.lastPathComponent)..."
-            logger.info("[Ingest] Processing: \(sourceURL.lastPathComponent, privacy: .public)")
+            logger.info("[Ingest] Processing: \(sourceURL.lastPathComponent, privacy: .private(mask: .hash))")
 
             if Task.isCancelled { break }
 
@@ -420,7 +420,7 @@ final class AppModel: ObservableObject {
                 saveChunkIndex()
             } catch {
                 ingestionLog += "\n  Error: \(error.localizedDescription)"
-                logger.error("[Ingest] Error: \(error.localizedDescription, privacy: .public)")
+                logger.error("[Ingest] Error: \(error.localizedDescription, privacy: .private)")
             }
 
             ingestionProgress = Double(index + 1) / Double(max(sourceFiles.count, 1))
@@ -647,7 +647,7 @@ final class AppModel: ObservableObject {
                 try fm.moveItem(at: legacyURL, to: url)
             } catch {
                 // Best-effort migration only; write below remains source of truth.
-                logger.error("[Ingest] Failed to migrate legacy paper JSON filename: \(error.localizedDescription, privacy: .public)")
+                logger.error("[Ingest] Failed to migrate legacy paper JSON filename: \(error.localizedDescription, privacy: .private)")
             }
         }
 
@@ -1615,7 +1615,7 @@ final class AppModel: ObservableObject {
             let data = try JSONEncoder().encode(paperChunks)
             try data.write(to: url, options: .atomic)
         } catch {
-            logger.error("Failed to save chunks index: \(error.localizedDescription, privacy: .public)")
+            logger.error("Failed to save chunks index: \(error.localizedDescription, privacy: .private)")
         }
     }
 
@@ -1699,7 +1699,7 @@ final class AppModel: ObservableObject {
             let data = try JSONEncoder().encode(index)
             try data.write(to: url, options: .atomic)
         } catch {
-            logger.error("Failed to save paper index: \(error.localizedDescription, privacy: .public)")
+            logger.error("Failed to save paper index: \(error.localizedDescription, privacy: .private)")
         }
     }
 
@@ -2201,7 +2201,7 @@ final class AppModel: ObservableObject {
             setGalaxyClusterFields(clusterID: clusterID, name: info.name, metaSummary: info.metaSummary, tradingLens: info.tradingLens)
             clusterNameSources[clusterID] = .ai
         } catch {
-            logger.error("Failed to name cluster \(clusterID): \(error.localizedDescription, privacy: .public)")
+            logger.error("Failed to name cluster \(clusterID): \(error.localizedDescription, privacy: .private)")
         }
     }
 
@@ -2285,7 +2285,7 @@ final class AppModel: ObservableObject {
             )
             try data.write(to: url, options: .atomic)
         } catch {
-            logger.error("Failed to persist galaxy snapshot: \(error.localizedDescription, privacy: .public)")
+            logger.error("Failed to persist galaxy snapshot: \(error.localizedDescription, privacy: .private)")
         }
     }
 
@@ -2310,7 +2310,7 @@ final class AppModel: ObservableObject {
             let data = try encoder.encode(snapshot)
             try data.write(to: jsonURL, options: .atomic)
         } catch {
-            logger.error("Failed to export galaxy JSON: \(error.localizedDescription, privacy: .public)")
+            logger.error("Failed to export galaxy JSON: \(error.localizedDescription, privacy: .private)")
             return nil
         }
 
@@ -2392,7 +2392,7 @@ final class AppModel: ObservableObject {
             }
             try data.write(to: reportURL, options: .atomic)
         } catch {
-            logger.error("Failed to export galaxy report: \(error.localizedDescription, privacy: .public)")
+            logger.error("Failed to export galaxy report: \(error.localizedDescription, privacy: .private)")
             return (jsonURL: jsonURL, reportURL: reportURL)
         }
 
@@ -3103,7 +3103,7 @@ final class AppModel: ObservableObject {
             try data.write(to: url, options: .atomic)
             ingestionLog += "\nSaved cluster snapshot: k=\(key.k)."
         } catch {
-            logger.error("Failed to persist cluster snapshot k=\(key.k): \(error.localizedDescription, privacy: .public)")
+            logger.error("Failed to persist cluster snapshot k=\(key.k): \(error.localizedDescription, privacy: .private)")
         }
     }
 
@@ -4064,7 +4064,7 @@ final class AppModel: ObservableObject {
                 try data.write(to: qaURL, options: .atomic)
             }
         } catch {
-            logger.error("Failed to save QA answer: \(error.localizedDescription, privacy: .public)")
+            logger.error("Failed to save QA answer: \(error.localizedDescription, privacy: .private)")
         }
 
         // Persist lightweight retrieval diagnostics for offline QA-gap analytics.
@@ -4093,7 +4093,7 @@ final class AppModel: ObservableObject {
                 type: "qa_retrieval",
                 paperID: nil,
                 extra: [
-                    "q": question,
+                    "question_length": question.count,
                     "top_scores": topScores,
                     "margin": margin,
                     "support_breadth": breadth,
@@ -4509,11 +4509,11 @@ final class AppModel: ObservableObject {
     }
 
     func recordQuestionAsked(_ question: String) {
-        appendUserEvent(type: "qa_question", paperID: nil, extra: ["q": question])
+        appendUserEvent(type: "qa_question", paperID: nil, extra: ["question_length": question.count])
     }
 
     func recordAnswerReady(_ question: String) {
-        appendUserEvent(type: "qa_answer_ready", paperID: nil, extra: ["q": question])
+        appendUserEvent(type: "qa_answer_ready", paperID: nil, extra: ["question_length": question.count])
     }
 
     func recordPaperOpened(_ paperID: UUID) {
