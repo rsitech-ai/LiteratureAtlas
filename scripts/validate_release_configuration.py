@@ -31,7 +31,9 @@ def read_plist(path: Path) -> dict[str, Any]:
     return value if isinstance(value, dict) else {}
 
 
-def add_gate(results: dict[str, dict[str, Any]], name: str, passed: bool, detail: str) -> None:
+def add_gate(
+    results: dict[str, dict[str, Any]], name: str, passed: bool, detail: str
+) -> None:
     results[name] = {"passed": passed, "detail": detail}
 
 
@@ -52,20 +54,26 @@ def validate(root: Path) -> dict[str, Any]:
     add_gate(
         gates,
         "project_spec",
-        project_spec.is_file() and all(fragment in spec_text for fragment in spec_fragments),
+        project_spec.is_file()
+        and all(fragment in spec_text for fragment in spec_fragments),
         "project.yml defines both application targets and Release archive schemes",
     )
 
     shared_config = read_text(root / "Config/Shared.xcconfig")
+    debug_config = read_text(root / "Config/Debug.xcconfig")
     release_config = read_text(root / "Config/Release.xcconfig")
-    coordinates_ok = all(
-        fragment in shared_config
-        for fragment in (
-            "MARKETING_VERSION = 1.0.0",
-            "CURRENT_PROJECT_VERSION = 1",
-            "CODE_SIGN_STYLE = Automatic",
+    coordinates_ok = (
+        all(
+            fragment in shared_config
+            for fragment in (
+                "MARKETING_VERSION = 1.0.0",
+                "CURRENT_PROJECT_VERSION = 1",
+                "CODE_SIGN_STYLE = Automatic",
+            )
         )
-    ) and "DEVELOPMENT_TEAM" not in shared_config and "DEVELOPMENT_TEAM" not in spec_text
+        and "DEVELOPMENT_TEAM" not in shared_config
+        and "DEVELOPMENT_TEAM" not in spec_text
+    )
     add_gate(
         gates,
         "release_coordinates",
@@ -76,9 +84,19 @@ def validate(root: Path) -> dict[str, Any]:
         gates,
         "release_optimization",
         "SWIFT_COMPILATION_MODE = wholemodule" in release_config
-        and "SWIFT_OPTIMIZATION_LEVEL = -O" in release_config
-        and "APP_STORE_BUILD" in release_config,
+        and "SWIFT_OPTIMIZATION_LEVEL = -O" in release_config,
         "Release configuration uses whole-module optimized App Store compilation",
+    )
+    add_gate(
+        gates,
+        "xcode_app_runtime_boundary",
+        "SWIFT_ACTIVE_COMPILATION_CONDITIONS = APP_STORE_BUILD $(inherited)"
+        in shared_config
+        and '#include "Shared.xcconfig"' in debug_config
+        and '#include "Shared.xcconfig"' in release_config
+        and "APP_STORE_BUILD" not in debug_config
+        and "APP_STORE_BUILD" not in release_config,
+        "Debug runs and Release archives inherit the same App Store runtime boundary",
     )
 
     platform_paths = {
@@ -88,7 +106,9 @@ def validate(root: Path) -> dict[str, Any]:
     for platform, resource_root in platform_paths.items():
         info = read_plist(resource_root / "Info.plist")
         expected_bundle = (
-            "com.literatureatlas.app" if platform == "macOS" else "com.literatureatlas.app.ios"
+            "com.literatureatlas.app"
+            if platform == "macOS"
+            else "com.literatureatlas.app.ios"
         )
         info_ok = (
             info.get("CFBundleIdentifier") == "$(PRODUCT_BUNDLE_IDENTIFIER)"
@@ -113,7 +133,10 @@ def validate(root: Path) -> dict[str, Any]:
                 values = entry.get("NSPrivacyAccessedAPITypeReasons", [])
                 if isinstance(values, list):
                     reasons.update(value for value in values if isinstance(value, str))
-        privacy_ok = EXPECTED_REASONS.issubset(reasons) and "NSPrivacyCollectedDataTypes" not in privacy
+        privacy_ok = (
+            EXPECTED_REASONS.issubset(reasons)
+            and "NSPrivacyCollectedDataTypes" not in privacy
+        )
         add_gate(
             gates,
             f"{platform.lower()}_privacy_manifest",
@@ -126,7 +149,8 @@ def validate(root: Path) -> dict[str, Any]:
         gates,
         "macos_entitlements",
         mac_entitlements.get("com.apple.security.app-sandbox") is True
-        and mac_entitlements.get("com.apple.security.files.user-selected.read-only") is True
+        and mac_entitlements.get("com.apple.security.files.user-selected.read-only")
+        is True
         and "com.apple.security.files.user-selected.read-write" not in mac_entitlements,
         "Mac target uses App Sandbox and read-only user-selected file access",
     )
@@ -141,9 +165,15 @@ def validate(root: Path) -> dict[str, Any]:
     project_file = root / "LiteratureAtlas.xcodeproj/project.pbxproj"
     schemes_ok = project_file.is_file()
     for target in EXPECTED_TARGETS:
-        scheme = root / f"LiteratureAtlas.xcodeproj/xcshareddata/xcschemes/{target}.xcscheme"
+        scheme = (
+            root / f"LiteratureAtlas.xcodeproj/xcshareddata/xcschemes/{target}.xcscheme"
+        )
         scheme_text = read_text(scheme)
-        schemes_ok = schemes_ok and scheme.is_file() and 'buildConfiguration = "Release"' in scheme_text
+        schemes_ok = (
+            schemes_ok
+            and scheme.is_file()
+            and 'buildConfiguration = "Release"' in scheme_text
+        )
     add_gate(
         gates,
         "generated_project",
@@ -152,14 +182,20 @@ def validate(root: Path) -> dict[str, Any]:
     )
 
     app_model = read_text(root / "Sources/LiteratureAtlas/App/AppModel.swift")
-    analytics_view = read_text(root / "Sources/LiteratureAtlas/Views/AnalyticsView.swift")
+    analytics_view = read_text(
+        root / "Sources/LiteratureAtlas/Views/AnalyticsView.swift"
+    )
     ffi_source = read_text(root / "Sources/LiteratureAtlas/Services/AtlasFFI.swift")
-    compiler_source = read_text(root / "Sources/LiteratureAtlas/Services/DocumentCompilerProvider.swift")
+    compiler_source = read_text(
+        root / "Sources/LiteratureAtlas/Services/DocumentCompilerProvider.swift"
+    )
     self_contained_ok = (
         "#if os(macOS) && !APP_STORE_BUILD" in app_model
         and "#if os(macOS) && !APP_STORE_BUILD" in analytics_view
-        and "#if APP_STORE_BUILD\n    nonisolated(unsafe) private static let handle" in ffi_source
-        and "#if !APP_STORE_BUILD\n@available(macOS 26, iOS 26, *)\nactor OpenAIDocumentCompilerProvider" in compiler_source
+        and "#if APP_STORE_BUILD\n    nonisolated(unsafe) private static let handle"
+        in ffi_source
+        and "#if !APP_STORE_BUILD\n@available(macOS 26, iOS 26, *)\nactor OpenAIDocumentCompilerProvider"
+        in compiler_source
     )
     add_gate(
         gates,
@@ -176,7 +212,9 @@ def validate(root: Path) -> dict[str, Any]:
     images = icon_spec.get("images", []) if isinstance(icon_spec, dict) else []
     filenames = [entry.get("filename") for entry in images if isinstance(entry, dict)]
     filenames = [value for value in filenames if isinstance(value, str) and value]
-    icon_ok = bool(filenames) and all((icon_root / filename).is_file() for filename in filenames)
+    icon_ok = bool(filenames) and all(
+        (icon_root / filename).is_file() for filename in filenames
+    )
     add_gate(
         gates,
         "app_icon_artwork",
