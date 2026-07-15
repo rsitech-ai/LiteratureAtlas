@@ -156,7 +156,7 @@ pub unsafe extern "C" fn atlas_query_index(
         let r = &results[i];
         out[i] = AtlasSearchResult {
             index: r.d_id as u32,
-            distance: r.distance as f32,
+            distance: r.distance,
         };
     }
     count as u32
