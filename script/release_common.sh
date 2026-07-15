@@ -52,7 +52,7 @@ release_print_command() {
     printf '\n'
 }
 
-release_build_unsigned_app() {
+release_build_presign_app() {
     product_name=$1
     bundle_id=$2
     version=$3

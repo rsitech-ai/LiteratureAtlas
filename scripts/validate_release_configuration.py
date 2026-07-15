@@ -205,7 +205,8 @@ def validate(root: Path) -> dict[str, Any]:
         "Distributed compilation excludes external Python, relative FFI loading, and dormant remote compilation",
     )
     privacy_safe_diagnostics = (
-        "privacy: .public" not in "\n".join(
+        "privacy: .public"
+        not in "\n".join(
             line
             for line in app_model.splitlines()
             if "url.path" in line
@@ -266,14 +267,35 @@ def main() -> int:
     parser = argparse.ArgumentParser()
     parser.add_argument("--root", type=Path, default=Path.cwd())
     parser.add_argument("--json", action="store_true")
+    parser.add_argument(
+        "--allow-blocker",
+        action="append",
+        default=[],
+        metavar="GATE",
+        help="allow an explicitly named known blocker while failing on every other gate",
+    )
     args = parser.parse_args()
     payload = validate(args.root)
+    allowed_blockers = sorted(set(args.allow_blocker))
+    unknown_allowed_blockers = sorted(set(allowed_blockers) - set(payload["gates"]))
+    unallowed_failed_gates = sorted(
+        set(payload["failed_gates"]) - set(allowed_blockers)
+    )
+    payload["allowed_blockers"] = allowed_blockers
+    payload["unknown_allowed_blockers"] = unknown_allowed_blockers
+    payload["unallowed_failed_gates"] = unallowed_failed_gates
+    payload["ok"] = not unallowed_failed_gates and not unknown_allowed_blockers
     if args.json:
         json.dump(payload, sys.stdout, indent=2, sort_keys=True)
         sys.stdout.write("\n")
     else:
         for name, result in payload["gates"].items():
-            status = "PASS" if result["passed"] else "FAIL"
+            if result["passed"]:
+                status = "PASS"
+            elif name in allowed_blockers:
+                status = "ALLOWED"
+            else:
+                status = "FAIL"
             print(f"{status} {name}: {result['detail']}")
     return 0 if payload["ok"] else 1
 
