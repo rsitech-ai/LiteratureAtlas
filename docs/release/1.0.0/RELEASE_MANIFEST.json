@@ -66,7 +66,7 @@
     },
     {
       "path": "docs/release/1.0.0/RELEASE_STATUS.md",
-      "sha256": "789cfebbea56c1f8b6207c1fb48b52d0c61a5a184c53683a50cbb836380ac3b1",
+      "sha256": "7c2263608d44b81761fc200389f9f01a5787b5786abff0401194ae8fa9fe76fa",
       "scope": ["verdict", "readiness", "target-scope"],
       "sanitized": true
     },
