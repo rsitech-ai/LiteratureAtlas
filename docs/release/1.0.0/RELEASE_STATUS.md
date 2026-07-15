@@ -44,7 +44,7 @@ Local defaults are version `1.0.0`, build `1`, macOS bundle ID `com.literatureat
 - macOS App Store build launched sandboxed on the macOS 27 beta host and all six sidebar destinations were selected through the live accessibility tree.
 - iPadOS 26.5 App Store build launched into the product UI. iPadOS 27 beta launched the explicit model-unavailable fallback because Apple Intelligence was not enabled in that simulator.
 - Fresh unsigned macOS and iPadOS archives include expected coordinates, dSYMs, privacy manifests, and target architectures.
-- Complete security branch-diff scan reviewed all 20 changed source-like files with zero reportable findings and zero deferred rows; this does not claim an exhaustive repository-wide audit.
+- Complete security branch-diff scan through `0d99116` reviewed all 20 changed source-like files with zero reportable findings and zero deferred rows. The later `eff288e` no-op cast removal received targeted Rust 1.97 verification; neither result claims an exhaustive repository-wide audit.
 
 ## Next release-lead action
 
