@@ -1,0 +1,11 @@
+version = 1
+
+# This annotation describes the current effective repository license; it does
+# not prove chain of title or authorize the proposed future relicense. Historical
+# third-party PDFs are not present in the current tree and remain separately
+# blocked in docs/open-source/IP_INVENTORY.md.
+[[annotations]]
+path = "**"
+precedence = "aggregate"
+SPDX-FileCopyrightText = "2025 LiteratureAtlas contributors"
+SPDX-License-Identifier = "MIT"

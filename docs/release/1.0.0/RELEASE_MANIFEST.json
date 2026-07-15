@@ -30,7 +30,8 @@
     "reviewed_through_commit": "0d9911627e1e6ac040742b393dc57811513fa45c",
     "post_scan_review": "eff288e removes a no-op f32 cast; targeted Rust 1.97 format, strict Clippy, tests, audit, and authority-path review passed.",
     "snapshot_digest": "codex-security-snapshot/v1:sha256:428594bedcaf6a1f2ebe279e8950442f1db9f2a0b0200988a891d073f684bda8",
-    "report_path": "/private/var/folders/g6/mrhqfgk15_d2gjj52991r1jr0000gn/T/codex-security-scans/LiteratureAtlas/0d99116_20260715T140429Z/report.md",
+    "report_path": null,
+    "report_location_status": "ephemeral local path redacted; use snapshot digest and canonical sealed artifact names",
     "limitation": "Diff-scoped scan; not an exhaustive repository-wide audit."
   },
   "evidence": [
