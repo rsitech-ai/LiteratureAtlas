@@ -7,21 +7,31 @@ from pathlib import Path
 
 
 class ReleaseConfigurationTests(unittest.TestCase):
-    def test_validator_names_missing_project_spec_gate(self):
+    def run_validator(self, root: Path) -> subprocess.CompletedProcess[str]:
         repo_root = Path(__file__).resolve().parents[2]
         validator = repo_root / "scripts" / "validate_release_configuration.py"
+        return subprocess.run(
+            [sys.executable, str(validator), "--root", str(root), "--json"],
+            check=False,
+            capture_output=True,
+            text=True,
+        )
 
+    def test_validator_names_missing_project_spec_gate(self):
         with tempfile.TemporaryDirectory() as tmp:
-            result = subprocess.run(
-                [sys.executable, str(validator), "--root", tmp, "--json"],
-                check=False,
-                capture_output=True,
-                text=True,
-            )
+            result = self.run_validator(Path(tmp))
 
         self.assertNotEqual(result.returncode, 0)
         payload = json.loads(result.stdout)
         self.assertIn("project_spec", payload["failed_gates"])
+
+    def test_xcode_run_and_archive_use_app_store_runtime_boundary(self):
+        repo_root = Path(__file__).resolve().parents[2]
+
+        result = self.run_validator(repo_root)
+
+        payload = json.loads(result.stdout)
+        self.assertTrue(payload["gates"]["xcode_app_runtime_boundary"]["passed"])
 
 
 if __name__ == "__main__":
