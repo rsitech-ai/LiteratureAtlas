@@ -7,6 +7,9 @@ import AtlasFFIClib
 // Runtime dynamic loader for atlas_ffi (Rust) — safe to fail and fallback to Swift search.
 @available(macOS 26, iOS 26, *)
 enum AtlasFFI {
+    #if APP_STORE_BUILD
+    nonisolated(unsafe) private static let handle: UnsafeMutableRawPointer? = nil
+    #else
     nonisolated(unsafe) private static let handle: UnsafeMutableRawPointer? = {
         let paths = [
             "analytics/ffi/target/release/libatlas_ffi.dylib",
@@ -19,6 +22,7 @@ enum AtlasFFI {
         }
         return nil
     }()
+    #endif
 
     private static func symbol<T>(_ name: String, as type: T.Type) -> T? {
         guard let h = handle, let sym = dlsym(h, name) else { return nil }

@@ -155,7 +155,7 @@ final class AppModel: ObservableObject {
     }
 
     private static func makePrimaryOutputRoot() -> URL {
-        // Constrain all persisted data to the app directory (repo Output folder) so nothing leaks into ~/Documents.
+        // App Store builds persist inside the app container; SwiftPM development keeps the repo-local Output workflow.
         let root = AppPaths.outputRoot()
         prepareOutputRoot(root)
         return root
@@ -1245,7 +1245,11 @@ final class AppModel: ObservableObject {
         let url = outputRoot.appendingPathComponent("analytics", isDirectory: true).appendingPathComponent("analytics.json")
         do {
             analyticsSummary = try AnalyticsStore.loadSummary(from: url)
+            #if APP_STORE_BUILD
+            analyticsLoadError = analyticsSummary == nil ? "Analytics data is not available yet." : nil
+            #else
             analyticsLoadError = analyticsSummary == nil ? "analytics.json not found. Run the Python rebuild." : nil
+            #endif
         } catch {
             analyticsSummary = nil
             analyticsLoadError = error.localizedDescription
@@ -1258,7 +1262,7 @@ final class AppModel: ObservableObject {
         }
     }
 
-#if os(macOS)
+#if os(macOS) && !APP_STORE_BUILD
     private struct AnalyticsHealthCheckOutcome {
         let passed: Bool
         let output: String

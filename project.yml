@@ -20,6 +20,9 @@ targets:
         buildPhase: resources
       - path: Resources/macOS/PrivacyInfo.xcprivacy
         buildPhase: resources
+      - path: Prompts
+        type: folder
+        buildPhase: resources
     settings:
       base:
         PRODUCT_NAME: LiteratureAtlas
@@ -43,6 +46,9 @@ targets:
       - path: Resources/Shared/Assets.xcassets
         buildPhase: resources
       - path: Resources/iOS/PrivacyInfo.xcprivacy
+        buildPhase: resources
+      - path: Prompts
+        type: folder
         buildPhase: resources
     settings:
       base:

@@ -1099,6 +1099,7 @@ struct AnalyticsView: View {
                         }
                     }
                     .pickerStyle(.menu)
+                    #if os(macOS) && !APP_STORE_BUILD
                     HStack {
                         TextField("Custom cutoffs (e.g., 2010 2015 2020)", text: Binding(
                             get: { customCutoffs },
@@ -1112,6 +1113,11 @@ struct AnalyticsView: View {
                         .buttonStyle(.borderedProminent)
                         .disabled(model.analyticsRebuildInFlight)
                     }
+                    #else
+                    Text("Custom analytics recomputation is available in the developer build.")
+                        .font(.caption)
+                        .foregroundStyle(.secondary)
+                    #endif
                     let stats = counterfactualStats
                     Text("Papers kept: \(stats.paperCount)")
                         .font(.caption)
@@ -1493,11 +1499,18 @@ struct AnalyticsView: View {
     }
 
     @ViewBuilder private func backendAnalyticsCard() -> some View {
+        let subtitle: String = {
+            #if os(macOS) && !APP_STORE_BUILD
+            "DuckDB / Python rebuild, reload, and health-check controls."
+            #else
+            "Loads locally generated analytics stored in the app container."
+            #endif
+        }()
         GlassCard(tint: GalaxyTheme.nebulaBlue) {
             VStack(alignment: .leading, spacing: 10) {
                 GalaxySectionHeader(
                     "Backend analytics",
-                    subtitle: "DuckDB / Python rebuild, reload, and health-check controls.",
+                    subtitle: subtitle,
                     systemImage: "server.rack",
                     tint: GalaxyTheme.nebulaBlue
                 )
@@ -1510,7 +1523,7 @@ struct AnalyticsView: View {
                     Text("Reads Output/analytics/analytics.json")
                         .font(.caption2)
                         .foregroundStyle(.secondary)
-#if os(macOS)
+#if os(macOS) && !APP_STORE_BUILD
                     Spacer()
                     Button {
                         let folder = AppPaths.outputRoot()
@@ -1522,7 +1535,7 @@ struct AnalyticsView: View {
                     .buttonStyle(.bordered)
 #endif
                 }
-#if os(macOS)
+#if os(macOS) && !APP_STORE_BUILD
                 HStack {
                     Button {
                         model.rebuildAnalyticsViaPython()

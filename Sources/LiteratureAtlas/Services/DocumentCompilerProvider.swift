@@ -18,12 +18,14 @@ protocol DocumentCompilerProviding: Sendable {
 @available(macOS 26, iOS 26, *)
 enum DocumentCompilerProviderFactory {
     static func makeDefault() -> any DocumentCompilerProviding {
+        #if !APP_STORE_BUILD
         let env = ProcessInfo.processInfo.environment
         let preferred = env["LITERATURE_ATLAS_COMPILER_PROVIDER"]?.lowercased()
         if preferred == "openai" {
             Logger(subsystem: "LiteratureAtlas", category: "Compiler")
                 .warning("OpenAI API compiler requested, but standalone app OAuth/Codex auth is not supported here. Falling back to on-device compilation.")
         }
+        #endif
         return OnDeviceDocumentCompilerProvider()
     }
 }
@@ -50,6 +52,7 @@ actor OnDeviceDocumentCompilerProvider: DocumentCompilerProviding {
     }
 }
 
+#if !APP_STORE_BUILD
 @available(macOS 26, iOS 26, *)
 actor OpenAIDocumentCompilerProvider: DocumentCompilerProviding {
     private let fallback: any DocumentCompilerProviding
@@ -232,3 +235,4 @@ private enum OpenAICompilerError: LocalizedError {
         }
     }
 }
+#endif

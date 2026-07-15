@@ -12,6 +12,7 @@
 		0513669D76F999E0C84DFD39 /* CompiledKnowledgeExporter.swift in Sources */ = {isa = PBXBuildFile; fileRef = 2B1099B68CACA96F835A2E33 /* CompiledKnowledgeExporter.swift */; };
 		0F365C10D1C59874BECD279E /* EmbeddingService.swift in Sources */ = {isa = PBXBuildFile; fileRef = F6A43D216B8E96BE2BB5952A /* EmbeddingService.swift */; };
 		100C0C60186BEFD423600617 /* StrategyProjectsView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 437060059F45CDDB4A2E5F8D /* StrategyProjectsView.swift */; };
+		133483200675449C0ABE332D /* Prompts in Resources */ = {isa = PBXBuildFile; fileRef = E6748CAAF74ACF9A67DC9BD5 /* Prompts */; };
 		16A449B95858E47BBF9BD6B7 /* SupportModels.swift in Sources */ = {isa = PBXBuildFile; fileRef = A7F66D539158D03CEFA72FFA /* SupportModels.swift */; };
 		190644244DFA3E1C699B5ECB /* DisplayText.swift in Sources */ = {isa = PBXBuildFile; fileRef = 4F4E54F305A1CB466178FCE7 /* DisplayText.swift */; };
 		1AFBBF600668BF9AA3245FD6 /* ChartZoomControls.swift in Sources */ = {isa = PBXBuildFile; fileRef = 4F1FB7693723ABC9169D1083 /* ChartZoomControls.swift */; };
@@ -72,6 +73,7 @@
 		8106AB9BEDB663153726CB72 /* CompiledKnowledgePaths.swift in Sources */ = {isa = PBXBuildFile; fileRef = 7169A7677F111161483627F0 /* CompiledKnowledgePaths.swift */; };
 		81481A6FF4A217DC6BA07C8A /* AnalyticsView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 2A5F792C1B8241779156B834 /* AnalyticsView.swift */; };
 		81E0EF16100B38DB0DABB844 /* ClusterMarkdownExporter.swift in Sources */ = {isa = PBXBuildFile; fileRef = BA0DC14974ABB82DC11AB4C1 /* ClusterMarkdownExporter.swift */; };
+		8714087021C570CA88A4FA3D /* Prompts in Resources */ = {isa = PBXBuildFile; fileRef = E6748CAAF74ACF9A67DC9BD5 /* Prompts */; };
 		883FFBF5051556EE90D9DC86 /* DismissibleOverlay.swift in Sources */ = {isa = PBXBuildFile; fileRef = B666ED4723F081BECC620E91 /* DismissibleOverlay.swift */; };
 		88CA61A83CF9DFA0AE3BDBB9 /* TradingLensCharts.swift in Sources */ = {isa = PBXBuildFile; fileRef = 0E727CBC49B1462754C6DF20 /* TradingLensCharts.swift */; };
 		8C116A266FCCC892710E1677 /* TemporalAnalytics.swift in Sources */ = {isa = PBXBuildFile; fileRef = AFCB67E4221F8C07ADF49573 /* TemporalAnalytics.swift */; };
@@ -186,6 +188,7 @@
 		DC6E54E34A2D7995F92D10A3 /* DocumentGraphExporter.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = DocumentGraphExporter.swift; sourceTree = "<group>"; };
 		DD176077C6D1FA6C080DC009 /* VectorIndex.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = VectorIndex.swift; sourceTree = "<group>"; };
 		E3438DE7E76B315162D5D148 /* QuantKnowledgeGraph.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = QuantKnowledgeGraph.swift; sourceTree = "<group>"; };
+		E6748CAAF74ACF9A67DC9BD5 /* Prompts */ = {isa = PBXFileReference; lastKnownFileType = folder; path = Prompts; sourceTree = SOURCE_ROOT; };
 		E9FDDBB94AF080D3BD5A39FD /* Release.xcconfig */ = {isa = PBXFileReference; lastKnownFileType = text.xcconfig; path = Release.xcconfig; sourceTree = "<group>"; };
 		EA371A708136027E5D45BB7B /* ChartPlotGeometry.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ChartPlotGeometry.swift; sourceTree = "<group>"; };
 		EBB388B5CDA77FA42DDE4073 /* LiteratureAtlasApp.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = LiteratureAtlasApp.swift; sourceTree = "<group>"; };
@@ -262,6 +265,7 @@
 		821A37CAECAAD8A03A491059 = {
 			isa = PBXGroup;
 			children = (
+				E6748CAAF74ACF9A67DC9BD5 /* Prompts */,
 				65D8F34C3306F424388564B3 /* Config */,
 				2BDB958810874685D1F4DB34 /* Resources */,
 				E9BCB84F8C6AD6E954311D81 /* Sources */,
@@ -448,6 +452,7 @@
 			files = (
 				BC25946778783418B3E2D5D7 /* Assets.xcassets in Resources */,
 				53CFA293D15611EB10A419AC /* PrivacyInfo.xcprivacy in Resources */,
+				133483200675449C0ABE332D /* Prompts in Resources */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};
@@ -457,6 +462,7 @@
 			files = (
 				EAB1E1FCD2CC2C380F790945 /* Assets.xcassets in Resources */,
 				DB453CEA30A4DF828F2D0853 /* PrivacyInfo.xcprivacy in Resources */,
+				8714087021C570CA88A4FA3D /* Prompts in Resources */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};

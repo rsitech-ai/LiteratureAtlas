@@ -24,3 +24,5 @@
 - [x] Initial release-gate matrix published and execution continued.
 - [x] Immutable preflight evidence and digest manifest captured for source commit `010769162d824192310bf9236ffe188ef9fba7c4`.
 - [x] Deterministic XcodeGen project, macOS/iOS app targets, shared Archive schemes, centralized release settings, platform plists, least-privilege entitlements, and required-reason privacy manifests added.
+- [x] Generic macOS and iOS Simulator Release builds pass after platform guards; App Store storage uses Application Support and prompts are bundled.
+- [x] App Store compilation excludes external Python, relative Rust dynamic loading, and dormant OpenAI networking; focused validator and path tests pass.
