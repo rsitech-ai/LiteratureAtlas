@@ -16,9 +16,11 @@
 - [ ] GitHub change management (DoD: intentional cohesive commits are pushed to the release branch and a draft PR records status/evidence; no merge or tag occurs)
 
 ## In progress
+- [ ] Complete deterministic packaging with reviewed icon artwork and green platform Release builds.
 
 ## Done
 - [x] HQ session bootstrap completed.
 - [x] Clean isolated release worktree and branch created.
 - [x] Initial release-gate matrix published and execution continued.
 - [x] Immutable preflight evidence and digest manifest captured for source commit `010769162d824192310bf9236ffe188ef9fba7c4`.
+- [x] Deterministic XcodeGen project, macOS/iOS app targets, shared Archive schemes, centralized release settings, platform plists, least-privilege entitlements, and required-reason privacy manifests added.

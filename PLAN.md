@@ -68,6 +68,6 @@ Chosen: 2 because App Store archives need explicit product types, bundle metadat
 - Record the durable dual-track project boundary, deterministic XcodeGen command, production/compatibility toolchain split, release validation commands, bundle/version centralization, and any confirmed packaging pitfalls.
 
 ## Notes / Results (fill in at end)
-- Changes: Completed the immutable release preflight boundary in `docs/release/1.0.0/TEST_EVIDENCE.md` and its digest-bound `RELEASE_MANIFEST.json`.
-- Tests run: Task 1 documentation validation only; no build or package-manager command was run.
-- Tradeoffs: Release readiness remains blocked by the repository and external gates named in the preflight matrix; this task records evidence without changing product code, dependencies, or lockfiles.
+- Changes: Completed the immutable release preflight boundary, then added a deterministic XcodeGen specification with separate macOS/iOS application targets, centralized release coordinates, platform Info plists, least-privilege entitlements, required-reason privacy manifests, shared schemes, and a structurally valid asset catalog.
+- Tests run: `jq` manifest validation and SHA-256 reconciliation; `plutil -lint` for all platform plists; `xcodegen generate --spec project.yml` twice with identical generated-project digests; `xcodebuild -list -json`; Release `-showBuildSettings` inspection for both schemes.
+- Tradeoffs: The app targets intentionally compile the pure-Swift fallback without embedding Rust. Real app-icon artwork is not fabricated by the packaging task and remains a release gate. Bundle IDs and version/build are centralized reversible defaults; the Apple Team remains unset pending owner/account confirmation.
