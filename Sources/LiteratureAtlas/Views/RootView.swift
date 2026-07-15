@@ -3,15 +3,14 @@ import SwiftUI
 @available(macOS 26, iOS 26, *)
 struct RootView: View {
     @EnvironmentObject private var nav: AppNavigation
+    @Environment(\.horizontalSizeClass) private var horizontalSizeClass
 
     var body: some View {
-        NavigationSplitView {
-            List {
+        NavigationSplitView(columnVisibility: $nav.splitViewVisibility) {
+            List(selection: selectedTab) {
                 Section("Atlas") {
                     ForEach(AppNavigation.Tab.allCases) { tab in
-                        Button {
-                            nav.selectedTab = tab
-                        } label: {
+                        NavigationLink(value: tab) {
                             Label(tab.title, systemImage: tab.systemImage)
                                 .font(.body.weight(.semibold))
                                 .frame(maxWidth: .infinity, alignment: .leading)
@@ -19,7 +18,6 @@ struct RootView: View {
                                 .padding(.horizontal, 8)
                                 .contentShape(Rectangle())
                         }
-                        .buttonStyle(.plain)
                         .foregroundStyle(nav.selectedTab == tab ? .white : .primary)
                         .background(
                             RoundedRectangle(cornerRadius: 8)
@@ -38,6 +36,16 @@ struct RootView: View {
             }
         }
         .tint(GalaxyTheme.nebulaBlue)
+    }
+
+    private var selectedTab: Binding<AppNavigation.Tab?> {
+        Binding(
+            get: { nav.selectedTab },
+            set: { tab in
+                guard let tab else { return }
+                nav.select(tab, collapseSidebar: horizontalSizeClass == .compact)
+            }
+        )
     }
 
     @ViewBuilder
