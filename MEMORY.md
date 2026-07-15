@@ -9,33 +9,37 @@
 
 ### Setup/install
 - Swift build: `swift build`
-- Generate App Store project: `xcodegen generate` (XcodeGen 2.45.4; `project.yml` is the source of truth)
-- Rust FFI build: `cargo build --manifest-path analytics/ffi/Cargo.toml --release`
-- Python env + deps: `python -m venv .venv && .venv/bin/python -m ensurepip --upgrade && .venv/bin/python -m pip install -r analytics/requirements.txt`
+- Generate Xcode project: `xcodegen generate --spec project.yml` (XcodeGen 2.45.4; `project.yml` is the source of truth)
+- Rust FFI build: `cargo build --locked --manifest-path analytics/ffi/Cargo.toml --release`
+- Python env + deps: `uv sync --project analytics --extra dev --frozen` (environment: `analytics/.venv`)
 - macOS app bundle run/smoke: `./script/build_and_run.sh --verify`
 
 ### Format
 - Rust: `cargo fmt --manifest-path analytics/ffi/Cargo.toml`
-- Python: `python -m ruff format analytics/` (configured in pyproject.toml)
+- Python: `analytics/.venv/bin/python -m ruff format analytics scripts` (configured in `analytics/pyproject.toml`)
 
 ### Lint
-- Python: `.venv/bin/python -m ruff check analytics/`
-- Rust: `cargo clippy --manifest-path analytics/ffi/Cargo.toml`
+- Python: `analytics/.venv/bin/python -m ruff check analytics scripts`
+- Rust: `cargo clippy --locked --manifest-path analytics/ffi/Cargo.toml --all-targets --all-features -- -D warnings`
 
 ### Tests
-- Swift: `swift test` (55 tests, typically 1 opt-in smoke test skipped without env vars; requires macOS 26+)
-- Python: `.venv/bin/python -m pytest analytics/tests -v` (12 tests)
-- Rust FFI: `cargo test --manifest-path analytics/ffi/Cargo.toml` (3 tests)
+- Swift: `swift test` (57 tests, typically 1 opt-in smoke test skipped without env vars; requires macOS 26+)
+- Python: `analytics/.venv/bin/python -m pytest analytics/tests -v` (14 tests)
+- Rust FFI: `cargo test --locked --manifest-path analytics/ffi/Cargo.toml` (3 tests)
 - Release configuration: `python3 scripts/validate_release_configuration.py` (fails closed until approved AppIcon artwork is committed)
+- Known-blocker CI gate: `python3 scripts/validate_release_configuration.py --allow-blocker app_icon_artwork` (fails on every other gate)
+- Release script policy: `scripts/tests/test_release_scripts.sh`
+- Community app: `script/build_community.sh --product-name LiteratureAtlasCommunity --bundle-id org.example.LiteratureAtlasCommunity --version 1.0.0 --build 1 --output dist/community`
+- Official pre-sign app: `script/build_official.sh --product-name LiteratureAtlas --bundle-id "$OFFICIAL_BUNDLE_ID" --version "$VERSION" --build "$BUILD_NUMBER" --output dist/official`
 - Unsigned macOS archive: `xcodebuild -project LiteratureAtlas.xcodeproj -scheme LiteratureAtlas-macOS -configuration Release -archivePath /tmp/LiteratureAtlas-macOS.xcarchive CODE_SIGNING_ALLOWED=NO archive`
 - Unsigned iPadOS archive: `xcodebuild -project LiteratureAtlas.xcodeproj -scheme LiteratureAtlas-iOS -configuration Release -destination 'generic/platform=iOS' -archivePath /tmp/LiteratureAtlas-iPadOS.xcarchive CODE_SIGNING_ALLOWED=NO archive`
 
 ### Integration commands
-- Analytics rebuild: `.venv/bin/python analytics/rebuild_analytics.py`
-- Output artifact audit: `.venv/bin/python scripts/audit_output_artifacts.py`
-- Topic reliability audit: `.venv/bin/python scripts/topic_focus_audit.py --base .`
-- Integrated sample smoke run: `scripts/run_example_smoke.sh --count 10`
-- Full corpus ingest gate (in-place to repo `Output/`): `LITERATURE_ATLAS_INGEST_SMOKE_INPUT_DIR="$(pwd)/examples" LITERATURE_ATLAS_INGEST_SMOKE_OUTPUT_ROOT="$(pwd)/Output" LITERATURE_ATLAS_INGEST_SMOKE_EXPECTED_COUNT=115 LITERATURE_ATLAS_INGEST_SMOKE_TIMEOUT_SEC=10800 swift test --filter IngestionSmokeTests/testIngestsSampleFolderAndWritesArtifacts`
+- Analytics rebuild: `analytics/.venv/bin/python analytics/rebuild_analytics.py`
+- Output artifact audit: `analytics/.venv/bin/python scripts/audit_output_artifacts.py`
+- Topic reliability audit: `analytics/.venv/bin/python scripts/topic_focus_audit.py --base .`
+- Integrated sample smoke run: `scripts/run_example_smoke.sh --source /path/to/authorized/pdfs --count 10`
+- Full corpus ingest gate: set `LITERATURE_ATLAS_INGEST_SMOKE_INPUT_DIR` to an authorized local corpus; the repository intentionally contains no sample PDFs.
 
 ## Architecture notes
 - **Data flow**: PDF → Swift app (summarization, embeddings) → `Output/papers/*.paper.json` → Python analytics → `Output/analytics/analytics.json` → Swift app reloads
@@ -45,8 +49,8 @@
 - **Swift services**: `AppModel.swift` orchestrates; services in `Services/` (PDFProcessor, EmbeddingService, LLMActors, ClaimGraph, AnalyticsStore, etc.)
 - **Analytics app sync**: `rebuildAnalyticsViaPython` and `rebuildAnalyticsWithCutoffs` now run output/topic health checks after successful rebuild and expose status/log in `AnalyticsView`; manual health-check trigger available in Analytics backend card.
 - **App bundle paths**: Use `AppPaths` for repo-relative roots. Proper `.app` launches do not reliably inherit the repo current working directory, so app code should not derive `Output/` or `Prompts/` directly from `FileManager.default.currentDirectoryPath`.
-- **App Store product boundary**: Xcode targets compile with `APP_STORE_BUILD` in Debug and Release. They store mutable artifacts under container Application Support, bundle prompts, exclude external Python execution and dormant OpenAI networking, and disable repository-relative Rust FFI loading in favor of the Swift fallback.
-- **Shipping Apple targets**: `LiteratureAtlas-macOS` supports macOS 26+ on `arm64` and `x86_64`; `LiteratureAtlas-iOS` is an iPad-only iPadOS 26+ target (`TARGETED_DEVICE_FAMILY = 2`). iPhone is not a 1.0.0 shipping target.
+- **Distributed product boundary**: Xcode app targets compile with `DISTRIBUTED_APP_BUILD`. They store mutable artifacts under container Application Support, bundle prompts, exclude external Python execution and dormant OpenAI networking, and disable repository-relative Rust FFI loading in favor of the Swift fallback.
+- **Direct-download scope**: the first direct macOS artifact is Apple Silicon (`arm64`) on macOS 26+. The iPad-only iPadOS 26+ target remains a development/App Store lane, not part of the direct-download artifact.
 - **Immersive galaxy UI**: Shared visual styling lives in `Sources/LiteratureAtlas/Views/GalaxyTheme.swift`; prefer its backdrop, hero, metric, status pill, section header, and action helpers plus tinted `GlassCard` before adding one-off colors or custom card styles.
 - **Knowledge Universe map**: The primary map experience is general-purpose corpus exploration and opens by default as `Universe` / `Knowledge Universe`; trading-specific filtering and ranking belong in `TradingLensView`, not the main map.
 - **Knowledge Universe interaction**: Map taps select/inspect nodes in the right panel; deeper navigation is explicit from inspector actions. Paper graph nodes use adaptive labels, hover/selection expansion, canvas pan/zoom, and per-node drag offsets.
@@ -67,9 +71,9 @@
 - Rust FFI must be built before `swift build` (Package.swift links against it)
 - Python analytics requires `Output/papers/*.paper.json` to exist (run Swift ingestion first)
 - Analytics rebuild writes Parquet via pandas and requires `pyarrow` (in `analytics/requirements.txt` and `analytics/pyproject.toml`)
-- The app prefers repo-local `.venv`; stale/incomplete `.venv` causes analytics rebuild failures even if system Python works
+- Contributor analytics commands use `analytics/.venv`; stale/incomplete environments should be replaced with a frozen `uv sync`.
 - Topic reliability audit prefers explicit cluster IDs when coverage is high, otherwise falls back to deterministic KMeans over embeddings
-- Ingestion smoke test is opt-in via env vars (`LITERATURE_ATLAS_INGEST_SMOKE_*`) and `scripts/run_example_smoke.sh` sets them automatically
+- Ingestion smoke testing is opt-in via `LITERATURE_ATLAS_INGEST_SMOKE_*`; `scripts/run_example_smoke.sh` requires an explicit `--source` corpus.
 - Sandboxed folder ingestion must start the selected folder's security-scoped access before file existence checks or enumeration; per-file scope alone is insufficient.
 - `scripts/run_example_smoke.sh` computes sample-friendly topic thresholds (`min_topic_size=max(3,floor(N/3))`, `min_primary_topic_size=ceil(0.4*N)`) to avoid flaky false negatives on random `--count 10` runs
 - `scipy` is optional; `linear_sum_assignment` may be `None`
@@ -97,3 +101,6 @@
 - 2026-06-29: Full generalization pass reframed user-facing trading/quant/strategy surfaces as general research, insight brief, research plan, application impact, and research project language while preserving legacy internal type names, JSON keys, event names, and artifact filenames for compatibility.
 - 2026-07-15: Added deterministic XcodeGen macOS/iPadOS App Store targets, centralized version/build/bundle settings, least-privilege entitlements, required-reason privacy manifests, container storage, shared self-contained runtime conditions, and fail-closed release validation (`project.yml`, `Config/`, `Resources/`, `scripts/validate_release_configuration.py`).
 - 2026-07-15: Scoped 1.0.0 mobile distribution to iPad because the desktop-class interface failed iPhone visual acceptance; fixed compact split navigation with selection-backed `NavigationLink`s and preserved the mandatory live macOS sidebar click smoke.
+- 2026-07-15: Added the `DISTRIBUTED_APP_BUILD` boundary and separate credential-free community, signature-free official pre-sign, Developer ID signing, DMG, approval-gated notarization, and distribution-verification scripts. Official signing is blocked until the owner authorizes the installed private key; no Apple upload was performed.
+- 2026-07-15: The source repository is already public and effectively MIT-licensed. REUSE 3.3 passes, but chain of title and four reachable historical third-party PDFs block a truthful clean official source release or MPL/CC relicense.
+- 2026-07-15: Ordinary CI uses read-only permissions, pinned actions/tools, locked Python/Rust environments, and no Apple credentials. GitHub branch protection, dependency graph/security updates, private vulnerability reporting, and required checks remain owner-controlled external gates.

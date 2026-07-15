@@ -2,79 +2,121 @@ name: CI
 
 on:
   push:
+    branches: [main]
   pull_request:
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+concurrency:
+  group: ci-${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: true
 
 jobs:
-  rust:
-    runs-on: macos-latest
-    steps:
-      - uses: actions/checkout@v4
-      - uses: dtolnay/rust-toolchain@stable
-        with:
-          components: clippy, rustfmt
-      - name: Rust format
-        run: cargo fmt --manifest-path analytics/ffi/Cargo.toml --check
-      - name: Rust lint
-        run: cargo clippy --manifest-path analytics/ffi/Cargo.toml --all-targets --all-features -- -D warnings
-      - name: Rust tests
-        run: cargo test --manifest-path analytics/ffi/Cargo.toml
-      - name: Install cargo-audit
-        run: cargo install cargo-audit --locked --version 0.22.2
-      - name: Rust dependency audit
-        run: cargo audit --file analytics/ffi/Cargo.lock
-
   python:
-    runs-on: macos-latest
+    name: Python / quality
+    runs-on: macos-26
+    timeout-minutes: 20
     steps:
-      - uses: actions/checkout@v4
-      - uses: actions/setup-python@v5
+      - uses: actions/checkout@9c091bb21b7c1c1d1991bb908d89e4e9dddfe3e0 # v7.0.0
         with:
-          python-version: "3.12"
-      - name: Install analytics and development dependencies
-        run: python -m pip install --disable-pip-version-check -e "./analytics[dev]"
-      - name: Python format
-        run: python -m ruff format --check analytics scripts
-      - name: Python lint
-        run: python -m ruff check analytics scripts
-      - name: Python tests
-        run: python -m pytest analytics/tests -q
-      - uses: astral-sh/setup-uv@v5
+          persist-credentials: false
+          fetch-depth: 1
+      - uses: actions/setup-python@ece7cb06caefa5fff74198d8649806c4678c61a1 # v6.3.0
+        with:
+          python-version: "3.12.13"
+      - uses: astral-sh/setup-uv@11f9893b081a58869d3b5fccaea48c9e9e46f990 # v8.3.2
         with:
           version: "0.5.23"
-      - name: Python lock consistency
-        run: uv lock --check --project analytics
+      - name: Verify lock and install
+        run: |
+          uv lock --check --project analytics
+          uv sync --project analytics --python 3.12.13 --extra dev --frozen
+      - name: Format
+        run: uv run --project analytics --python 3.12.13 --extra dev --frozen ruff format --check analytics scripts
+      - name: Lint
+        run: uv run --project analytics --python 3.12.13 --extra dev --frozen ruff check analytics scripts
+      - name: Test
+        run: uv run --project analytics --python 3.12.13 --extra dev --frozen pytest analytics/tests -q
 
-  apple-release:
-    runs-on: macos-latest
+  rust:
+    name: Rust / quality
+    runs-on: macos-26
+    timeout-minutes: 30
     steps:
-      - uses: actions/checkout@v4
-      - uses: dtolnay/rust-toolchain@stable
-      - name: Build Rust FFI for SwiftPM
-        run: cargo build --manifest-path analytics/ffi/Cargo.toml --release
+      - uses: actions/checkout@9c091bb21b7c1c1d1991bb908d89e4e9dddfe3e0 # v7.0.0
+        with:
+          persist-credentials: false
+          fetch-depth: 1
+      - name: Install pinned Rust toolchain
+        run: |
+          rustup toolchain install 1.97.0 --profile minimal --component clippy,rustfmt
+          rustup default 1.97.0
+      - name: Format
+        run: cargo fmt --manifest-path analytics/ffi/Cargo.toml --check
+      - name: Lint
+        run: cargo clippy --locked --manifest-path analytics/ffi/Cargo.toml --all-targets --all-features -- -D warnings
+      - name: Test
+        run: cargo test --locked --manifest-path analytics/ffi/Cargo.toml
+      - name: Build release library
+        run: cargo build --locked --release --manifest-path analytics/ffi/Cargo.toml
+      - name: Install cargo-audit
+        run: cargo install cargo-audit --locked --version 0.22.2
+      - name: Dependency audit
+        run: cargo audit --file analytics/ffi/Cargo.lock
+
+  apple:
+    name: Apple / Swift and distributed bundle
+    runs-on: macos-26
+    timeout-minutes: 45
+    env:
+      DEVELOPER_DIR: /Applications/Xcode_26.6.app/Contents/Developer
+    steps:
+      - uses: actions/checkout@9c091bb21b7c1c1d1991bb908d89e4e9dddfe3e0 # v7.0.0
+        with:
+          persist-credentials: false
+          fetch-depth: 1
+      - name: Install pinned Rust toolchain
+        run: |
+          rustup toolchain install 1.97.0 --profile minimal
+          rustup default 1.97.0
+      - name: Build Rust FFI for contributor SwiftPM lane
+        run: cargo build --locked --release --manifest-path analytics/ffi/Cargo.toml
       - name: Record Apple toolchain
         run: |
           xcodebuild -version
           xcrun --sdk macosx --show-sdk-version
           xcrun --sdk iphoneos --show-sdk-version
-      - name: Swift tests
-        run: swift test
-      - name: Swift release build
-        run: swift build -c release
-      - name: Install XcodeGen
-        run: brew install xcodegen
+      - name: Swift tests and release build
+        run: |
+          swift test
+          swift build -c release
+      - name: Install pinned XcodeGen
+        run: |
+          curl --fail --location --silent --show-error \
+            --output "$RUNNER_TEMP/xcodegen.zip" \
+            https://github.com/yonaskolb/XcodeGen/releases/download/2.45.4/xcodegen.zip
+          echo "090ec29491aad50aec10631bf6e62253fed733c50f3aab0f5ffc86bc170bdbef  $RUNNER_TEMP/xcodegen.zip" | shasum -a 256 --check
+          ditto -x -k "$RUNNER_TEMP/xcodegen.zip" "$RUNNER_TEMP/xcodegen"
+          echo "$RUNNER_TEMP/xcodegen/bin" >> "$GITHUB_PATH"
       - name: Verify generated Xcode project
         run: |
-          xcodegen generate
+          xcodegen generate --spec project.yml
           git diff --exit-code -- LiteratureAtlas.xcodeproj
-      - name: Build macOS App Store target
+      - name: Validate release configuration
+        run: python3 scripts/validate_release_configuration.py --allow-blocker app_icon_artwork
+      - name: Build unsigned distributed macOS target
         run: >-
           xcodebuild -project LiteratureAtlas.xcodeproj
           -scheme LiteratureAtlas-macOS
           -configuration Release
+          -xcconfig Config/DirectDistribution.xcconfig
           -destination 'generic/platform=macOS'
+          ARCHS=arm64 ONLY_ACTIVE_ARCH=YES
           CODE_SIGNING_ALLOWED=NO
           build
-      - name: Build iPadOS App Store target
+      - name: Build unsigned iPadOS development target
         run: >-
           xcodebuild -project LiteratureAtlas.xcodeproj
           -scheme LiteratureAtlas-iOS
@@ -82,5 +124,31 @@ jobs:
           -destination 'generic/platform=iOS'
           CODE_SIGNING_ALLOWED=NO
           build
-      - name: Validate release configuration
-        run: python3 scripts/validate_release_configuration.py
+      - name: Build and verify unofficial CI community app
+        run: |
+          script/build_community.sh \
+            --product-name LiteratureAtlasCI \
+            --bundle-id org.example.LiteratureAtlasCI \
+            --version 1.0.0 \
+            --build "$GITHUB_RUN_NUMBER" \
+            --output "$RUNNER_TEMP/community"
+          script/verify_distribution.sh \
+            --app "$RUNNER_TEMP/community/LiteratureAtlasCI.app" \
+            --mode community
+          script/create_dmg.sh \
+            --app "$RUNNER_TEMP/community/LiteratureAtlasCI.app" \
+            --output "$RUNNER_TEMP/LiteratureAtlasCI.dmg"
+
+  release-policy:
+    name: Release scripts / policy
+    runs-on: macos-26
+    timeout-minutes: 10
+    steps:
+      - uses: actions/checkout@9c091bb21b7c1c1d1991bb908d89e4e9dddfe3e0 # v7.0.0
+        with:
+          persist-credentials: false
+          fetch-depth: 1
+      - name: Release script interface tests
+        run: scripts/tests/test_release_scripts.sh
+      - name: Shell syntax
+        run: bash -n script/*.sh scripts/tests/*.sh

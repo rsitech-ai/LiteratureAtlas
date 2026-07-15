@@ -45,6 +45,6 @@ Chosen: 2 because it retains the strongest existing runtime, privacy, and archiv
 - Record the adopted release baseline, Developer ID/direct-distribution build commands, official/community separation, public repository state, and any durable packaging pitfalls.
 
 ## Notes / Results
-- Changes: In progress.
-- Tests run: Initial Swift baseline passed 51 tests with one opt-in smoke skipped on the pre-adoption snapshot; final baseline and implementation gates are pending.
-- Tradeoffs: Native-only first distributed build; Python and optional Rust acceleration remain contributor tooling unless separately verified.
+- Changes: Added a shared distributed runtime boundary; credential-free community and signature-free official pre-sign builds; staged Developer ID signing; DMG/notary/Gatekeeper verification; privacy-minimized diagnostics; pinned credential-free CI; REUSE metadata; contributor/governance/security policies; IP/secret/license reports; and source/community/pre-sign SBOMs.
+- Tests run: Swift 57 passed with one opt-in corpus smoke skipped; Python 14 passed; Rust 3 passed with strict Clippy and no known vulnerability; Swift Release build, direct Xcode build, community relocation/launch/DMG, release scripts, actionlint, zizmor, REUSE 3.3, pip-audit, OSV, CFF, JSON, and documentation-link checks passed. The release validator has only the explicit approved-AppIcon blocker.
+- Tradeoffs: Native-only Apple Silicon first distribution; Python and Rust acceleration remain contributor tooling. Existing MIT stays effective because MPL/CC relicensing authority is unconfirmed. Signing/notarization/publication remain external owner gates.

@@ -5,7 +5,7 @@
 - Date: 2026-06-29
 - Auditor: Codex
 - Platform: macOS
-- Project: SwiftPM package at `/Users/s1kor/dev/apps/LiteratureAtlas`
+- Project: repository-root SwiftPM package
 - App target: SwiftPM executable product `LiteratureAtlas`
 - Runtime path: `dist/LiteratureAtlas.app`
 - Configuration: Debug for build/test/runtime smoke; Release performance is not claimed

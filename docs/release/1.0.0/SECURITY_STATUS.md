@@ -8,7 +8,7 @@ No validated high- or critical-severity exploitable issue remains in the reposit
 
 The release-hardening source diff through implementation commit `0d99116` received a complete Codex Security full-file scan of all 20 changed source-like files. The sealed result contains zero reportable findings, zero deferred rows, and complete coverage for the selected diff inventory:
 
-- Report: `/private/var/folders/g6/mrhqfgk15_d2gjj52991r1jr0000gn/T/codex-security-scans/LiteratureAtlas/0d99116_20260715T140429Z/report.md`
+- Report: ephemeral machine-local path redacted; use the snapshot digest and canonical sealed artifact names below
 - Snapshot: `codex-security-snapshot/v1:sha256:428594bedcaf6a1f2ebe279e8950442f1db9f2a0b0200988a891d073f684bda8`
 - Canonical artifacts: sealed `scan-manifest.json`, `findings.json`, and `coverage.json`
 

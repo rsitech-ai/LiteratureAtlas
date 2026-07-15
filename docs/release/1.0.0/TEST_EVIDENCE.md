@@ -70,9 +70,7 @@ The repository contains no `analytics/rust/Cargo.toml`; no nonexistent Rust CLI 
 
 ## Security diff scan
 
-The release-hardening source diff through implementation commit `0d99116` received a complete Codex Security branch-diff scan covering all 20 changed source-like files. Every selected file has a full-file receipt; no plausible candidate, reportable finding, suppression, or deferred row remained. The sealed report is outside Git at:
-
-`/private/var/folders/g6/mrhqfgk15_d2gjj52991r1jr0000gn/T/codex-security-scans/LiteratureAtlas/0d99116_20260715T140429Z/report.md`
+The release-hardening source diff through implementation commit `0d99116` received a complete Codex Security branch-diff scan covering all 20 changed source-like files. Every selected file has a full-file receipt; no plausible candidate, reportable finding, suppression, or deferred row remained. The sealed report was stored outside Git at an ephemeral machine-local path that is intentionally not published.
 
 The scan snapshot digest is `codex-security-snapshot/v1:sha256:428594bedcaf6a1f2ebe279e8950442f1db9f2a0b0200988a891d073f684bda8`. The scan is diff-scoped and does not claim an exhaustive repository-wide audit. A subsequent one-line CI compatibility commit, `eff288e`, only removes a no-op `f32` cast; it received targeted review and passed Rust 1.97 format, strict Clippy, tests, and audit, but is not represented as part of the sealed snapshot.
 
