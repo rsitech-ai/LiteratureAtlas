@@ -336,7 +336,9 @@ def assign_topics(
     if len(emb_idx) < 4:
         return list(range(n)), "singleton_fallback", None
 
-    X = np.vstack([papers[i].embedding for i in emb_idx if papers[i].embedding is not None])
+    X = np.vstack(
+        [papers[i].embedding for i in emb_idx if papers[i].embedding is not None]
+    )
     k = _auto_k(len(emb_idx), min_k=min_k, max_k=max_k)
     if k <= 1 or len(emb_idx) <= k:
         return list(range(n)), "singleton_fallback", None
@@ -421,11 +423,13 @@ def build_topic_metrics(
 
         year_coverage = _ratio(sum(1 for p in members if p.year_present), size)
         note_coverage = _ratio(sum(1 for p in members if p.note_present), size)
-        embedding_coverage = _ratio(sum(1 for p in members if p.embedding is not None), size)
+        embedding_coverage = _ratio(
+            sum(1 for p in members if p.embedding is not None), size
+        )
 
         reps = tuple(sorted((p.title for p in members), key=len)[:3])
         query_terms = list(top_terms[:4])
-        query = " OR ".join(f"\"{t}\"" for t in query_terms) if query_terms else ""
+        query = " OR ".join(f'"{t}"' for t in query_terms) if query_terms else ""
 
         reasons: list[str] = []
         if size < min_topic_size:
@@ -462,23 +466,60 @@ def build_topic_metrics(
 
 
 def _parse_args() -> argparse.Namespace:
-    parser = argparse.ArgumentParser(description="Audit whether corpus has reliable, searchable topics.")
-    parser.add_argument("--base", default=".", help="Repo root path (default: current directory).")
+    parser = argparse.ArgumentParser(
+        description="Audit whether corpus has reliable, searchable topics."
+    )
+    parser.add_argument(
+        "--base", default=".", help="Repo root path (default: current directory)."
+    )
     parser.add_argument(
         "--min-cluster-coverage",
         type=float,
         default=0.60,
         help="If explicit cluster id coverage is >= this threshold, use existing clusters instead of KMeans.",
     )
-    parser.add_argument("--kmeans-min-k", type=int, default=4, help="Minimum K for KMeans fallback.")
-    parser.add_argument("--kmeans-max-k", type=int, default=10, help="Maximum K for KMeans fallback.")
-    parser.add_argument("--seed", type=int, default=0, help="Random seed for deterministic KMeans.")
-    parser.add_argument("--min-reliable-topics", type=int, default=1, help="Minimum reliable topics required for PASS.")
-    parser.add_argument("--min-primary-topic-size", type=int, default=8, help="Minimum size for largest topic.")
-    parser.add_argument("--min-topic-size", type=int, default=6, help="Per-topic minimum papers.")
-    parser.add_argument("--min-top-term-coverage", type=float, default=0.15, help="Per-topic cohesion threshold.")
-    parser.add_argument("--min-year-coverage", type=float, default=0.90, help="Per-topic year coverage threshold.")
-    parser.add_argument("--min-note-coverage", type=float, default=0.90, help="Per-topic Obsidian note coverage threshold.")
+    parser.add_argument(
+        "--kmeans-min-k", type=int, default=4, help="Minimum K for KMeans fallback."
+    )
+    parser.add_argument(
+        "--kmeans-max-k", type=int, default=10, help="Maximum K for KMeans fallback."
+    )
+    parser.add_argument(
+        "--seed", type=int, default=0, help="Random seed for deterministic KMeans."
+    )
+    parser.add_argument(
+        "--min-reliable-topics",
+        type=int,
+        default=1,
+        help="Minimum reliable topics required for PASS.",
+    )
+    parser.add_argument(
+        "--min-primary-topic-size",
+        type=int,
+        default=8,
+        help="Minimum size for largest topic.",
+    )
+    parser.add_argument(
+        "--min-topic-size", type=int, default=6, help="Per-topic minimum papers."
+    )
+    parser.add_argument(
+        "--min-top-term-coverage",
+        type=float,
+        default=0.15,
+        help="Per-topic cohesion threshold.",
+    )
+    parser.add_argument(
+        "--min-year-coverage",
+        type=float,
+        default=0.90,
+        help="Per-topic year coverage threshold.",
+    )
+    parser.add_argument(
+        "--min-note-coverage",
+        type=float,
+        default=0.90,
+        help="Per-topic Obsidian note coverage threshold.",
+    )
     parser.add_argument(
         "--min-embedding-coverage",
         type=float,
@@ -497,7 +538,12 @@ def _parse_args() -> argparse.Namespace:
         default=0.05,
         help="Minimum silhouette score when KMeans is used (ignored if unavailable).",
     )
-    parser.add_argument("--max-topics", type=int, default=20, help="Maximum number of topics listed in report.")
+    parser.add_argument(
+        "--max-topics",
+        type=int,
+        default=20,
+        help="Maximum number of topics listed in report.",
+    )
     return parser.parse_args()
 
 
@@ -550,7 +596,9 @@ def run_audit(args: argparse.Namespace) -> tuple[int, str]:
         )
     )
     if silhouette is None:
-        checks.append(("topic separability", True, "silhouette unavailable; check skipped"))
+        checks.append(
+            ("topic separability", True, "silhouette unavailable; check skipped")
+        )
     else:
         checks.append(
             (
@@ -593,8 +641,12 @@ def run_audit(args: argparse.Namespace) -> tuple[int, str]:
     if reliable_topics:
         for t in reliable_topics[: max(1, int(args.max_topics))]:
             terms = ", ".join(t.top_terms[:5]) if t.top_terms else "n/a"
-            reps = "; ".join(t.representative_titles) if t.representative_titles else "n/a"
-            lines.append(f"- Topic `{t.topic_id}` | size={t.size} | cohesion={t.top_term_coverage:.2f}")
+            reps = (
+                "; ".join(t.representative_titles) if t.representative_titles else "n/a"
+            )
+            lines.append(
+                f"- Topic `{t.topic_id}` | size={t.size} | cohesion={t.top_term_coverage:.2f}"
+            )
             lines.append(f"  terms: `{terms}`")
             lines.append(f"  query: `{t.query}`")
             lines.append(f"  examples: {reps}")
@@ -606,7 +658,11 @@ def run_audit(args: argparse.Namespace) -> tuple[int, str]:
     lines.append("")
     for t in topics[: max(1, int(args.max_topics))]:
         terms = ", ".join(t.top_terms[:5]) if t.top_terms else "n/a"
-        verdict = "reliable" if t.reliable else f"not reliable ({', '.join(t.reliability_reasons)})"
+        verdict = (
+            "reliable"
+            if t.reliable
+            else f"not reliable ({', '.join(t.reliability_reasons)})"
+        )
         lines.append(
             f"- Topic `{t.topic_id}` | size={t.size} | cohesion={t.top_term_coverage:.2f} | "
             f"year={t.year_coverage:.1%} | notes={t.note_coverage:.1%} | emb={t.embedding_coverage:.1%} | {verdict}"

@@ -328,7 +328,7 @@ mod tests {
 
     #[test]
     fn connected_components_two_components() {
-        let edges = vec![
+        let edges = [
             AtlasEdge {
                 src: 0,
                 dst: 1,
@@ -352,7 +352,7 @@ mod tests {
 
     #[test]
     fn betweenness_line_graph() {
-        let edges = vec![
+        let edges = [
             AtlasEdge {
                 src: 0,
                 dst: 1,
@@ -381,7 +381,7 @@ mod tests {
 
     #[test]
     fn betweenness_triangle_is_zero() {
-        let edges = vec![
+        let edges = [
             AtlasEdge {
                 src: 0,
                 dst: 1,
