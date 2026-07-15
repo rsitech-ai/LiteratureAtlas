@@ -640,6 +640,10 @@ struct MapView: View {
                 }
             }
             .navigationTitle("Knowledge Universe")
+            #if os(iOS)
+            .navigationBarTitleDisplayMode(.inline)
+            .toolbarColorScheme(.dark, for: .navigationBar)
+            #endif
             .alert("Export", isPresented: $showExportAlert) {
                 Button("OK", role: .cancel) {}
             } message: {
