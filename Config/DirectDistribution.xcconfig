@@ -1,0 +1,10 @@
+#include "Release.xcconfig"
+
+// Direct-download builds share the self-contained runtime boundary but never
+// acquire signing authority during compilation. Signing is a separate step.
+SWIFT_ACTIVE_COMPILATION_CONDITIONS = DISTRIBUTED_APP_BUILD
+CODE_SIGN_STYLE = Manual
+CODE_SIGNING_ALLOWED = NO
+CODE_SIGNING_REQUIRED = NO
+ENABLE_HARDENED_RUNTIME = YES
+ENABLE_APP_SANDBOX = YES
