@@ -5,7 +5,7 @@
 
 ## 2. High-Level Overview
 - The app reads PDFs and Markdown sources, extracts citation-aware sections, uses Apple’s on-device `LanguageModelSession` for compilation/summarization, and builds a multi-scale “knowledge galaxy” for exploration.
-- A local analytics pipeline (Python + DuckDB + optional Rust helpers) computes topic trends, novelty, centrality, drift, factor exposures, and recommendations consumed by the SwiftUI dashboard.
+- A local developer analytics pipeline (Python + DuckDB + optional Rust helpers) computes topic trends, novelty, centrality, drift, factor exposures, and recommendations consumed by the SwiftUI dashboard. App Store products are self-contained and do not execute that external toolchain at runtime.
 - Primary stack: **Swift 6 + SwiftUI + PDFKit + NaturalLanguage + FoundationModels** for the app, **Python 3.10+ + DuckDB + pandas/numpy + scikit-learn** for analytics, and **Rust (cargo)** for ANN/graph acceleration.
 
 ## 3. Architecture & Key Components
@@ -36,7 +36,7 @@
 
 ## 5. Getting Started
 - **Prerequisites**
-- Swift toolchain 6.0+, Xcode 16+ recommended; macOS 26 (or iOS/iPadOS 26) with on-device FoundationModels + NLContextualEmbedding support.
+- Swift toolchain 6.0+, Xcode 26+; macOS 26 or iPadOS 26 with on-device FoundationModels + NLContextualEmbedding support.
   - Rust toolchain (stable) for `analytics/ffi` builds.
   - Python 3.10+ with `pip` or `uv`; dependencies in `analytics/requirements.txt`.
   - Apple Silicon strongly recommended for on-device models.
@@ -73,7 +73,7 @@
   ```
   - Launches the SwiftUI app; use “Select Folder of Documents” in the Ingest tab to process PDFs and Markdown notes.
 - **iPadOS**
-- Open the package in Xcode 16+, select an iOS/iPadOS 26+ device/simulator with Apple Intelligence support, and run the `LiteratureAtlas` target. Ensure `analytics/ffi` is built for the target architecture.
+- Run `xcodegen generate`, open `LiteratureAtlas.xcodeproj`, then select the shared `LiteratureAtlas-iOS` scheme and an iPadOS 26+ device/simulator with Apple Intelligence support. Version 1.0.0 is iPad-only; iPhone is not a shipping device family.
 - **Analytics pipeline (optional but recommended)**
   ```bash
   source .venv/bin/activate  # if using venv
@@ -82,9 +82,11 @@
   ```
 - **Production / release build**
   ```bash
-  swift build -c release
-  # Bundle libatlas_ffi.dylib next to the executable or in a Frameworks folder if redistributing.
+  xcodegen generate
+  xcodebuild -project LiteratureAtlas.xcodeproj -scheme LiteratureAtlas-macOS -configuration Release -destination 'generic/platform=macOS' CODE_SIGNING_ALLOWED=NO build
+  xcodebuild -project LiteratureAtlas.xcodeproj -scheme LiteratureAtlas-iOS -configuration Release -destination 'generic/platform=iOS' CODE_SIGNING_ALLOWED=NO build
   ```
+  App Store builds use the pure-Swift/on-device runtime boundary: external Python execution, repository-relative Rust loading, and the dormant OpenAI provider are compile-time excluded.
 - **CLI usage quick reference**
   - Rebuild analytics: `python analytics/rebuild_analytics.py [--base PATH] [--counterfactual-cutoffs ...]`
   - Topic reliability audit: `.venv/bin/python scripts/topic_focus_audit.py --base .`
@@ -103,7 +105,7 @@
 - Full sample ingest+validate smoke run:
   - `scripts/run_example_smoke.sh --count 10`
   - Samples random PDFs from `examples/`, ingests them via an opt-in test path, and runs analytics + artifact/topic audits on an isolated temp output root.
-- The Rust FFI crate can be checked with `cargo test --manifest-path analytics/ffi/Cargo.toml` (none defined) or `cargo fmt --check` if desired.
+- The Rust FFI crate has three tests and strict gates: `cargo fmt --manifest-path analytics/ffi/Cargo.toml --check`, `cargo clippy --manifest-path analytics/ffi/Cargo.toml --all-targets --all-features -- -D warnings`, and `cargo test --manifest-path analytics/ffi/Cargo.toml`.
 
 ## 8. Module-Level Documentation (Compact)
 - `AppModel` — orchestrates ingestion, embeddings, clustering, RAG Q&A, analytics reloads, recommendations, flashcards, and event logging.
@@ -128,19 +130,19 @@
 - `Output/analytics/user_events.jsonl` — optional event log appended by the app (qa_question, qa_ready, paper_opened, rec_feedback).
 - `Output/reports/corpus_briefing_<version>.md` — cached corpus-level executive briefing generated on-device from the current topic hierarchy.
 - `Output/reports/topic_<clusterID>_dossier_<version>.md` — cached per-topic dossier generated on-device from a cluster + representative papers.
-- All paths are local; no remote storage.
+- All paths are local; no remote storage. SwiftPM developer runs use repo-local `Output/`. App Store products use `Application Support/LiteratureAtlas/Output` inside the application container and bundle immutable prompts as resources.
 
 ## 10. Deployment & Environments
-- No Docker/Helm manifests provided; distribute as a SwiftPM/Xcode app. Ensure `libatlas_ffi` ships with the binary (or adjust `Package.swift` linker flags to your install path).
-- macOS build links `atlas_ffi` from `analytics/ffi/target/release` (see `Package.swift`); rebuild the Rust lib per architecture before shipping.
-- iOS builds default to the Swift fallback (no FFI). To enable FFI on iOS, add iOS linker settings and define `ATLAS_FFI_LINKED` for iOS in `Package.swift` after building a static library.
+- No Docker/Helm manifests are provided. App Store products are generated from `project.yml`; SwiftPM remains the developer/test workflow.
+- SwiftPM macOS builds can use `atlas_ffi` from `analytics/ffi/target/release`. App Store products intentionally use the Swift fallback until an embedded, reproducibly signed FFI artifact is introduced.
 
 ## 11. Security & Permissions
-- All processing is offline: PDFs and Markdown sources stay local, compilation/summaries use on-device models, and analytics run locally.
-- The app confines writes to the repo-relative `Output/` directory and uses security-scoped resource access when importing folders.
+- App Store processing is local: PDFs and Markdown sources stay on device, compilation/summaries use on-device models, and no telemetry or remote model endpoint is packaged.
+- macOS App Store builds use App Sandbox with read-only user-selected file access. Selected folder scope is opened before enumeration; derived writes stay in the app container.
+- See `docs/release/1.0.0/PRIVACY_DATA_MAP.md` and `docs/release/1.0.0/SECURITY_STATUS.md` for the release boundary and remaining owner attestations.
 
 ## 12. Roadmap / TODO
-- No explicit roadmap or TODO files are present in this repository; add issues or docs to track future work (e.g., alternative ANN backends, packaging automation).
+- Task-local release work is tracked in `PLAN.md` and `TODO.md`; durable project commands and decisions live in `MEMORY.md`.
 
 ## 13. Contributing
 - Suggested workflow: fork → create branch → build `analytics/ffi` → make changes → run `swift test` (and analytics script if relevant) → open PR.

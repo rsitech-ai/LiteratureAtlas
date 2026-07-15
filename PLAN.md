@@ -31,7 +31,7 @@ Chosen: 2 because App Store archives need explicit product types, bundle metadat
 2. Add `project.yml`, shared configuration files, platform Info plists, entitlements, privacy manifests, asset catalogs, and shared Release schemes; generate `LiteratureAtlas.xcodeproj` deterministically with XcodeGen 2.45.4.
 3. Add focused validation that proves both application targets expose the intended version/build, bundle IDs, deployment floors, sandbox capabilities, privacy manifests, icons, and Release archive actions.
 4. Build Rust/Python/Swift dependencies and run all configured format, lint, unit, integration, and Release build gates.
-5. Build/install/launch the iOS app on representative OS 26 iPhone/iPad simulators and OS 27 compatibility simulators; capture screenshots, UI/accessibility evidence, logs, and platform-specific defects.
+5. Build/install/launch the mobile app on representative OS 26 and OS 27 iPad simulators; capture screenshots, UI/accessibility evidence, logs, and platform-specific defects. Exclude iPhone from 1.0.0 if compact-layout acceptance is not met.
 6. Build/run the macOS app through the stable bundle workflow and Xcode target; inspect sandbox behavior, bundle structure, architectures, signatures, entitlements, logs, accessibility, memory, and focused performance evidence.
 7. Run repository security and final-diff scans; reconcile required-reason APIs, privacy manifests, local data flow, logging, dependencies, licenses, and App Review policy.
 8. Prepare truthful metadata drafts, review notes, release notes, screenshot/icon evidence, owner-attestation blockers, and the versioned `docs/release/1.0.0/` dossier.
@@ -50,8 +50,8 @@ Chosen: 2 because App Store archives need explicit product types, bundle metadat
 - `swift test`
 - `xcodegen generate --spec project.yml`
 - `xcodebuild -project LiteratureAtlas.xcodeproj -scheme LiteratureAtlas-macOS -configuration Release -destination 'generic/platform=macOS' build`
-- `xcodebuild -project LiteratureAtlas.xcodeproj -scheme LiteratureAtlas-iOS -configuration Release -destination 'generic/platform=iOS Simulator' build`
-- iOS simulator install/launch/screenshot/log checks on iPhone and iPad for OS 26 and OS 27 where the generated target builds.
+- `xcodebuild -project LiteratureAtlas.xcodeproj -scheme LiteratureAtlas-iOS -configuration Release -destination 'generic/platform=iOS' CODE_SIGNING_ALLOWED=NO build`
+- iPad simulator install/launch/screenshot/log checks on OS 26 and OS 27; iPhone is explicitly out of the 1.0.0 shipping scope.
 - `./script/build_and_run.sh --verify` plus macOS log, `codesign`, `plutil`, `file`, `lipo`, and `xattr` inspection.
 - Fresh `xcodebuild archive` for each shipping platform and archive bundle/signing/entitlement/dSYM inspection.
 - GitHub Actions status inspection after the draft PR is pushed.
@@ -67,7 +67,8 @@ Chosen: 2 because App Store archives need explicit product types, bundle metadat
 ## Memory impact
 - Record the durable dual-track project boundary, deterministic XcodeGen command, production/compatibility toolchain split, release validation commands, bundle/version centralization, and any confirmed packaging pitfalls.
 
-## Notes / Results (fill in at end)
-- Changes: Completed preflight and deterministic app-target setup; added a tested release-configuration validator; fixed the two iOS-only compile failures; moved App Store persistence into Application Support; bundled prompt resources; and excluded external Python execution, relative Rust loading, and dormant OpenAI networking from `APP_STORE_BUILD` products.
-- Tests run: Manifest JSON/digest checks; plist lint; deterministic XcodeGen regeneration; target/scheme/build-setting inspection; validator red/green test; AppPaths red/green tests; unsigned generic macOS and iOS Simulator Release builds, both green. Build logs contain only Xcode's benign “no AppIntents.framework dependency” metadata-extraction warning.
-- Tradeoffs: App Store products intentionally use the pure-Swift/on-device path. The developer SwiftPM workflow keeps repo-local analytics tooling. Real app-icon artwork remains approval-gated, so the validator correctly remains red only on `app_icon_artwork`. Bundle IDs/version/build are reversible defaults; the Apple Team remains unset pending owner/account confirmation.
+## Notes / Results
+- Changes: Added deterministic macOS/iPadOS app packaging, centralized release coordinates, least-privilege entitlements, privacy manifests, an App Store runtime boundary, container-safe storage, security-scoped ingest ordering, compact iPad navigation, release validation/tests, CI gates, and the versioned release dossier. iPhone is explicitly excluded from 1.0.0 after compact-layout acceptance failed.
+- Tests run: Swift 55 tests passed with one opt-in corpus smoke skipped; Python 12 tests passed; Rust FFI format, strict clippy, 3 tests, and audit passed with the documented unmaintained `bincode` warning; Ruff format/lint, uv lock, pip-audit, plist lint, deterministic XcodeGen, Swift production build, generic macOS/iPadOS Release builds, simulator/host runtime smokes, and fresh unsigned archives passed. The release validator passes every gate except the intentionally truthful `app_icon_artwork` blocker.
+- Runtime/archive proof: iPadOS 26.5 and 27 beta simulator launches passed; macOS 27 beta host launch, sandbox/container behavior, all six navigation destinations, point-in-time idle resources, and leak diagnostics were captured. Fresh final archives are `/tmp/LiteratureAtlas-1.0.0-final-20260715-macOS.xcarchive` and `/tmp/LiteratureAtlas-1.0.0-final-20260715-iPadOS.xcarchive`.
+- Tradeoffs: App Store products intentionally use the pure-Swift/on-device path while SwiftPM retains repository-local analytics tooling. Production icon artwork remains owner-approved creative work, so the validator stays red only on `app_icon_artwork`. Bundle IDs/version/build are reversible defaults; the Apple Team remains unset pending account confirmation. Unsigned archives prove construction, not uploadability.

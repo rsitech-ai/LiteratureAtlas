@@ -1,44 +1,112 @@
 {
-  "schema_version": 1,
+  "schema_version": 2,
   "release": {
     "version": "1.0.0",
     "build": "1",
     "channels": [
       "mac-app-store",
-      "ios-app-store",
       "ipados-app-store"
+    ],
+    "shipping_targets": [
+      "LiteratureAtlas-macOS",
+      "LiteratureAtlas-iOS (iPad family only)"
+    ],
+    "excluded_targets": [
+      "iPhone 1.0.0"
     ]
   },
   "source": {
-    "commit": "010769162d824192310bf9236ffe188ef9fba7c4",
-    "captured_at": "2026-07-15T11:45:43Z"
+    "base_commit": "010769162d824192310bf9236ffe188ef9fba7c4",
+    "implementation_commit": "0d9911627e1e6ac040742b393dc57811513fa45c",
+    "branch": "feat/andrzej_literatureatlas_release_20260715",
+    "captured_at": "2026-07-15T14:16:57Z"
   },
-  "requirements": {
-    "retrieved_at": "2026-07-15",
-    "official_sources": [
-      "https://developer.apple.com/app-store/submitting/",
-      "https://developer.apple.com/news/?id=ueeok6yw",
-      "https://developer.apple.com/app-store/review/guidelines/",
-      "https://developer.apple.com/documentation/xcode/distributing-your-app-for-beta-testing-and-releases/",
-      "https://developer.apple.com/help/app-store-connect/manage-builds/upload-builds/",
-      "https://developer.apple.com/documentation/bundleresources/describing-use-of-required-reason-api/",
-      "https://developer.apple.com/help/account/provisioning-profiles/create-an-app-store-provisioning-profile"
-    ]
+  "security_scan": {
+    "mode": "branch_diff",
+    "changed_source_files_reviewed": 20,
+    "reportable_findings": 0,
+    "deferred_rows": 0,
+    "snapshot_digest": "codex-security-snapshot/v1:sha256:428594bedcaf6a1f2ebe279e8950442f1db9f2a0b0200988a891d073f684bda8",
+    "report_path": "/private/var/folders/g6/mrhqfgk15_d2gjj52991r1jr0000gn/T/codex-security-scans/LiteratureAtlas/0d99116_20260715T140429Z/report.md",
+    "limitation": "Diff-scoped scan; not an exhaustive repository-wide audit."
   },
   "evidence": [
     {
+      "path": "docs/release/1.0.0/APP_REVIEW_NOTES.md",
+      "sha256": "cd93edd6dd06b09b7db38215fd5dd144eb343b7d99d6394094fe4dc01691b96b",
+      "scope": ["review-notes-draft"],
+      "sanitized": true
+    },
+    {
+      "path": "docs/release/1.0.0/APP_STORE_CHECKLIST.md",
+      "sha256": "b4708f76bed9117e564c4274eed93afb0e0b1f61f123dcf7ac40cc05cab5b38a",
+      "scope": ["release-gates", "owner-actions"],
+      "sanitized": true
+    },
+    {
+      "path": "docs/release/1.0.0/BLOCKERS.md",
+      "sha256": "1d4f512707525a7f12c7e90ebc198c42a147047ad04992870bd3ad95bf1f6701",
+      "scope": ["blockers", "owners", "unblock-evidence"],
+      "sanitized": true
+    },
+    {
+      "path": "docs/release/1.0.0/PRIVACY_DATA_MAP.md",
+      "sha256": "1e00a567c7397ae838ed768bf5be19453fb0ac2d6582c53f8e3fc90c08b277fd",
+      "scope": ["privacy", "data-flow", "owner-attestations"],
+      "sanitized": true
+    },
+    {
+      "path": "docs/release/1.0.0/RELEASE_NOTES.md",
+      "sha256": "5105df829c25ba18e4a98c26db4556436eb9989e10acef024b08fad846659ed2",
+      "scope": ["release-notes-draft"],
+      "sanitized": true
+    },
+    {
+      "path": "docs/release/1.0.0/RELEASE_STATUS.md",
+      "sha256": "43f698bfd8d30b8c1a0a8d1997b744e2484fcaadf535dcbcb61959787fd5cca9",
+      "scope": ["verdict", "readiness", "target-scope"],
+      "sanitized": true
+    },
+    {
+      "path": "docs/release/1.0.0/SECURITY_STATUS.md",
+      "sha256": "6ecc8ec91e242c3d28758972ef9dff82b0a959eb7031dc17012e0ec372b2c5c4",
+      "scope": ["security", "dependencies", "runtime-diagnostics"],
+      "sanitized": true
+    },
+    {
       "path": "docs/release/1.0.0/TEST_EVIDENCE.md",
-      "sha256": "4865b6d895cf483e56bb2f60f89a6bad47db444860243785210471165d2ab8fe",
-      "scope": [
-        "toolchain",
-        "source",
-        "requirements",
-        "targets",
-        "dependencies",
-        "signing-identities",
-        "provisioning-profiles",
-        "release-gates"
-      ],
+      "sha256": "0ea1413079d22c8e4322e51dea7745ee297a163f0af69b5bb59e01bd37ca4dba",
+      "scope": ["toolchain", "tests", "runtime", "archives", "signing"],
+      "sanitized": true
+    },
+    {
+      "path": "docs/release/1.0.0/evidence/screenshots/ipados-26.5-universe-full.png",
+      "sha256": "969c97f73c32d6cb3d056ae714252c743ca427b2e92c308642f0f17bb808c89f",
+      "scope": ["ipados-26.5-runtime", "engineering-screenshot"],
+      "sanitized": true
+    },
+    {
+      "path": "docs/release/1.0.0/evidence/screenshots/ipados-26.5-universe.jpg",
+      "sha256": "127aabaf52d1705c785a81d6915b3dd9b70481a42e64939e5a94698906ed145e",
+      "scope": ["ipados-26.5-runtime", "preview"],
+      "sanitized": true
+    },
+    {
+      "path": "docs/release/1.0.0/evidence/screenshots/ipados-27-beta-model-unavailable-full.png",
+      "sha256": "fe9db4cc978e1ad4bbbd6f5e4a39062cde0fbaf311d41138ceeeab8b49f26aa1",
+      "scope": ["ipados-27-beta-compatibility", "engineering-screenshot"],
+      "sanitized": true
+    },
+    {
+      "path": "docs/release/1.0.0/evidence/screenshots/ipados-27-beta-model-unavailable.jpg",
+      "sha256": "8c6aa9e3d986128701aabdbefd226fbcd6913f52a183370b63f013ae68739eef",
+      "scope": ["ipados-27-beta-compatibility", "preview"],
+      "sanitized": true
+    },
+    {
+      "path": "docs/release/1.0.0/evidence/screenshots/macos-27-beta.png",
+      "sha256": "51889a425d2ccc08da8ebc8e03938fa2b8ee06d40e8f460e9f1dbaa71220959a",
+      "scope": ["macos-27-beta-compatibility", "engineering-screenshot"],
       "sanitized": true
     }
   ],
@@ -50,5 +118,5 @@
     "device-identifiers",
     "sensitive-logs"
   ],
-  "verdict": "blocked:external-and-repository"
+  "verdict": "BLOCKED"
 }
