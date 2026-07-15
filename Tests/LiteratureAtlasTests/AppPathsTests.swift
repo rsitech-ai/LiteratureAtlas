@@ -20,23 +20,39 @@ final class AppPathsTests: XCTestCase {
         XCTAssertEqual(AppPaths.promptsRoot(), root.appendingPathComponent("Prompts", isDirectory: true))
     }
 
-    func testAppStoreOutputRootUsesApplicationSupportContainer() {
+    func testDistributedOutputRootUsesApplicationSupportContainer() {
         let applicationSupport = URL(fileURLWithPath: "/tmp/LiteratureAtlas-AppSupport", isDirectory: true)
 
         XCTAssertEqual(
-            AppPaths.outputRoot(appStoreBuild: true, applicationSupportRoot: applicationSupport),
+            AppPaths.outputRoot(distributedBuild: true, applicationSupportRoot: applicationSupport),
             applicationSupport
                 .appendingPathComponent("LiteratureAtlas", isDirectory: true)
                 .appendingPathComponent("Output", isDirectory: true)
         )
     }
 
-    func testAppStorePromptsRootUsesBundledResources() {
+    func testDistributedPromptsRootUsesBundledResources() {
         let resources = URL(fileURLWithPath: "/tmp/LiteratureAtlas.app/Contents/Resources", isDirectory: true)
 
         XCTAssertEqual(
-            AppPaths.promptsRoot(appStoreBuild: true, bundleResourceRoot: resources),
+            AppPaths.promptsRoot(distributedBuild: true, bundleResourceRoot: resources),
             resources.appendingPathComponent("Prompts", isDirectory: true)
         )
+    }
+
+    func testDistributedBuildDisablesCheckoutOnlyRuntimeCapabilities() {
+        let capabilities = AppRuntimeCapabilities(distributedBuild: true)
+
+        XCTAssertFalse(capabilities.canRunRepositoryPython)
+        XCTAssertFalse(capabilities.canLoadRepositoryRustLibrary)
+        XCTAssertFalse(capabilities.canReadEnvironmentAPIKeys)
+    }
+
+    func testContributorBuildRetainsCheckoutRuntimeCapabilities() {
+        let capabilities = AppRuntimeCapabilities(distributedBuild: false)
+
+        XCTAssertTrue(capabilities.canRunRepositoryPython)
+        XCTAssertTrue(capabilities.canLoadRepositoryRustLibrary)
+        XCTAssertTrue(capabilities.canReadEnvironmentAPIKeys)
     }
 }

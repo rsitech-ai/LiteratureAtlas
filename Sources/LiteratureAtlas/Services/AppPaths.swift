@@ -1,10 +1,10 @@
 import Foundation
 
 enum AppPaths {
-    #if APP_STORE_BUILD
-    private static let isAppStoreBuild = true
+    #if DISTRIBUTED_APP_BUILD
+    private static let isDistributedBuild = true
     #else
-    private static let isAppStoreBuild = false
+    private static let isDistributedBuild = false
     #endif
 
     static func repoRoot() -> URL {
@@ -36,10 +36,10 @@ enum AppPaths {
     }
 
     static func outputRoot(
-        appStoreBuild: Bool = isAppStoreBuild,
+        distributedBuild: Bool = isDistributedBuild,
         applicationSupportRoot: URL? = nil
     ) -> URL {
-        if appStoreBuild {
+        if distributedBuild {
             let base: URL
             if let applicationSupportRoot {
                 base = applicationSupportRoot
@@ -59,10 +59,10 @@ enum AppPaths {
     }
 
     static func promptsRoot(
-        appStoreBuild: Bool = isAppStoreBuild,
+        distributedBuild: Bool = isDistributedBuild,
         bundleResourceRoot: URL? = nil
     ) -> URL {
-        if appStoreBuild {
+        if distributedBuild {
             let resources = bundleResourceRoot ?? Bundle.main.resourceURL ?? Bundle.main.bundleURL
             return resources.appendingPathComponent("Prompts", isDirectory: true)
         }
@@ -90,4 +90,22 @@ enum AppPaths {
         fm.fileExists(atPath: url.appendingPathComponent("Package.swift").path)
             && fm.fileExists(atPath: url.appendingPathComponent("Sources/LiteratureAtlas").path)
     }
+}
+
+struct AppRuntimeCapabilities: Equatable {
+    let distributedBuild: Bool
+
+    init(distributedBuild: Bool = Self.isDistributedBuild) {
+        self.distributedBuild = distributedBuild
+    }
+
+    var canRunRepositoryPython: Bool { !distributedBuild }
+    var canLoadRepositoryRustLibrary: Bool { !distributedBuild }
+    var canReadEnvironmentAPIKeys: Bool { !distributedBuild }
+
+    #if DISTRIBUTED_APP_BUILD
+    private static let isDistributedBuild = true
+    #else
+    private static let isDistributedBuild = false
+    #endif
 }

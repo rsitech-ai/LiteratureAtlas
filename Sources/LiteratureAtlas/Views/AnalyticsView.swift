@@ -1099,7 +1099,7 @@ struct AnalyticsView: View {
                         }
                     }
                     .pickerStyle(.menu)
-                    #if os(macOS) && !APP_STORE_BUILD
+                    #if os(macOS) && !DISTRIBUTED_APP_BUILD
                     HStack {
                         TextField("Custom cutoffs (e.g., 2010 2015 2020)", text: Binding(
                             get: { customCutoffs },
@@ -1500,7 +1500,7 @@ struct AnalyticsView: View {
 
     @ViewBuilder private func backendAnalyticsCard() -> some View {
         let subtitle: String = {
-            #if os(macOS) && !APP_STORE_BUILD
+            #if os(macOS) && !DISTRIBUTED_APP_BUILD
             "DuckDB / Python rebuild, reload, and health-check controls."
             #else
             "Loads locally generated analytics stored in the app container."
@@ -1523,7 +1523,7 @@ struct AnalyticsView: View {
                     Text("Reads Output/analytics/analytics.json")
                         .font(.caption2)
                         .foregroundStyle(.secondary)
-#if os(macOS) && !APP_STORE_BUILD
+#if os(macOS) && !DISTRIBUTED_APP_BUILD
                     Spacer()
                     Button {
                         let folder = AppPaths.outputRoot()
@@ -1535,7 +1535,7 @@ struct AnalyticsView: View {
                     .buttonStyle(.bordered)
 #endif
                 }
-#if os(macOS) && !APP_STORE_BUILD
+#if os(macOS) && !DISTRIBUTED_APP_BUILD
                 HStack {
                     Button {
                         model.rebuildAnalyticsViaPython()

@@ -18,7 +18,7 @@ protocol DocumentCompilerProviding: Sendable {
 @available(macOS 26, iOS 26, *)
 enum DocumentCompilerProviderFactory {
     static func makeDefault() -> any DocumentCompilerProviding {
-        #if !APP_STORE_BUILD
+        #if !DISTRIBUTED_APP_BUILD
         let env = ProcessInfo.processInfo.environment
         let preferred = env["LITERATURE_ATLAS_COMPILER_PROVIDER"]?.lowercased()
         if preferred == "openai" {
@@ -52,7 +52,7 @@ actor OnDeviceDocumentCompilerProvider: DocumentCompilerProviding {
     }
 }
 
-#if !APP_STORE_BUILD
+#if !DISTRIBUTED_APP_BUILD
 @available(macOS 26, iOS 26, *)
 actor OpenAIDocumentCompilerProvider: DocumentCompilerProviding {
     private let fallback: any DocumentCompilerProviding
