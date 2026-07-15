@@ -48,6 +48,7 @@ def validate(root: Path) -> dict[str, Any]:
         "platform: iOS",
         "type: application",
         "productName: LiteratureAtlas",
+        'TARGETED_DEVICE_FAMILY: "2"',
         "archive:",
         "config: Release",
     )
@@ -56,7 +57,7 @@ def validate(root: Path) -> dict[str, Any]:
         "project_spec",
         project_spec.is_file()
         and all(fragment in spec_text for fragment in spec_fragments),
-        "project.yml defines both application targets and Release archive schemes",
+        "project.yml defines macOS and iPadOS application targets with Release archive schemes",
     )
 
     shared_config = read_text(root / "Config/Shared.xcconfig")
