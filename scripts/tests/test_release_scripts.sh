@@ -40,7 +40,7 @@ expect_failure() {
 assert_stderr_contains() {
     name=$1
     expected=$2
-    if grep -F "$expected" "$TMP/stderr" >/dev/null; then
+    if grep -F -- "$expected" "$TMP/stderr" >/dev/null; then
         pass "$name"
     else
         fail "$name"
@@ -86,6 +86,10 @@ expect_failure "notarization refuses implicit submission" \
     "$ROOT/script/notarize_dmg.sh" --dmg "$TMP/Fake.dmg" --keychain-profile Example
 assert_stderr_contains "notarization names explicit approval flag" "requires --submit"
 
+expect_failure "corpus smoke rejects an implicit sample source" \
+    "$ROOT/scripts/run_example_smoke.sh" --count 1
+assert_stderr_contains "corpus smoke requires authorized user input" "--source DIR is required"
+
 expect_failure "DMG creation rejects missing app bundle" \
     "$ROOT/script/create_dmg.sh" --app "$TMP/Missing.app" --output "$TMP/Fake.dmg"
 expect_failure "verification rejects unknown mode" \
@@ -95,6 +99,20 @@ if grep -R "notarytool submit" "$TMP" >/dev/null 2>&1; then
     fail "tests perform no notarization submission"
 else
     pass "tests perform no notarization submission"
+fi
+
+if grep -F -- '--output-format json' "$ROOT/script/notarize_dmg.sh" >/dev/null \
+    && grep -F 'notarytool log' "$ROOT/script/notarize_dmg.sh" >/dev/null; then
+    pass "notarization records structured submission evidence"
+else
+    fail "notarization records structured submission evidence"
+fi
+
+if grep -F -- '--remove-signature' "$ROOT/script/build_official.sh" >/dev/null \
+    && grep -F 'code object is not signed at all' "$ROOT/script/build_official.sh" >/dev/null; then
+    pass "official build proves a signature-free pre-sign candidate"
+else
+    fail "official build proves a signature-free pre-sign candidate"
 fi
 
 if [ "$failures" -ne 0 ]; then

@@ -31,14 +31,14 @@ done
 [ -n "$output" ] || release_die "missing --output"
 
 if [ "$dry_run" = true ]; then
-    release_build_unsigned_app "$product_name" "$bundle_id" "$version" "$build_number" "$output" true
+    release_build_presign_app "$product_name" "$bundle_id" "$version" "$build_number" "$output" true
     release_print_command codesign --force --sign - --options runtime --timestamp=none \
         --entitlements "$RELEASE_ROOT/Resources/macOS/LiteratureAtlas.entitlements" \
         "$output/$product_name.app"
     exit 0
 fi
 
-app=$(release_build_unsigned_app "$product_name" "$bundle_id" "$version" "$build_number" "$output" false)
+app=$(release_build_presign_app "$product_name" "$bundle_id" "$version" "$build_number" "$output" false)
 release_require_command codesign
 codesign --force --sign - --options runtime --timestamp=none \
     --entitlements "$RELEASE_ROOT/Resources/macOS/LiteratureAtlas.entitlements" \

@@ -7,11 +7,18 @@ from pathlib import Path
 
 
 class ReleaseConfigurationTests(unittest.TestCase):
-    def run_validator(self, root: Path) -> subprocess.CompletedProcess[str]:
+    def run_validator(self, root: Path, *extra_arguments: str) -> subprocess.CompletedProcess[str]:
         repo_root = Path(__file__).resolve().parents[2]
         validator = repo_root / "scripts" / "validate_release_configuration.py"
         return subprocess.run(
-            [sys.executable, str(validator), "--root", str(root), "--json"],
+            [
+                sys.executable,
+                str(validator),
+                "--root",
+                str(root),
+                "--json",
+                *extra_arguments,
+            ],
             check=False,
             capture_output=True,
             text=True,
@@ -48,6 +55,16 @@ class ReleaseConfigurationTests(unittest.TestCase):
 
         payload = json.loads(result.stdout)
         self.assertTrue(payload["gates"]["privacy_safe_diagnostics"]["passed"])
+
+    def test_validator_can_allow_an_explicit_known_blocker(self):
+        repo_root = Path(__file__).resolve().parents[2]
+
+        result = self.run_validator(repo_root, "--allow-blocker", "app_icon_artwork")
+
+        self.assertEqual(result.returncode, 0, result.stderr)
+        payload = json.loads(result.stdout)
+        self.assertEqual(payload["allowed_blockers"], ["app_icon_artwork"])
+        self.assertEqual(payload["unallowed_failed_gates"], [])
 
 
 if __name__ == "__main__":

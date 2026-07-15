@@ -71,8 +71,13 @@ if [ -n "$dmg" ]; then
 fi
 
 if [ "$mode" = notarized ]; then
-    xcrun stapler validate "$app"
-    [ -z "$dmg" ] || xcrun stapler validate "$dmg"
+    if [ -n "$dmg" ]; then
+        # The DMG is the submitted and stapled artifact. Stapling the app after
+        # creating the DMG would change content that Apple did not notarize.
+        xcrun stapler validate "$dmg"
+    else
+        xcrun stapler validate "$app"
+    fi
     spctl -a -vv -t exec "$app"
 fi
 

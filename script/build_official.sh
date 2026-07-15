@@ -31,10 +31,17 @@ done
 [ -n "$output" ] || release_die "missing --output"
 
 if [ "$dry_run" = true ]; then
-    release_build_unsigned_app "$product_name" "$bundle_id" "$version" "$build_number" "$output" true
+    release_build_presign_app "$product_name" "$bundle_id" "$version" "$build_number" "$output" true
     exit 0
 fi
 
-app=$(release_build_unsigned_app "$product_name" "$bundle_id" "$version" "$build_number" "$output" false)
-printf 'Unsigned official app: %s\n' "$app"
+app=$(release_build_presign_app "$product_name" "$bundle_id" "$version" "$build_number" "$output" false)
+release_require_command codesign
+codesign --remove-signature "$app"
+if signature_details=$(codesign -dv "$app" 2>&1); then
+    release_die "official pre-sign candidate unexpectedly retains a signature: $signature_details"
+fi
+printf '%s\n' "$signature_details" | grep -F 'code object is not signed at all' >/dev/null \
+    || release_die "unable to prove signature-free candidate: $signature_details"
+printf 'Signature-free official pre-sign candidate: %s\n' "$app"
 printf 'Next: script/sign_developer_id.sh --app %q --identity %q\n' "$app" 'Developer ID Application: ...'
