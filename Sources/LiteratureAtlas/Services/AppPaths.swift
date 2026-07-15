@@ -1,6 +1,12 @@
 import Foundation
 
 enum AppPaths {
+    #if APP_STORE_BUILD
+    private static let isAppStoreBuild = true
+    #else
+    private static let isAppStoreBuild = false
+    #endif
+
     static func repoRoot() -> URL {
         let fm = FileManager.default
         let env = ProcessInfo.processInfo.environment
@@ -29,12 +35,38 @@ enum AppPaths {
         return URL(fileURLWithPath: fm.currentDirectoryPath, isDirectory: true)
     }
 
-    static func outputRoot() -> URL {
-        repoRoot().appendingPathComponent("Output", isDirectory: true)
+    static func outputRoot(
+        appStoreBuild: Bool = isAppStoreBuild,
+        applicationSupportRoot: URL? = nil
+    ) -> URL {
+        if appStoreBuild {
+            let base: URL
+            if let applicationSupportRoot {
+                base = applicationSupportRoot
+            } else if let resolved = FileManager.default.urls(
+                for: .applicationSupportDirectory,
+                in: .userDomainMask
+            ).first {
+                base = resolved
+            } else {
+                preconditionFailure("Application Support directory is unavailable")
+            }
+            return base
+                .appendingPathComponent("LiteratureAtlas", isDirectory: true)
+                .appendingPathComponent("Output", isDirectory: true)
+        }
+        return repoRoot().appendingPathComponent("Output", isDirectory: true)
     }
 
-    static func promptsRoot() -> URL {
-        repoRoot().appendingPathComponent("Prompts", isDirectory: true)
+    static func promptsRoot(
+        appStoreBuild: Bool = isAppStoreBuild,
+        bundleResourceRoot: URL? = nil
+    ) -> URL {
+        if appStoreBuild {
+            let resources = bundleResourceRoot ?? Bundle.main.resourceURL ?? Bundle.main.bundleURL
+            return resources.appendingPathComponent("Prompts", isDirectory: true)
+        }
+        return repoRoot().appendingPathComponent("Prompts", isDirectory: true)
     }
 
     private static func nearestRepoRoot(from start: URL, fileManager fm: FileManager) -> URL? {
