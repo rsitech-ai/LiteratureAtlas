@@ -25,7 +25,7 @@ class ReleaseConfigurationTests(unittest.TestCase):
         payload = json.loads(result.stdout)
         self.assertIn("project_spec", payload["failed_gates"])
 
-    def test_xcode_run_and_archive_use_app_store_runtime_boundary(self):
+    def test_xcode_run_and_archive_use_distributed_runtime_boundary(self):
         repo_root = Path(__file__).resolve().parents[2]
 
         result = self.run_validator(repo_root)

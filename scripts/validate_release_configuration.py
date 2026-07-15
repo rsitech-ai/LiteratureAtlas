@@ -1,5 +1,5 @@
 #!/usr/bin/env python3
-"""Validate committed LiteratureAtlas App Store packaging without Xcode APIs."""
+"""Validate committed LiteratureAtlas distributed packaging without Xcode APIs."""
 
 from __future__ import annotations
 
@@ -86,18 +86,18 @@ def validate(root: Path) -> dict[str, Any]:
         "release_optimization",
         "SWIFT_COMPILATION_MODE = wholemodule" in release_config
         and "SWIFT_OPTIMIZATION_LEVEL = -O" in release_config,
-        "Release configuration uses whole-module optimized App Store compilation",
+        "Release configuration uses whole-module optimized distributed compilation",
     )
     add_gate(
         gates,
         "xcode_app_runtime_boundary",
-        "SWIFT_ACTIVE_COMPILATION_CONDITIONS = APP_STORE_BUILD $(inherited)"
+        "SWIFT_ACTIVE_COMPILATION_CONDITIONS = DISTRIBUTED_APP_BUILD APP_STORE_BUILD $(inherited)"
         in shared_config
         and '#include "Shared.xcconfig"' in debug_config
         and '#include "Shared.xcconfig"' in release_config
         and "APP_STORE_BUILD" not in debug_config
         and "APP_STORE_BUILD" not in release_config,
-        "Debug runs and Release archives inherit the same App Store runtime boundary",
+        "Debug runs and Release archives inherit the same distributed runtime boundary",
     )
 
     platform_paths = {
@@ -191,18 +191,18 @@ def validate(root: Path) -> dict[str, Any]:
         root / "Sources/LiteratureAtlas/Services/DocumentCompilerProvider.swift"
     )
     self_contained_ok = (
-        "#if os(macOS) && !APP_STORE_BUILD" in app_model
-        and "#if os(macOS) && !APP_STORE_BUILD" in analytics_view
-        and "#if APP_STORE_BUILD\n    nonisolated(unsafe) private static let handle"
+        "#if os(macOS) && !DISTRIBUTED_APP_BUILD" in app_model
+        and "#if os(macOS) && !DISTRIBUTED_APP_BUILD" in analytics_view
+        and "#if DISTRIBUTED_APP_BUILD\n    nonisolated(unsafe) private static let handle"
         in ffi_source
-        and "#if !APP_STORE_BUILD\n@available(macOS 26, iOS 26, *)\nactor OpenAIDocumentCompilerProvider"
+        and "#if !DISTRIBUTED_APP_BUILD\n@available(macOS 26, iOS 26, *)\nactor OpenAIDocumentCompilerProvider"
         in compiler_source
     )
     add_gate(
         gates,
-        "app_store_self_contained",
+        "distributed_app_self_contained",
         self_contained_ok,
-        "App Store compilation excludes external Python, relative FFI loading, and dormant remote compilation",
+        "Distributed compilation excludes external Python, relative FFI loading, and dormant remote compilation",
     )
     folder_scope_index = app_model.find(
         "let folderScopeAccess = folderURL.startAccessingSecurityScopedResource()"

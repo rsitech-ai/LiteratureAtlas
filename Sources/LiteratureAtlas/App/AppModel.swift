@@ -1254,7 +1254,7 @@ final class AppModel: ObservableObject {
         let url = outputRoot.appendingPathComponent("analytics", isDirectory: true).appendingPathComponent("analytics.json")
         do {
             analyticsSummary = try AnalyticsStore.loadSummary(from: url)
-            #if APP_STORE_BUILD
+            #if DISTRIBUTED_APP_BUILD
             analyticsLoadError = analyticsSummary == nil ? "Analytics data is not available yet." : nil
             #else
             analyticsLoadError = analyticsSummary == nil ? "analytics.json not found. Run the Python rebuild." : nil
@@ -1271,7 +1271,7 @@ final class AppModel: ObservableObject {
         }
     }
 
-#if os(macOS) && !APP_STORE_BUILD
+#if os(macOS) && !DISTRIBUTED_APP_BUILD
     private struct AnalyticsHealthCheckOutcome {
         let passed: Bool
         let output: String
