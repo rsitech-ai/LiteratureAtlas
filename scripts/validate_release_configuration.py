@@ -204,6 +204,18 @@ def validate(root: Path) -> dict[str, Any]:
         self_contained_ok,
         "App Store compilation excludes external Python, relative FFI loading, and dormant remote compilation",
     )
+    folder_scope_index = app_model.find(
+        "let folderScopeAccess = folderURL.startAccessingSecurityScopedResource()"
+    )
+    folder_enumeration_index = app_model.find(
+        "let sourceFiles = discoverSourceDocuments(in: folderURL)"
+    )
+    add_gate(
+        gates,
+        "security_scoped_ingest",
+        folder_scope_index >= 0 and folder_scope_index < folder_enumeration_index,
+        "sandboxed ingest opens the selected folder security scope before enumeration",
+    )
 
     icon_root = root / "Resources/Shared/Assets.xcassets/AppIcon.appiconset"
     try:

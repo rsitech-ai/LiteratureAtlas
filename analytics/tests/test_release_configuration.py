@@ -33,6 +33,14 @@ class ReleaseConfigurationTests(unittest.TestCase):
         payload = json.loads(result.stdout)
         self.assertTrue(payload["gates"]["xcode_app_runtime_boundary"]["passed"])
 
+    def test_sandboxed_ingest_opens_folder_scope_before_enumeration(self):
+        repo_root = Path(__file__).resolve().parents[2]
+
+        result = self.run_validator(repo_root)
+
+        payload = json.loads(result.stdout)
+        self.assertTrue(payload["gates"]["security_scoped_ingest"]["passed"])
+
 
 if __name__ == "__main__":
     unittest.main()

@@ -341,6 +341,15 @@ final class AppModel: ObservableObject {
     private func runIngestion(folderURL: URL) async {
         let smokeFastMode = ProcessInfo.processInfo.environment["LITERATURE_ATLAS_SMOKE_FAST"] == "1"
 
+        #if os(iOS) || os(macOS)
+        let folderScopeAccess = folderURL.startAccessingSecurityScopedResource()
+        defer {
+            if folderScopeAccess {
+                folderURL.stopAccessingSecurityScopedResource()
+            }
+        }
+        #endif
+
         defer {
             isIngesting = false
             ingestionTask = nil
