@@ -9,6 +9,7 @@
 
 ### Setup/install
 - Swift build: `swift build`
+- Generate App Store project: `xcodegen generate` (XcodeGen 2.45.4; `project.yml` is the source of truth)
 - Rust FFI build: `cargo build --manifest-path analytics/ffi/Cargo.toml --release`
 - Python env + deps: `python -m venv .venv && .venv/bin/python -m ensurepip --upgrade && .venv/bin/python -m pip install -r analytics/requirements.txt`
 - macOS app bundle run/smoke: `./script/build_and_run.sh --verify`
@@ -22,9 +23,12 @@
 - Rust: `cargo clippy --manifest-path analytics/ffi/Cargo.toml`
 
 ### Tests
-- Swift: `swift test` (51 tests, typically 1 opt-in smoke test skipped without env vars; requires macOS 26+)
-- Python: `.venv/bin/python -m pytest analytics/tests -v` (9 tests)
+- Swift: `swift test` (55 tests, typically 1 opt-in smoke test skipped without env vars; requires macOS 26+)
+- Python: `.venv/bin/python -m pytest analytics/tests -v` (12 tests)
 - Rust FFI: `cargo test --manifest-path analytics/ffi/Cargo.toml` (3 tests)
+- Release configuration: `python3 scripts/validate_release_configuration.py` (fails closed until approved AppIcon artwork is committed)
+- Unsigned macOS archive: `xcodebuild -project LiteratureAtlas.xcodeproj -scheme LiteratureAtlas-macOS -configuration Release -archivePath /tmp/LiteratureAtlas-macOS.xcarchive CODE_SIGNING_ALLOWED=NO archive`
+- Unsigned iPadOS archive: `xcodebuild -project LiteratureAtlas.xcodeproj -scheme LiteratureAtlas-iOS -configuration Release -destination 'generic/platform=iOS' -archivePath /tmp/LiteratureAtlas-iPadOS.xcarchive CODE_SIGNING_ALLOWED=NO archive`
 
 ### Integration commands
 - Analytics rebuild: `.venv/bin/python analytics/rebuild_analytics.py`
@@ -41,10 +45,12 @@
 - **Swift services**: `AppModel.swift` orchestrates; services in `Services/` (PDFProcessor, EmbeddingService, LLMActors, ClaimGraph, AnalyticsStore, etc.)
 - **Analytics app sync**: `rebuildAnalyticsViaPython` and `rebuildAnalyticsWithCutoffs` now run output/topic health checks after successful rebuild and expose status/log in `AnalyticsView`; manual health-check trigger available in Analytics backend card.
 - **App bundle paths**: Use `AppPaths` for repo-relative roots. Proper `.app` launches do not reliably inherit the repo current working directory, so app code should not derive `Output/` or `Prompts/` directly from `FileManager.default.currentDirectoryPath`.
+- **App Store product boundary**: Xcode targets compile with `APP_STORE_BUILD` in Debug and Release. They store mutable artifacts under container Application Support, bundle prompts, exclude external Python execution and dormant OpenAI networking, and disable repository-relative Rust FFI loading in favor of the Swift fallback.
+- **Shipping Apple targets**: `LiteratureAtlas-macOS` supports macOS 26+ on `arm64` and `x86_64`; `LiteratureAtlas-iOS` is an iPad-only iPadOS 26+ target (`TARGETED_DEVICE_FAMILY = 2`). iPhone is not a 1.0.0 shipping target.
 - **Immersive galaxy UI**: Shared visual styling lives in `Sources/LiteratureAtlas/Views/GalaxyTheme.swift`; prefer its backdrop, hero, metric, status pill, section header, and action helpers plus tinted `GlassCard` before adding one-off colors or custom card styles.
 - **Knowledge Universe map**: The primary map experience is general-purpose corpus exploration and opens by default as `Universe` / `Knowledge Universe`; trading-specific filtering and ranking belong in `TradingLensView`, not the main map.
 - **Knowledge Universe interaction**: Map taps select/inspect nodes in the right panel; deeper navigation is explicit from inspector actions. Paper graph nodes use adaptive labels, hover/selection expansion, canvas pan/zoom, and per-node drag offsets.
-- **Sidebar navigation**: The root sidebar uses explicit full-width buttons that set `AppNavigation.selectedTab`; do not replace this with passive `List(selection:)` rows without a live click smoke because that pattern previously received clicks but did not update the detail view reliably.
+- **Sidebar navigation**: The root sidebar uses selection-backed `NavigationLink` rows plus explicit split-view visibility state so compact iPad navigation reveals detail. Any navigation change requires both `AppNavigationTests` and a live macOS click smoke across all six destinations because passive selection rows previously regressed on macOS.
 - **Claim graph performance**: Full claim relation inference is corpus-scale and must not run during SwiftUI `body` evaluation or app launch. Use bounded previews for UI cards and keep full graph export off the main actor.
 - **Bridge analysis performance**: `BridgingSection` must not call `influencePath`, `claimPathBetweenClusters`, or other claim graph builders from `body`; bridge search is explicit/on-demand so sidebar navigation stays responsive.
 - **Swift Charts plot geometry**: Hover/tracking overlays must use guarded plot-frame dimensions/coordinates from `ChartPlotGeometry.swift`. Filled `AreaMark`s over signed/negative analytics values can produce oversized CoreAnimation paint layers; prefer bounded line charts or explicit safe domains.
@@ -64,6 +70,7 @@
 - The app prefers repo-local `.venv`; stale/incomplete `.venv` causes analytics rebuild failures even if system Python works
 - Topic reliability audit prefers explicit cluster IDs when coverage is high, otherwise falls back to deterministic KMeans over embeddings
 - Ingestion smoke test is opt-in via env vars (`LITERATURE_ATLAS_INGEST_SMOKE_*`) and `scripts/run_example_smoke.sh` sets them automatically
+- Sandboxed folder ingestion must start the selected folder's security-scoped access before file existence checks or enumeration; per-file scope alone is insufficient.
 - `scripts/run_example_smoke.sh` computes sample-friendly topic thresholds (`min_topic_size=max(3,floor(N/3))`, `min_primary_topic_size=ceil(0.4*N)`) to avoid flaky false negatives on random `--count 10` runs
 - `scipy` is optional; `linear_sum_assignment` may be `None`
 - There is currently no `analytics/rust/Cargo.toml`; do not run or document Rust CLI commands unless that manifest is restored.
@@ -88,3 +95,5 @@
 - 2026-06-29: Fixed the left sidebar click regression by replacing inert `List(selection:)` rows with explicit sidebar buttons and moving bridge paper search out of `BridgingSection.body`; process sampling showed the previous bridge section could pin the main thread at 100% CPU.
 - 2026-06-29: Round-2 polish audit fixed Analytics CoreAnimation bogus layer-size warnings by clamping chart plot geometry and replacing signed factor exposure `AreaMark`s with `LineMark`s; final strict app log scan was clean (`docs/audits/polish-audit-2026-06-29-round2.md`).
 - 2026-06-29: Full generalization pass reframed user-facing trading/quant/strategy surfaces as general research, insight brief, research plan, application impact, and research project language while preserving legacy internal type names, JSON keys, event names, and artifact filenames for compatibility.
+- 2026-07-15: Added deterministic XcodeGen macOS/iPadOS App Store targets, centralized version/build/bundle settings, least-privilege entitlements, required-reason privacy manifests, container storage, shared self-contained runtime conditions, and fail-closed release validation (`project.yml`, `Config/`, `Resources/`, `scripts/validate_release_configuration.py`).
+- 2026-07-15: Scoped 1.0.0 mobile distribution to iPad because the desktop-class interface failed iPhone visual acceptance; fixed compact split navigation with selection-backed `NavigationLink`s and preserved the mandatory live macOS sidebar click smoke.
