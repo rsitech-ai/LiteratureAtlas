@@ -133,7 +133,7 @@ final class AppModelTests: XCTestCase {
         XCTAssertEqual(counts[.markdown], 1)
     }
 
-    func testUserEventsPersistAsJSONLines() async throws {
+    func testUserEventsPersistWithoutRawQuestionText() async throws {
         let tmp = FileManager.default.temporaryDirectory.appendingPathComponent(UUID().uuidString)
         let model = await MainActor.run { AppModel(skipInitialLoad: true, customOutputRoot: tmp) }
 
@@ -144,6 +144,8 @@ final class AppModelTests: XCTestCase {
         let logURL = tmp.appendingPathComponent("analytics/user_events.jsonl")
         let contents = try String(contentsOf: logURL, encoding: .utf8)
         XCTAssertTrue(contents.contains("\"event_type\":\"qa_question\""))
-        XCTAssertTrue(contents.contains("Test question?"))
+        XCTAssertTrue(contents.contains("\"question_length\":14"))
+        XCTAssertFalse(contents.contains("Test question?"))
+        XCTAssertFalse(contents.contains("\"q\""))
     }
 }

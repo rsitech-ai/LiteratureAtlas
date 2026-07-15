@@ -92,7 +92,7 @@ actor OpenAIDocumentCompilerProvider: DocumentCompilerProviding {
                 maxChunkCharsUsed: min(text.count, 18_000)
             )
         } catch {
-            logger.warning("OpenAI summarizeDocument failed, falling back to on-device compiler: \(error.localizedDescription, privacy: .public)")
+            logger.warning("OpenAI summarizeDocument failed, falling back to on-device compiler: \(error.localizedDescription, privacy: .private)")
             return try await fallback.summarizeDocument(title: title, text: text)
         }
     }
@@ -111,7 +111,7 @@ actor OpenAIDocumentCompilerProvider: DocumentCompilerProviding {
         do {
             return try await respond(instructions: instructions, input: input)
         } catch {
-            logger.warning("OpenAI summarizeSection failed, falling back to on-device compiler: \(error.localizedDescription, privacy: .public)")
+            logger.warning("OpenAI summarizeSection failed, falling back to on-device compiler: \(error.localizedDescription, privacy: .private)")
             return try await fallback.summarizeSection(title: title, sectionName: sectionName, text: text)
         }
     }
@@ -141,7 +141,7 @@ actor OpenAIDocumentCompilerProvider: DocumentCompilerProviding {
                 .filter { !$0.isEmpty }
             return Array(lines.prefix(5))
         } catch {
-            logger.warning("OpenAI generateTakeaways failed, falling back to on-device compiler: \(error.localizedDescription, privacy: .public)")
+            logger.warning("OpenAI generateTakeaways failed, falling back to on-device compiler: \(error.localizedDescription, privacy: .private)")
             return try await fallback.generateTakeaways(title: title, text: text)
         }
     }

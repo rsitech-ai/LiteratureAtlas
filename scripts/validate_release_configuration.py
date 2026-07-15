@@ -204,6 +204,24 @@ def validate(root: Path) -> dict[str, Any]:
         self_contained_ok,
         "Distributed compilation excludes external Python, relative FFI loading, and dormant remote compilation",
     )
+    privacy_safe_diagnostics = (
+        "privacy: .public" not in "\n".join(
+            line
+            for line in app_model.splitlines()
+            if "url.path" in line
+            or "folderURL.path" in line
+            or "sourceURL.lastPathComponent" in line
+            or "error.localizedDescription" in line
+        )
+        and '"q": question' not in app_model
+        and '"question_length": question.count' in app_model
+    )
+    add_gate(
+        gates,
+        "privacy_safe_diagnostics",
+        privacy_safe_diagnostics,
+        "Unified logs hide document paths and local analytics omit raw question text",
+    )
     folder_scope_index = app_model.find(
         "let folderScopeAccess = folderURL.startAccessingSecurityScopedResource()"
     )
