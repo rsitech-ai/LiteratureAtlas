@@ -18,6 +18,7 @@
   "source": {
     "base_commit": "010769162d824192310bf9236ffe188ef9fba7c4",
     "implementation_commit": "0d9911627e1e6ac040742b393dc57811513fa45c",
+    "ci_compatibility_commit": "eff288e11c8597b7b55a18247c2d3f00db2f40f2",
     "branch": "feat/andrzej_literatureatlas_release_20260715",
     "captured_at": "2026-07-15T14:16:57Z"
   },
@@ -26,6 +27,8 @@
     "changed_source_files_reviewed": 20,
     "reportable_findings": 0,
     "deferred_rows": 0,
+    "reviewed_through_commit": "0d9911627e1e6ac040742b393dc57811513fa45c",
+    "post_scan_review": "eff288e removes a no-op f32 cast; targeted Rust 1.97 format, strict Clippy, tests, audit, and authority-path review passed.",
     "snapshot_digest": "codex-security-snapshot/v1:sha256:428594bedcaf6a1f2ebe279e8950442f1db9f2a0b0200988a891d073f684bda8",
     "report_path": "/private/var/folders/g6/mrhqfgk15_d2gjj52991r1jr0000gn/T/codex-security-scans/LiteratureAtlas/0d99116_20260715T140429Z/report.md",
     "limitation": "Diff-scoped scan; not an exhaustive repository-wide audit."
@@ -63,19 +66,19 @@
     },
     {
       "path": "docs/release/1.0.0/RELEASE_STATUS.md",
-      "sha256": "43f698bfd8d30b8c1a0a8d1997b744e2484fcaadf535dcbcb61959787fd5cca9",
+      "sha256": "789cfebbea56c1f8b6207c1fb48b52d0c61a5a184c53683a50cbb836380ac3b1",
       "scope": ["verdict", "readiness", "target-scope"],
       "sanitized": true
     },
     {
       "path": "docs/release/1.0.0/SECURITY_STATUS.md",
-      "sha256": "6ecc8ec91e242c3d28758972ef9dff82b0a959eb7031dc17012e0ec372b2c5c4",
+      "sha256": "4386f6ec566dc0a8e56a3ab033261d4973a787119cfb530a2390624af0de57d9",
       "scope": ["security", "dependencies", "runtime-diagnostics"],
       "sanitized": true
     },
     {
       "path": "docs/release/1.0.0/TEST_EVIDENCE.md",
-      "sha256": "0ea1413079d22c8e4322e51dea7745ee297a163f0af69b5bb59e01bd37ca4dba",
+      "sha256": "e6d72ba95d19ea1f193440d87a329db41a6496341dca39b41a8eb48c16080201",
       "scope": ["toolchain", "tests", "runtime", "archives", "signing"],
       "sanitized": true
     },

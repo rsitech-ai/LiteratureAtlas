@@ -6,13 +6,15 @@
 
 No validated high- or critical-severity exploitable issue remains in the repository-side App Store runtime boundary. Distribution signing, Apple validation, physical-device permission behavior, and final owner privacy/legal attestations are still required.
 
-The exact local branch diff received a complete Codex Security full-file scan of all 20 changed source-like files. The sealed result contains zero reportable findings, zero deferred rows, and complete coverage for the selected diff inventory:
+The release-hardening source diff through implementation commit `0d99116` received a complete Codex Security full-file scan of all 20 changed source-like files. The sealed result contains zero reportable findings, zero deferred rows, and complete coverage for the selected diff inventory:
 
 - Report: `/private/var/folders/g6/mrhqfgk15_d2gjj52991r1jr0000gn/T/codex-security-scans/LiteratureAtlas/0d99116_20260715T140429Z/report.md`
 - Snapshot: `codex-security-snapshot/v1:sha256:428594bedcaf6a1f2ebe279e8950442f1db9f2a0b0200988a891d073f684bda8`
 - Canonical artifacts: sealed `scan-manifest.json`, `findings.json`, and `coverage.json`
 
 This is a branch-diff scan, not an exhaustive repository-wide audit. Documentation and images were excluded from runtime deep review; added documentation lines were still checked for obvious credential patterns.
+
+After sealing, commit `eff288e` removed a no-op `f32`-to-`f32` cast to satisfy the newer Rust 1.97 Clippy `unnecessary_cast` lint observed in CI. The one-line change adds no source, sink, authority, or control path; targeted review plus Rust 1.97 format, strict Clippy, tests, and audit passed. The sealed snapshot remains the pre-fix source coordinate above rather than being represented as an exact final-head scan.
 
 ## Closed release findings
 
