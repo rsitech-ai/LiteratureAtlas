@@ -1,0 +1,54 @@
+{
+  "schema_version": 1,
+  "release": {
+    "version": "1.0.0",
+    "build": "1",
+    "channels": [
+      "mac-app-store",
+      "ios-app-store",
+      "ipados-app-store"
+    ]
+  },
+  "source": {
+    "commit": "010769162d824192310bf9236ffe188ef9fba7c4",
+    "captured_at": "2026-07-15T11:45:43Z"
+  },
+  "requirements": {
+    "retrieved_at": "2026-07-15",
+    "official_sources": [
+      "https://developer.apple.com/app-store/submitting/",
+      "https://developer.apple.com/news/?id=ueeok6yw",
+      "https://developer.apple.com/app-store/review/guidelines/",
+      "https://developer.apple.com/documentation/xcode/distributing-your-app-for-beta-testing-and-releases/",
+      "https://developer.apple.com/help/app-store-connect/manage-builds/upload-builds/",
+      "https://developer.apple.com/documentation/bundleresources/describing-use-of-required-reason-api/",
+      "https://developer.apple.com/help/account/provisioning-profiles/create-an-app-store-provisioning-profile"
+    ]
+  },
+  "evidence": [
+    {
+      "path": "docs/release/1.0.0/TEST_EVIDENCE.md",
+      "sha256": "4865b6d895cf483e56bb2f60f89a6bad47db444860243785210471165d2ab8fe",
+      "scope": [
+        "toolchain",
+        "source",
+        "requirements",
+        "targets",
+        "dependencies",
+        "signing-identities",
+        "provisioning-profiles",
+        "release-gates"
+      ],
+      "sanitized": true
+    }
+  ],
+  "excluded_artifacts": [
+    "archives",
+    "credentials",
+    "certificate-fingerprints",
+    "provisioning-profile-payloads",
+    "device-identifiers",
+    "sensitive-logs"
+  ],
+  "verdict": "blocked:external-and-repository"
+}
