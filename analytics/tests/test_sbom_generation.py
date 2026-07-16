@@ -1,6 +1,9 @@
 import hashlib
 import importlib.util
 import json
+import os
+import subprocess
+import sys
 import tempfile
 import unittest
 from pathlib import Path
@@ -70,6 +73,49 @@ class SPDXGenerationTests(unittest.TestCase):
     def test_source_date_epoch_is_rendered_as_spdx_timestamp(self):
         with patch.dict("os.environ", {"SOURCE_DATE_EPOCH": "0"}, clear=False):
             self.assertEqual(SBOM.reproducible_created_at(), "1970-01-01T00:00:00Z")
+
+    def test_source_inventory_honors_source_date_epoch(self):
+        with tempfile.TemporaryDirectory() as tmp:
+            root = Path(tmp) / "repo"
+            root.mkdir()
+            (root / "README.md").write_text("# Test\n", encoding="utf-8")
+            subprocess.run(["git", "init", "-q", str(root)], check=True)
+            subprocess.run(["git", "-C", str(root), "add", "README.md"], check=True)
+            subprocess.run(
+                [
+                    "git",
+                    "-C",
+                    str(root),
+                    "-c",
+                    "user.name=SBOM Test",
+                    "-c",
+                    "user.email=sbom@example.invalid",
+                    "commit",
+                    "-q",
+                    "-m",
+                    "fixture",
+                ],
+                check=True,
+            )
+            output = Path(tmp) / "source.spdx.json"
+            environment = os.environ.copy()
+            environment["SOURCE_DATE_EPOCH"] = "0"
+
+            subprocess.run(
+                [
+                    sys.executable,
+                    str(SCRIPT_PATH),
+                    "--source-root",
+                    str(root),
+                    "--output",
+                    str(output),
+                ],
+                check=True,
+                env=environment,
+            )
+
+            payload = json.loads(output.read_text(encoding="utf-8"))
+            self.assertEqual(payload["creationInfo"]["created"], "1970-01-01T00:00:00Z")
 
 
 if __name__ == "__main__":
