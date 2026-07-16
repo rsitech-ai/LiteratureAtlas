@@ -365,7 +365,22 @@ final class AppModel: ObservableObject {
         ingestionLog = "Selected folder: \(url.lastPathComponent)"
         logger.info("[Ingest] Selected folder: \(url.path, privacy: .private(mask: .hash))")
         ingestionTask?.cancel()
+        #if os(macOS)
+        ingestionTask = Task {
+            do {
+                try await sourceAccessStore.withAccess(to: url) { resolvedURL in
+                    await runIngestion(folderURL: resolvedURL)
+                }
+            } catch is CancellationError {
+                return
+            } catch {
+                sourceAccessError = "Could not reopen \(url.lastPathComponent): \(error.localizedDescription)"
+                logger.error("[Ingest] Failed to reopen source-folder access: \(error.localizedDescription, privacy: .private)")
+            }
+        }
+        #else
         ingestionTask = Task { await runIngestion(folderURL: url) }
+        #endif
     }
 
     func cancelIngestion() {

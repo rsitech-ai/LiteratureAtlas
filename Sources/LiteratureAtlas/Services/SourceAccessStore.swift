@@ -56,10 +56,18 @@ enum SourceAccessStoreError: LocalizedError {
     }
 }
 
+@MainActor
 final class SourceAccessStore {
     private struct Record: Codable, Equatable {
         let selectedPath: String
         var bookmark: Data
+    }
+
+    private struct AccessResolution {
+        let recordIndex: Int
+        let scopedURL: URL
+        let sourceURL: URL
+        let isStale: Bool
     }
 
     private let storageURL: URL
@@ -92,6 +100,38 @@ final class SourceAccessStore {
     }
 
     func withAccess<T>(to sourceURL: URL, operation: (URL) throws -> T) throws -> T {
+        let resolution = try resolveAccess(to: sourceURL)
+        guard provider.startAccessing(resolution.scopedURL) else {
+            throw SourceAccessStoreError.scopeDenied(sourceURL.standardizedFileURL)
+        }
+        defer { provider.stopAccessing(resolution.scopedURL) }
+        try refreshBookmarkIfNeeded(resolution)
+        return try operation(resolution.sourceURL)
+    }
+
+    func withAccess<T>(
+        to sourceURL: URL,
+        operation: @MainActor (URL) async throws -> T
+    ) async throws -> T {
+        let resolution = try resolveAccess(to: sourceURL)
+        guard provider.startAccessing(resolution.scopedURL) else {
+            throw SourceAccessStoreError.scopeDenied(sourceURL.standardizedFileURL)
+        }
+        defer { provider.stopAccessing(resolution.scopedURL) }
+        try refreshBookmarkIfNeeded(resolution)
+        return try await operation(resolution.sourceURL)
+    }
+
+    private func matchingRecordIndex(for sourceURL: URL) -> Int? {
+        records.indices
+            .filter { index in
+                let root = records[index].selectedPath
+                return sourceURL.path == root || sourceURL.path.hasPrefix(root + "/")
+            }
+            .max { records[$0].selectedPath.count < records[$1].selectedPath.count }
+    }
+
+    private func resolveAccess(to sourceURL: URL) throws -> AccessResolution {
         let normalizedSource = sourceURL.standardizedFileURL
         guard let recordIndex = matchingRecordIndex(for: normalizedSource) else {
             throw SourceAccessStoreError.noBookmark(normalizedSource)
@@ -105,26 +145,18 @@ final class SourceAccessStore {
         let resolvedSource = relativePath.isEmpty
             ? resolution.url
             : resolution.url.appendingPathComponent(relativePath)
-
-        if resolution.isStale {
-            records[recordIndex].bookmark = try provider.makeBookmark(for: resolution.url)
-            try persist()
-        }
-
-        guard provider.startAccessing(resolution.url) else {
-            throw SourceAccessStoreError.scopeDenied(normalizedSource)
-        }
-        defer { provider.stopAccessing(resolution.url) }
-        return try operation(resolvedSource)
+        return AccessResolution(
+            recordIndex: recordIndex,
+            scopedURL: resolution.url,
+            sourceURL: resolvedSource,
+            isStale: resolution.isStale
+        )
     }
 
-    private func matchingRecordIndex(for sourceURL: URL) -> Int? {
-        records.indices
-            .filter { index in
-                let root = records[index].selectedPath
-                return sourceURL.path == root || sourceURL.path.hasPrefix(root + "/")
-            }
-            .max { records[$0].selectedPath.count < records[$1].selectedPath.count }
+    private func refreshBookmarkIfNeeded(_ resolution: AccessResolution) throws {
+        guard resolution.isStale else { return }
+        records[resolution.recordIndex].bookmark = try provider.makeBookmark(for: resolution.scopedURL)
+        try persist()
     }
 
     private func persist() throws {
