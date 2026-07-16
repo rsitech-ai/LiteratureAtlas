@@ -23,16 +23,28 @@ struct LiteratureAtlasApp: App {
     #endif
 
     var body: some Scene {
+        #if os(macOS)
+        Window("LiteratureAtlas", id: "main") {
+            appContent
+        }
+        .defaultSize(width: 1280, height: 820)
+        #else
         WindowGroup {
-            let availability = SystemLanguageModel.default.availability
-            switch availability {
-            case .available:
-                RootView()
-                    .environmentObject(model)
-                    .environmentObject(nav)
-            case .unavailable(let reason):
-                UnsupportedView(reason: String(describing: reason))
-            }
+            appContent
+        }
+        #endif
+    }
+
+    @ViewBuilder
+    private var appContent: some View {
+        let availability = SystemLanguageModel.default.availability
+        switch availability {
+        case .available:
+            RootView()
+                .environmentObject(model)
+                .environmentObject(nav)
+        case .unavailable(let reason):
+            UnsupportedView(reason: String(describing: reason))
         }
     }
 }

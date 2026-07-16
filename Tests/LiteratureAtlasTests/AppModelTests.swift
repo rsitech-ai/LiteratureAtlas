@@ -3,6 +3,31 @@ import XCTest
 
 @available(macOS 26, iOS 26, *)
 final class AppModelTests: XCTestCase {
+    func testCancelClusteringImmediatelyLeavesCancelableState() async {
+        let model = await AppModel(skipInitialLoad: true)
+        await MainActor.run {
+            model.isClustering = true
+            model.cancelClustering()
+            XCTAssertFalse(model.isClustering)
+        }
+    }
+
+
+    func testFallbackEmbeddingUsesStableVersionedTokenBuckets() async {
+        let model = await MainActor.run { AppModel(skipInitialLoad: true) }
+
+        let embedding = await MainActor.run {
+            model.testFallbackEmbedding(for: "alpha beta alpha", dimension: 512)
+        }
+
+        XCTAssertEqual(embedding.count, 512)
+        XCTAssertEqual(embedding[43], Float(2 / sqrt(5.0)), accuracy: 0.000_001)
+        XCTAssertEqual(embedding[167], Float(1 / sqrt(5.0)), accuracy: 0.000_001)
+        XCTAssertEqual(
+            embedding.enumerated().filter { $0.offset != 43 && $0.offset != 167 }.map { $0.element },
+            Array(repeating: 0, count: 510)
+        )
+    }
 
     func testUpsertReplacesByFilePath() async {
         let model = await MainActor.run { AppModel(skipInitialLoad: true) }

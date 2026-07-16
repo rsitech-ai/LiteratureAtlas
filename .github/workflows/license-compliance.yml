@@ -1,6 +1,7 @@
 name: License compliance
 
 on:
+  pull_request:
   workflow_dispatch:
 
 permissions:

@@ -1498,6 +1498,7 @@ struct AnalyticsView: View {
         }
     }
 
+    #if !DISTRIBUTED_APP_BUILD
     @ViewBuilder private func backendAnalyticsCard() -> some View {
         let subtitle: String = {
             #if os(macOS) && !DISTRIBUTED_APP_BUILD
@@ -1664,6 +1665,7 @@ struct AnalyticsView: View {
             }
         }
     }
+    #endif
 
     private var analyticsHero: some View {
         GalaxyHeroCard(
@@ -1691,7 +1693,9 @@ struct AnalyticsView: View {
                     corpusBriefingCard()
                     corpusHealthCard()
 
+                    #if !DISTRIBUTED_APP_BUILD
                     backendAnalyticsCard()
+                    #endif
 
                     timelineSection()
 

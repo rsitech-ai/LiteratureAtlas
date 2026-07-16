@@ -78,7 +78,7 @@ struct IngestView: View {
                 tint: GalaxyTheme.nebulaBlue
             )
             GalaxyMetricTile(
-                title: "Completed",
+                title: "Succeeded",
                 value: "\(model.ingestionCompletedCount)",
                 systemImage: "checkmark.seal.fill",
                 tint: GalaxyTheme.cometMint
@@ -137,7 +137,7 @@ struct IngestView: View {
 
                 HStack(spacing: 10) {
                     GalaxyStatusPill(
-                        "\(model.ingestionCompletedCount)/\(max(1, model.ingestionTotalCount)) files",
+                        "\(model.ingestionCompletedCount) succeeded · \(model.ingestionSkippedCount) skipped · \(model.ingestionFailedCount) failed",
                         systemImage: "number",
                         tint: GalaxyTheme.nebulaBlue,
                         isPulsing: model.isIngesting

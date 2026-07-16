@@ -66,6 +66,19 @@ class ReleaseConfigurationTests(unittest.TestCase):
         self.assertEqual(payload["allowed_blockers"], ["app_icon_artwork"])
         self.assertEqual(payload["unallowed_failed_gates"], [])
 
+    def test_missing_icon_artwork_reports_the_actual_failure(self):
+        repo_root = Path(__file__).resolve().parents[2]
+
+        result = self.run_validator(repo_root)
+
+        payload = json.loads(result.stdout)
+        gate = payload["gates"]["app_icon_artwork"]
+        self.assertFalse(gate["passed"])
+        self.assertEqual(
+            gate["detail"],
+            "AppIcon catalog is missing committed artwork files",
+        )
+
 
 if __name__ == "__main__":
     unittest.main()

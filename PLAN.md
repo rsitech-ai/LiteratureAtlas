@@ -11,7 +11,8 @@
 - GitHub `main` remains public and MIT-licensed until an explicit, rights-backed owner decision changes future licensing.
 
 ## Constraints
-- No notarization upload, public release, repository visibility change, merge, tag, announcement, credential mutation, or legal identity claim without separate owner approval.
+- PR creation, feature-branch push, review fixes, merge, and the resulting `main` push are now owner-authorized after all validation and review gates pass.
+- No notarization upload, public binary release, tag, announcement, credential mutation, repository visibility change, history rewrite, or legal identity claim in this pass.
 - No private credentials or user data in Git, CI, reports, artifacts, or command arguments.
 - Preserve all committed release work and existing MIT grants.
 
@@ -29,7 +30,11 @@ Chosen: 2 because it retains the strongest existing runtime, privacy, and archiv
 4. Complete open-source licensing, governance, security, support, and developer documentation.
 5. Harden GitHub CI and supply-chain controls.
 6. Generate secret, IP, dependency, SBOM, provenance, and publication evidence.
-7. Run full verification, security scans, final review, and owner-blocker handoff.
+7. Clean obsolete generated releases/worktrees only after Git and ancestry proof.
+8. Audit the full implementation, official-document assumptions, and runtime behavior beyond tests.
+9. Reproduce the community package from a fresh clone and complete a native macOS interaction/log sweep.
+10. Request independent review, resolve all critical/important findings, and rerun the full matrix.
+11. Push, create the PR, inspect GitHub checks/review, merge, and verify the exact merged `main` revision.
 
 ## Test plan
 - Follow the complete command matrix in `docs/superpowers/plans/2026-07-15-developer-id-open-source.md`.
@@ -48,3 +53,4 @@ Chosen: 2 because it retains the strongest existing runtime, privacy, and archiv
 - Changes: Added a shared distributed runtime boundary; credential-free community and signature-free official pre-sign builds; staged Developer ID signing; DMG/notary/Gatekeeper verification; privacy-minimized diagnostics; pinned credential-free CI; REUSE metadata; contributor/governance/security policies; IP/secret/license reports; and source/community/pre-sign SBOMs.
 - Tests run: Swift 57 passed with one opt-in corpus smoke skipped; Python 14 passed; Rust 3 passed with strict Clippy and no known vulnerability; Swift Release build, direct Xcode build, community relocation/launch/DMG, release scripts, actionlint, zizmor, REUSE 3.3, pip-audit, OSV, CFF, JSON, and documentation-link checks passed. The release validator has only the explicit approved-AppIcon blocker.
 - Tradeoffs: Native-only Apple Silicon first distribution; Python and Rust acceleration remain contributor tooling. Existing MIT stays effective because MPL/CC relicensing authority is unconfirmed. Signing/notarization/publication remain external owner gates.
+- 2026-07-16 audit/merge pass: Codex Security is explicitly deferred. This pass still includes code-level security, privacy, dependency, workflow, and signing-configuration review but will not claim a Codex Security result.

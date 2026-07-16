@@ -9,14 +9,18 @@
 - [x] Complete governance and contributor documents (DoD: policies contain real commands, paths, roles, and explicit owner blockers)
 - [x] Harden GitHub CI and supply chain (DoD: least privilege, pinned actions/tools, locked dependencies, community build, REUSE, secret, workflow, and SBOM gates validate locally)
 - [x] Generate publication artifacts (DoD: required open-source reports, SBOMs, and manifest are complete and internally consistent)
-- [ ] Run final security scans and fix validated blockers (DoD: final diff/repository scans have no unresolved critical/high implementation finding)
+- [ ] Clean obsolete release/build state (DoD: only generated or superseded artifacts/worktrees are removed after clean-state and ancestry proof; unique commits remain preserved)
+- [ ] Run full static and code-level security review (DoD: full diff/source/docs/workflow review has no unresolved blocker/high implementation finding; Codex Security remains explicitly deferred)
 - [ ] Verify from a fresh clone/worktree (DoD: public docs alone reproduce the community build and tests)
+- [ ] Complete native macOS E2E audit (DoD: app relaunch, primary workflows, controls, edge states, persistence, accessibility/help, and focused runtime logs are captured in an audit report)
 - [ ] Request final independent review (DoD: all critical/important findings resolved and re-reviewed)
+- [ ] Create and harden PR (DoD: branch pushed, PR opened, GitHub checks/review inspected, and all actionable findings resolved)
+- [ ] Merge and verify exact `main` (DoD: PR merged only after approval/gates; local `main` matches `origin/main` and merged-revision verification passes)
 - [ ] Memory update (DoD: `MEMORY.md` records only durable commands, boundaries, and decisions)
 - [ ] Final handoff (DoD: exact verdicts, exceptions, blockers, approvals, artifact paths, commits, and next action are recorded)
 
 ## In progress
-- [ ] Run final security scans, fresh-clone reproduction, and independent review.
+- [ ] Clean generated release state, then run the full audit and fresh-clone reproduction.
 
 ## Done
 - [x] Session bootstrap and repository instructions reviewed.

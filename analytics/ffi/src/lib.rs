@@ -36,7 +36,7 @@ fn build_adjacency(n_nodes: usize, edges: &[AtlasEdge]) -> Vec<Vec<(usize, f64)>
             continue;
         }
         let weight = edge.weight as f64;
-        if !weight.is_finite() || weight < 0.0 {
+        if !weight.is_finite() || weight <= 0.0 {
             continue;
         }
         adjacency[src].push((dst, weight));
@@ -93,7 +93,13 @@ pub unsafe extern "C" fn atlas_build_index(
     }
     let dim_usize = dim as usize;
     let n_usize = n as usize;
-    let slice = wrap_slice(data_ptr, dim_usize * n_usize);
+    let Some(value_count) = dim_usize.checked_mul(n_usize) else {
+        return ptr::null_mut();
+    };
+    let slice = wrap_slice(data_ptr, value_count);
+    if !slice.iter().all(|value| value.is_finite()) {
+        return ptr::null_mut();
+    }
 
     // Build HNSW: max_nb_connection, max_elements, max_layer, ef_construction, dist
     let max_layer = 16usize;
@@ -148,6 +154,9 @@ pub unsafe extern "C" fn atlas_query_index(
     }
     let idx = &*index_ptr;
     let q = wrap_slice(query_ptr, idx.dim);
+    if !q.iter().all(|value| value.is_finite()) {
+        return 0;
+    }
 
     let results = idx.index.search(q, k as usize, 64);
     let out = slice::from_raw_parts_mut(out_ptr, k as usize);
@@ -165,8 +174,8 @@ pub unsafe extern "C" fn atlas_query_index(
 #[no_mangle]
 /// Compute betweenness centrality on an undirected weighted graph.
 ///
-/// Edge weights are interpreted as non-negative costs (lower cost = shorter path). Invalid edges
-/// (out-of-range node ids, non-finite weights, or negative weights) are ignored.
+/// Edge weights are interpreted as positive costs (lower cost = shorter path). Invalid edges
+/// (out-of-range node ids, non-finite weights, or non-positive weights) are ignored.
 ///
 /// # Safety
 /// - `edges_ptr` must be non-null and point to at least `n_edges` readable `AtlasEdge` values.
@@ -405,5 +414,41 @@ mod tests {
         assert_approx_eq(out[0], 0.0, 1e-5);
         assert_approx_eq(out[1], 0.0, 1e-5);
         assert_approx_eq(out[2], 0.0, 1e-5);
+    }
+
+    #[test]
+    fn hnsw_build_and_query_reject_non_finite_vectors() {
+        let invalid_data = [0.0f32, f32::NAN, 1.0, 1.0];
+        let invalid = unsafe { atlas_build_index(2, 2, invalid_data.as_ptr()) };
+        assert!(invalid.is_null());
+
+        let valid_data = [0.0f32, 0.0, 1.0, 1.0];
+        let index = unsafe { atlas_build_index(2, 2, valid_data.as_ptr()) };
+        assert!(!index.is_null());
+        let query = [f32::INFINITY, 0.0];
+        let mut out = [AtlasSearchResult {
+            index: 0,
+            distance: 0.0,
+        }];
+        let count = unsafe { atlas_query_index(index, query.as_ptr(), 1, out.as_mut_ptr()) };
+        assert_eq!(count, 0);
+        unsafe { atlas_free_index(index) };
+    }
+
+    #[test]
+    fn hnsw_returns_nearest_neighbor_for_valid_vectors() {
+        let data = [0.0f32, 0.0, 10.0, 10.0];
+        let index = unsafe { atlas_build_index(2, 2, data.as_ptr()) };
+        assert!(!index.is_null());
+        let query = [9.5f32, 9.5];
+        let mut out = [AtlasSearchResult {
+            index: 0,
+            distance: 0.0,
+        }];
+        let count = unsafe { atlas_query_index(index, query.as_ptr(), 1, out.as_mut_ptr()) };
+        assert_eq!(count, 1);
+        assert_eq!(out[0].index, 1);
+        assert!(out[0].distance.is_finite());
+        unsafe { atlas_free_index(index) };
     }
 }

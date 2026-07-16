@@ -158,6 +158,8 @@ def load_papers(papers_dir: pathlib.Path) -> tuple[list[PaperRow], list[list[flo
     if documents_dir.exists():
         candidate_paths.extend(sorted(documents_dir.glob("*.document.json")))
 
+    valid_candidates: list[tuple[pathlib.Path, dict[str, Any], str, list[float]]] = []
+    candidate_ids: set[str] = set()
     for path in candidate_paths:
         data = _read_json_file(path)
         if not isinstance(data, dict):
@@ -173,6 +175,34 @@ def load_papers(papers_dir: pathlib.Path) -> tuple[list[PaperRow], list[list[flo
             _logger.warning("Skipping %s because 'embedding' is not a list", path)
             continue
         if not emb:
+            continue
+        if paper_id in candidate_ids:
+            _logger.warning("Skipping duplicate paper id %s from %s", paper_id, path)
+            continue
+        if any(isinstance(value, bool) or not isinstance(value, (int, float)) for value in emb):
+            _logger.warning("Skipping %s because 'embedding' contains a non-numeric value", path)
+            continue
+        numeric_embedding = [float(value) for value in emb]
+        if not all(math.isfinite(value) for value in numeric_embedding):
+            _logger.warning("Skipping %s because 'embedding' contains a non-finite value", path)
+            continue
+        candidate_ids.add(paper_id)
+        valid_candidates.append((path, data, paper_id, numeric_embedding))
+
+    if not valid_candidates:
+        return rows, embeddings, trading_rows
+
+    dimension_counts = Counter(len(embedding) for _, _, _, embedding in valid_candidates)
+    canonical_dimension = dimension_counts.most_common(1)[0][0]
+
+    for path, data, paper_id, emb in valid_candidates:
+        if len(emb) != canonical_dimension:
+            _logger.warning(
+                "Skipping %s because embedding dimension %d does not match canonical dimension %d",
+                path,
+                len(emb),
+                canonical_dimension,
+            )
             continue
         year = data.get("year")
         cluster_id = data.get("clusterIndex")
@@ -309,14 +339,18 @@ def load_user_events(output_root: pathlib.Path) -> list[dict[str, Any]]:
     if not events_path.exists():
         return []
     events: list[dict[str, Any]] = []
-    for line in events_path.read_text().splitlines():
+    for line_number, line in enumerate(events_path.read_text(encoding="utf-8").splitlines(), start=1):
         line = line.strip()
         if not line:
             continue
         try:
             evt = json.loads(line)
-            events.append(evt)
-        except json.JSONDecodeError:
+            if isinstance(evt, dict):
+                events.append(evt)
+            else:
+                _logger.warning("Skipping non-object user event on line %d", line_number)
+        except json.JSONDecodeError as exc:
+            _logger.warning("Skipping malformed user event on line %d: %s", line_number, exc)
             continue
     return events
 

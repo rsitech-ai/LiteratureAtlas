@@ -79,7 +79,7 @@ struct PaperActionRow: View {
         .contextMenu {
             Button("Open details") { onOpen?() }
             Divider()
-            Button("Open PDF") { PlatformOpen.open(url: paper.fileURL) }
+            Button("Open PDF") { model.openSourceDocument(for: paper.id) }
             if let noteURL = model.obsidianNoteURL(for: paper.id) {
                 Button("Open Obsidian note") { PlatformOpen.open(url: noteURL) }
             }
@@ -97,6 +97,16 @@ struct PaperActionRow: View {
             Button(isStarred ? "Unstar" : "Star") { toggleStar() }
         }
         .accessibilityAddTraits(.isButton)
+        .accessibilityAction(.default) { onOpen?() }
+        .focusable()
+        .onKeyPress(.return) {
+            onOpen?()
+            return .handled
+        }
+        .onKeyPress(.space) {
+            onOpen?()
+            return .handled
+        }
     }
 
     private var background: Color {
@@ -152,7 +162,7 @@ struct PaperActionRow: View {
             .help(isStarred ? "Unstar" : "Star")
 
             Button {
-                PlatformOpen.open(url: paper.fileURL)
+                model.openSourceDocument(for: paper.id)
             } label: {
                 Image(systemName: "doc.richtext")
             }

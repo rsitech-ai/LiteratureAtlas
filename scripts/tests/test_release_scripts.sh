@@ -48,6 +48,17 @@ assert_stderr_contains() {
     fi
 }
 
+assert_stdout_contains() {
+    name=$1
+    expected=$2
+    if grep -F -- "$expected" "$TMP/stdout" >/dev/null; then
+        pass "$name"
+    else
+        fail "$name"
+        sed -n '1,20p' "$TMP/stdout" >&2
+    fi
+}
+
 required_scripts="
 script/build_community.sh
 script/build_official.sh
@@ -74,6 +85,9 @@ expect_failure "community build refuses filesystem root output" \
     "$ROOT/script/build_community.sh" --product-name Safe --bundle-id org.example.Safe --version 1.0.0 --build 1 --output / --dry-run
 expect_success "community build validates a credential-free dry run" \
     "$ROOT/script/build_community.sh" --product-name LiteratureAtlasCommunity --bundle-id org.example.LiteratureAtlasCommunity --version 1.0.0 --build 1 --output "$TMP/community" --dry-run
+assert_stdout_contains "community dry run overrides the display name" 'INFOPLIST_KEY_CFBundleDisplayName=LiteratureAtlasCommunity'
+expect_failure "community build rejects trailing-dot bundle identifier" \
+    "$ROOT/script/build_community.sh" --product-name Safe --bundle-id 'org.example.' --version 1.0.0 --build 1 --output "$TMP/out" --dry-run
 
 mkdir -p "$TMP/Fake.app/Contents/MacOS"
 expect_failure "official signer rejects non-Developer-ID identity" \
@@ -95,6 +109,61 @@ expect_failure "DMG creation rejects missing app bundle" \
 expect_failure "verification rejects unknown mode" \
     "$ROOT/script/verify_distribution.sh" --app "$TMP/Fake.app" --mode unknown
 
+mkdir -p "$TMP/NoRuntime.app/Contents/MacOS" "$TMP/NoRuntime.app/Contents/Resources/Prompts"
+xcrun clang -x c -o "$TMP/TestExecutable" - <<<'int main(void) { return 0; }'
+ditto "$TMP/TestExecutable" "$TMP/NoRuntime.app/Contents/MacOS/NoRuntime"
+plutil -create xml1 "$TMP/NoRuntime.app/Contents/Info.plist"
+plutil -insert CFBundleExecutable -string NoRuntime "$TMP/NoRuntime.app/Contents/Info.plist"
+plutil -insert CFBundleIdentifier -string org.example.NoRuntime "$TMP/NoRuntime.app/Contents/Info.plist"
+plutil -insert CFBundleName -string NoRuntime "$TMP/NoRuntime.app/Contents/Info.plist"
+plutil -insert CFBundleDisplayName -string NoRuntime "$TMP/NoRuntime.app/Contents/Info.plist"
+plutil -insert CFBundleShortVersionString -string 1.0.0 "$TMP/NoRuntime.app/Contents/Info.plist"
+plutil -insert CFBundleVersion -string 1 "$TMP/NoRuntime.app/Contents/Info.plist"
+plutil -insert LSMinimumSystemVersion -string 26.0 "$TMP/NoRuntime.app/Contents/Info.plist"
+plutil -create xml1 "$TMP/NoRuntime.app/Contents/Resources/PrivacyInfo.xcprivacy"
+plutil -create xml1 "$TMP/NoRuntime.entitlements"
+/usr/libexec/PlistBuddy -c 'Add :com.apple.security.app-sandbox bool true' "$TMP/NoRuntime.entitlements"
+/usr/libexec/PlistBuddy -c 'Add :com.apple.security.files.bookmarks.app-scope bool true' "$TMP/NoRuntime.entitlements"
+codesign --force --sign - --entitlements "$TMP/NoRuntime.entitlements" "$TMP/NoRuntime.app" >/dev/null 2>&1
+expect_failure "verification rejects an app without hardened runtime" \
+    "$ROOT/script/verify_distribution.sh" --app "$TMP/NoRuntime.app" --mode community
+assert_stderr_contains "missing runtime failure names hardened runtime" "hardened runtime is missing"
+
+mkdir -p "$TMP/Expected.app/Contents/MacOS" "$TMP/Expected.app/Contents/Resources/Prompts"
+ditto "$TMP/TestExecutable" "$TMP/Expected.app/Contents/MacOS/Expected"
+plutil -create xml1 "$TMP/Expected.app/Contents/Info.plist"
+plutil -insert CFBundleExecutable -string Expected "$TMP/Expected.app/Contents/Info.plist"
+plutil -insert CFBundleIdentifier -string org.example.Expected "$TMP/Expected.app/Contents/Info.plist"
+plutil -insert CFBundleName -string Expected "$TMP/Expected.app/Contents/Info.plist"
+plutil -insert CFBundleDisplayName -string Expected "$TMP/Expected.app/Contents/Info.plist"
+plutil -insert CFBundleShortVersionString -string 1.0.0 "$TMP/Expected.app/Contents/Info.plist"
+plutil -insert CFBundleVersion -string 1 "$TMP/Expected.app/Contents/Info.plist"
+plutil -insert LSMinimumSystemVersion -string 26.0 "$TMP/Expected.app/Contents/Info.plist"
+plutil -create xml1 "$TMP/Expected.app/Contents/Resources/PrivacyInfo.xcprivacy"
+codesign --force --sign - --options runtime --entitlements "$TMP/NoRuntime.entitlements" "$TMP/Expected.app" >/dev/null 2>&1
+expect_success "valid runtime-signed community fixture passes without a DMG" \
+    "$ROOT/script/verify_distribution.sh" --app "$TMP/Expected.app" --mode community
+mkdir -p "$TMP/WrongDMG"
+touch "$TMP/WrongDMG/Not-The-App"
+hdiutil create -quiet -fs HFS+ -format UDZO -volname Wrong -srcfolder "$TMP/WrongDMG" "$TMP/Wrong.dmg"
+expect_failure "verification rejects a DMG that does not contain the supplied app" \
+    "$ROOT/script/verify_distribution.sh" --app "$TMP/Expected.app" --dmg "$TMP/Wrong.dmg" --mode community
+assert_stderr_contains "wrong DMG failure names missing app" "DMG does not contain Expected.app"
+
+mkdir -p "$TMP/ModeMismatchDMG"
+ditto "$TMP/Expected.app" "$TMP/ModeMismatchDMG/Expected.app"
+chmod -x "$TMP/ModeMismatchDMG/Expected.app/Contents/MacOS/Expected"
+hdiutil create -quiet -fs HFS+ -format UDZO -volname ModeMismatch -srcfolder "$TMP/ModeMismatchDMG" "$TMP/ModeMismatch.dmg"
+expect_failure "verification rejects a DMG app with changed executable mode" \
+    "$ROOT/script/verify_distribution.sh" --app "$TMP/Expected.app" --dmg "$TMP/ModeMismatch.dmg" --mode community
+assert_stderr_contains "mode mismatch failure names supplied-app mismatch" "DMG app does not match the supplied app"
+
+mkdir -p "$TMP/ValidDMG"
+ditto "$TMP/Expected.app" "$TMP/ValidDMG/Expected.app"
+hdiutil create -quiet -fs HFS+ -format UDZO -volname Valid -srcfolder "$TMP/ValidDMG" "$TMP/Valid.dmg"
+expect_success "verification accepts a DMG containing the exact supplied app" \
+    "$ROOT/script/verify_distribution.sh" --app "$TMP/Expected.app" --dmg "$TMP/Valid.dmg" --mode community
+
 if grep -R "notarytool submit" "$TMP" >/dev/null 2>&1; then
     fail "tests perform no notarization submission"
 else
@@ -108,11 +177,66 @@ else
     fail "notarization records structured submission evidence"
 fi
 
+if grep -F 'shasum -a 256 "$dmg" >"$dmg.sha256"' "$ROOT/script/notarize_dmg.sh" >/dev/null; then
+    pass "notarization refreshes checksum after stapling"
+else
+    fail "notarization refreshes checksum after stapling"
+fi
+
+if grep -F "grep -E 'flags=.*(runtime)'" "$ROOT/script/verify_distribution.sh" >/dev/null \
+    && grep -F "grep -F 'Timestamp='" "$ROOT/script/verify_distribution.sh" >/dev/null; then
+    pass "official verification requires hardened runtime and secure timestamp"
+else
+    fail "official verification requires hardened runtime and secure timestamp"
+fi
+
+for workflow in dependency-review.yml license-compliance.yml codeql.yml; do
+    if grep -Eq '^  pull_request:' "$ROOT/.github/workflows/$workflow"; then
+        pass "$workflow runs on pull requests"
+    else
+        fail "$workflow runs on pull requests"
+    fi
+done
+
 if grep -F -- '--remove-signature' "$ROOT/script/build_official.sh" >/dev/null \
     && grep -F 'code object is not signed at all' "$ROOT/script/build_official.sh" >/dev/null; then
     pass "official build proves a signature-free pre-sign candidate"
 else
     fail "official build proves a signature-free pre-sign candidate"
+fi
+
+if grep -F -- '--expected-bundle-id' "$ROOT/script/verify_distribution.sh" >/dev/null \
+    && grep -F -- '--expected-team-id' "$ROOT/script/verify_distribution.sh" >/dev/null \
+    && grep -F -- '--expected-version' "$ROOT/script/verify_distribution.sh" >/dev/null \
+    && grep -F -- '--expected-build' "$ROOT/script/verify_distribution.sh" >/dev/null \
+    && grep -F -- '--expected-architecture' "$ROOT/script/verify_distribution.sh" >/dev/null \
+    && grep -F -- '--expected-min-macos' "$ROOT/script/verify_distribution.sh" >/dev/null \
+    && grep -F -- '--expected-source-revision' "$ROOT/script/verify_distribution.sh" >/dev/null; then
+    pass "official verification binds owner-approved release identity"
+else
+    fail "official verification binds owner-approved release identity"
+fi
+
+if grep -F 'source_dsym=' "$ROOT/script/release_common.sh" >/dev/null \
+    && grep -F 'ditto "$source_dsym" "$target_dsym"' "$ROOT/script/release_common.sh" >/dev/null; then
+    pass "release builds retain dSYM evidence"
+else
+    fail "release builds retain dSYM evidence"
+fi
+
+if grep -F 'response_tmp=' "$ROOT/script/notarize_dmg.sh" >/dev/null \
+    && grep -F 'mv "$response_tmp" "$response_output"' "$ROOT/script/notarize_dmg.sh" >/dev/null; then
+    pass "notarization publishes submission evidence atomically"
+else
+    fail "notarization publishes submission evidence atomically"
+fi
+
+if grep -F 'LITERATURE_ATLAS_SOURCE_REVISION=' "$ROOT/script/release_common.sh" >/dev/null \
+    && grep -F -- '--expected-source-revision' "$ROOT/script/verify_distribution.sh" >/dev/null \
+    && grep -F 'LiteratureAtlasSourceRevision' "$ROOT/Resources/macOS/Info.plist" >/dev/null; then
+    pass "official artifacts bind an embedded source revision"
+else
+    fail "official artifacts bind an embedded source revision"
 fi
 
 if [ "$failures" -ne 0 ]; then

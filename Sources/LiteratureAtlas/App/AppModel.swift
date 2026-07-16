@@ -65,7 +65,11 @@ final class AppModel: ObservableObject {
     @Published var ingestionProgress: Double = 0
     @Published var ingestionCurrentFile: String = ""
     @Published var ingestionCompletedCount: Int = 0
+    @Published var ingestionSkippedCount: Int = 0
+    @Published var ingestionFailedCount: Int = 0
     @Published var ingestionTotalCount: Int = 0
+    @Published var sourceAccessError: String? = nil
+    @Published var persistenceError: String? = nil
     @Published private(set) var sourceKindCounts: [SourceKind: Int] = [:]
 
     @Published var tradingLensBackfillInFlight: Bool = false
@@ -116,8 +120,12 @@ final class AppModel: ObservableObject {
     private let topicDossierActor = TopicDossierActor()
     private let embedder = SentenceEmbedder(language: .english)
     private let logger = Logger(subsystem: "LiteratureAtlas", category: "AppModel")
+    #if os(macOS)
+    private let sourceAccessStore: SourceAccessStore
+    #endif
     private var ingestionTask: Task<Void, Never>?
     private var tradingLensBackfillTask: Task<Void, Never>?
+    private var clusteringCancellationRequested = false
     private var canonicalEmbeddingDim: Int?
     private var clusterCache: [ClusterCacheKey: [Cluster]] = [:]
     private var subclusterCache: [Int: [Cluster]] = [:]
@@ -137,6 +145,13 @@ final class AppModel: ObservableObject {
             outputRoot = AppModel.makePrimaryOutputRoot()
             legacyOutputRoot = AppModel.makeLegacyOutputRoot()
         }
+        #if os(macOS)
+        sourceAccessStore = SourceAccessStore(
+            storageURL: outputRoot.deletingLastPathComponent()
+                .appendingPathComponent("SourceAccess", isDirectory: true)
+                .appendingPathComponent("source-bookmarks.json")
+        )
+        #endif
         if canonicalEmbeddingDim == nil {
             let d = embedder.dimension
             if d > 0 { canonicalEmbeddingDim = d }
@@ -196,14 +211,23 @@ final class AppModel: ObservableObject {
         let dim = canonicalEmbeddingDim ?? dimension
         var vec = [Float](repeating: 0, count: dim)
         for token in text.lowercased().split(whereSeparator: { !$0.isLetter && !$0.isNumber }) {
-            let h = abs(token.hashValue) % dim
-            vec[h] += 1
+            let bucket = Int(Self.stableTokenHash(token) % UInt64(dim))
+            vec[bucket] += 1
         }
         let norm = sqrt(vDSP.dot(vec, vec))
         if norm > 0 {
             vDSP.divide(vec, norm, result: &vec)
         }
         return vec
+    }
+
+    private static func stableTokenHash(_ token: Substring) -> UInt64 {
+        var hash: UInt64 = 14_695_981_039_346_656_037
+        for byte in token.utf8 {
+            hash ^= UInt64(byte)
+            hash &*= 1_099_511_628_211
+        }
+        return hash
     }
 
     private func extractKeywords(title: String, summary: String, limit: Int = 12) -> [String] {
@@ -327,6 +351,16 @@ final class AppModel: ObservableObject {
     // MARK: - Ingestion
 
     func ingestFolder(url: URL) {
+        #if os(macOS)
+        do {
+            try sourceAccessStore.rememberFolder(url)
+            sourceAccessError = nil
+        } catch {
+            sourceAccessError = "Could not preserve access to \(url.lastPathComponent): \(error.localizedDescription)"
+            logger.error("[Ingest] Failed to preserve source-folder access: \(error.localizedDescription, privacy: .private)")
+            return
+        }
+        #endif
         selectedFolder = url
         ingestionLog = "Selected folder: \(url.lastPathComponent)"
         logger.info("[Ingest] Selected folder: \(url.path, privacy: .private(mask: .hash))")
@@ -338,8 +372,36 @@ final class AppModel: ObservableObject {
         ingestionTask?.cancel()
     }
 
+    func openSourceDocument(for paperID: UUID) {
+        guard let paper = papers.first(where: { $0.id == paperID }) else {
+            sourceAccessError = "The selected document is no longer in the atlas."
+            return
+        }
+
+        #if os(macOS)
+        do {
+            let opened = try sourceAccessStore.withAccess(to: paper.fileURL) { resolvedURL in
+                PlatformOpen.open(url: resolvedURL)
+            }
+            guard opened else {
+                throw CocoaError(.fileReadNoPermission)
+            }
+            sourceAccessError = nil
+        } catch {
+            sourceAccessError = error.localizedDescription
+            logger.error("[SourceAccess] Failed to open source document: \(error.localizedDescription, privacy: .private)")
+        }
+        #else
+        _ = PlatformOpen.open(url: paper.fileURL)
+        #endif
+    }
+
     private func runIngestion(folderURL: URL) async {
+        #if DISTRIBUTED_APP_BUILD
+        let smokeFastMode = false
+        #else
         let smokeFastMode = ProcessInfo.processInfo.environment["LITERATURE_ATLAS_SMOKE_FAST"] == "1"
+        #endif
 
         #if os(iOS) || os(macOS)
         let folderScopeAccess = folderURL.startAccessingSecurityScopedResource()
@@ -359,6 +421,8 @@ final class AppModel: ObservableObject {
         selectedClusterIDs.removeAll()
         ingestionProgress = 0
         ingestionCompletedCount = 0
+        ingestionSkippedCount = 0
+        ingestionFailedCount = 0
         ingestionCurrentFile = ""
         ingestionTotalCount = 0
 
@@ -399,7 +463,7 @@ final class AppModel: ObservableObject {
             if shouldSkipSource(sourceURL: sourceURL, existingPaper: existingPaper) {
                 ingestionLog += "\n  Skipped: up to date."
                 ingestionProgress = Double(index + 1) / Double(max(sourceFiles.count, 1))
-                ingestionCompletedCount = index + 1
+                ingestionSkippedCount += 1
                 continue
             }
 
@@ -412,27 +476,37 @@ final class AppModel: ObservableObject {
                 )
                 upsertPaper(paper)
                 let jsonURL = try savePaperJSON(paper)
-                _ = try? saveDocumentJSON(paper)
                 ingestionLog += "\n  Saved JSON: \(jsonURL.lastPathComponent)"
-                if let mdURL = try? PaperMarkdownExporter.write(paper: paper, outputRoot: outputRoot, context: paperObsidianContextSnapshot()) {
+                do {
+                    _ = try saveDocumentJSON(paper)
+                } catch {
+                    ingestionLog += "\n  Warning: document export failed: \(error.localizedDescription)"
+                    logger.error("[Ingest] Document export failed: \(error.localizedDescription, privacy: .private)")
+                }
+                do {
+                    let mdURL = try PaperMarkdownExporter.write(paper: paper, outputRoot: outputRoot, context: paperObsidianContextSnapshot())
                     ingestionLog += "\n  Saved MD: \(mdURL.lastPathComponent)"
+                } catch {
+                    ingestionLog += "\n  Warning: Markdown export failed: \(error.localizedDescription)"
+                    logger.error("[Ingest] Markdown export failed: \(error.localizedDescription, privacy: .private)")
                 }
                 saveChunkIndex()
+                ingestionCompletedCount += 1
             } catch {
                 ingestionLog += "\n  Error: \(error.localizedDescription)"
                 logger.error("[Ingest] Error: \(error.localizedDescription, privacy: .private)")
+                ingestionFailedCount += 1
             }
 
             ingestionProgress = Double(index + 1) / Double(max(sourceFiles.count, 1))
-            ingestionCompletedCount = index + 1
         }
 
         ingestionCurrentFile = ""
         if Task.isCancelled {
             ingestionLog += "\nIngestion cancelled after \(ingestionCompletedCount) files."
         } else {
-            ingestionLog += "\n\nIngestion complete. Processed \(papers.count) papers."
-            logger.info("[Ingest] Completed. Processed \(self.papers.count, privacy: .public) papers.")
+            ingestionLog += "\n\nIngestion complete. Succeeded \(ingestionCompletedCount), skipped \(ingestionSkippedCount), failed \(ingestionFailedCount)."
+            logger.info("[Ingest] Completed. Succeeded \(self.ingestionCompletedCount, privacy: .public), skipped \(self.ingestionSkippedCount, privacy: .public), failed \(self.ingestionFailedCount, privacy: .public).")
             recomputeReadingProfile(extra: nil)
             if papers.count >= 3 {
                 Task { await buildMultiScaleGalaxy() }
@@ -692,7 +766,11 @@ final class AppModel: ObservableObject {
     }
 
     private func buildChunks(for sections: [DocumentSection], paperID: UUID) async -> [PaperChunk] {
+        #if DISTRIBUTED_APP_BUILD
+        let smokeFastMode = false
+        #else
         let smokeFastMode = ProcessInfo.processInfo.environment["LITERATURE_ATLAS_SMOKE_FAST"] == "1"
+        #endif
         var results: [PaperChunk] = []
         for (idx, section) in sections.prefix(20).enumerated() {
             let segment = chunk(text: section.text, maxChars: 1800, overlap: 200, maxChunks: 3)
@@ -781,6 +859,10 @@ final class AppModel: ObservableObject {
 
     func testRunClustering(k: Int) async {
         await runClustering(k: k)
+    }
+
+    func testFallbackEmbedding(for text: String, dimension: Int) -> [Float] {
+        fallbackEmbedding(for: text, dimension: dimension)
     }
 
     func testChunkSegments(text: String, maxChars: Int, overlap: Int, maxChunks: Int) -> [String] {
@@ -1709,8 +1791,15 @@ final class AppModel: ObservableObject {
         Task { await runClustering(k: k) }
     }
 
+    func cancelClustering() {
+        clusteringCancellationRequested = true
+        isClustering = false
+        ingestionLog += "\nClustering cancelled."
+    }
+
     private func runClustering(k: Int) async {
         guard !papers.isEmpty else { return }
+        clusteringCancellationRequested = false
 
         let corpusVersion = currentCorpusVersion()
         let clampedK = min(max(1, k), papers.count)
@@ -1750,6 +1839,10 @@ final class AppModel: ObservableObject {
             let positions = ForceLayout.compute(for: centroids)
             return (assignments, centroids, positions)
         }.value
+        guard !clusteringCancellationRequested, !Task.isCancelled else {
+            isClustering = false
+            return
+        }
         let assignments = compute.assignments
         let centroids = compute.centroids
         let positions = compute.positions
@@ -1763,6 +1856,10 @@ final class AppModel: ObservableObject {
         var newClusters: [Cluster] = []
 
         for clusterID in 0..<kClamped {
+            guard !clusteringCancellationRequested, !Task.isCancelled else {
+                isClustering = false
+                return
+            }
             let memberIndices = assignments.enumerated().filter { $0.element == clusterID }.map { $0.offset }
             guard !memberIndices.isEmpty else { continue }
             let members = memberIndices.map { validPapers[$0] }
@@ -1825,6 +1922,7 @@ final class AppModel: ObservableObject {
     /// - Level 1: 10–20 subtopics within each mega-topic (local clustering).
     /// - Level 2: individual papers within subtopics (paper nodes are shown at high zoom).
     func buildMultiScaleGalaxy(level0Range: ClosedRange<Int> = 5...8, level1Range: ClosedRange<Int> = 10...20) async {
+        clusteringCancellationRequested = false
         isClustering = true
         clusteringProgress = 0
         let validPapers = papers.filter { !$0.embedding.isEmpty }
@@ -1923,6 +2021,11 @@ final class AppModel: ObservableObject {
 
             return GalaxyComputeResult(megaClusters: megaInfos, subclusters: subInfos, assignmentsByID: assignmentsByID)
         }.value
+
+        guard !clusteringCancellationRequested, !Task.isCancelled else {
+            isClustering = false
+            return
+        }
 
         clusteringProgress = 0.55
 
@@ -3326,28 +3429,42 @@ final class AppModel: ObservableObject {
 
     private func embedNotesAndPersist(id: UUID, notes: String, tags: [String], status: ReadingStatus?) async {
         guard let idx = papers.firstIndex(where: { $0.id == id }) else { return }
-        papers[idx].userNotes = notes.isEmpty ? nil : notes
-        papers[idx].userTags = tags.isEmpty ? nil : tags
-        papers[idx].readingStatus = status
+        var updatedPaper = papers[idx]
+        updatedPaper.userNotes = notes.isEmpty ? nil : notes
+        updatedPaper.userTags = tags.isEmpty ? nil : tags
+        updatedPaper.readingStatus = status
         let normalizedTags = tags.map { $0.lowercased() }
-        papers[idx].isImportant = normalizedTags.contains(where: { $0 == "important" || $0 == "starred" || $0 == "fav" || $0 == "favorite" })
-        if status == .done && papers[idx].firstReadAt == nil {
-            papers[idx].firstReadAt = Date()
+        updatedPaper.isImportant = normalizedTags.contains(where: { $0 == "important" || $0 == "starred" || $0 == "fav" || $0 == "favorite" })
+        if status == .done && updatedPaper.firstReadAt == nil {
+            updatedPaper.firstReadAt = Date()
         }
-        if papers[idx].ingestedAt == nil {
-            papers[idx].ingestedAt = Date()
+        if updatedPaper.ingestedAt == nil {
+            updatedPaper.ingestedAt = Date()
         }
 
-        if let content = papers[idx].userNotes, !content.isEmpty {
+        if let content = updatedPaper.userNotes, !content.isEmpty {
             var emb = normalizeEmbedding(await embedder.encode(for: content) ?? [])
             if emb.isEmpty { emb = normalizeEmbedding(fallbackEmbedding(for: content)) }
-            papers[idx].noteEmbedding = emb
+            updatedPaper.noteEmbedding = emb
         } else {
-            papers[idx].noteEmbedding = nil
+            updatedPaper.noteEmbedding = nil
         }
 
-        _ = try? savePaperJSON(papers[idx])
-        _ = try? PaperMarkdownExporter.write(paper: papers[idx], outputRoot: outputRoot, context: paperObsidianContextSnapshot())
+        do {
+            _ = try savePaperJSON(updatedPaper)
+            papers[idx] = updatedPaper
+            persistenceError = nil
+        } catch {
+            persistenceError = "Your changes were not saved: \(error.localizedDescription)"
+            logger.error("[Persistence] Failed to save paper user data: \(error.localizedDescription, privacy: .private)")
+            return
+        }
+        do {
+            _ = try PaperMarkdownExporter.write(paper: updatedPaper, outputRoot: outputRoot, context: paperObsidianContextSnapshot())
+        } catch {
+            persistenceError = "Paper data was saved, but the Markdown note could not be refreshed: \(error.localizedDescription)"
+            logger.error("[Persistence] Failed to refresh paper Markdown: \(error.localizedDescription, privacy: .private)")
+        }
         savePaperIndex()
         await MainActor.run {
             recomputeReadingProfile(extra: nil)

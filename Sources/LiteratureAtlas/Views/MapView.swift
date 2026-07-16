@@ -2519,7 +2519,6 @@ private struct PaperGraphNodeView: View {
 @available(macOS 26, iOS 26, *)
 struct PaperNodeView: View {
     @EnvironmentObject private var model: AppModel
-    @Environment(\.openURL) private var openURL
 
     let paper: Paper
     let highlight: PaperNoveltyScore?
@@ -2810,7 +2809,7 @@ struct PaperNodeView: View {
             .help("Ask about this paper")
 
             Button {
-                openURL(latestPaper.fileURL)
+                model.openSourceDocument(for: latestPaper.id)
             } label: {
                 Image(systemName: "doc.richtext")
             }
