@@ -66,6 +66,7 @@ script/sign_developer_id.sh
 script/create_dmg.sh
 script/notarize_dmg.sh
 script/verify_distribution.sh
+scripts/classify_dependency_graph_status.sh
 "
 
 for relative in $required_scripts; do
@@ -75,6 +76,23 @@ for relative in $required_scripts; do
         fail "$relative is executable"
     fi
 done
+
+dependency_graph_classifier="$ROOT/scripts/classify_dependency_graph_status.sh"
+expect_success "dependency graph classifier accepts an available graph" \
+    "$dependency_graph_classifier" 200 200
+assert_stdout_contains "available dependency graph emits a true output" "available=true"
+expect_success "dependency graph classifier recognizes a missing graph on an accessible repository" \
+    "$dependency_graph_classifier" 200 404
+assert_stdout_contains "unavailable dependency graph emits a false output" "available=false"
+assert_stderr_contains "unavailable dependency graph emits an explicit workflow warning" "::warning::Dependency graph is unavailable"
+expect_failure "dependency graph classifier rejects forbidden graph access" \
+    "$dependency_graph_classifier" 200 403
+expect_failure "dependency graph classifier rejects a missing repository" \
+    "$dependency_graph_classifier" 404 404
+expect_failure "dependency graph classifier rejects forbidden repository access" \
+    "$dependency_graph_classifier" 403 404
+expect_failure "dependency graph classifier rejects unexpected API status" \
+    "$dependency_graph_classifier" 200 500
 
 expect_failure "community build rejects missing arguments" "$ROOT/script/build_community.sh"
 expect_failure "community build rejects unsafe product name" \
@@ -220,8 +238,8 @@ done
 
 if grep -F 'id: dependency-graph' "$ROOT/.github/workflows/dependency-review.yml" >/dev/null \
     && grep -F '/dependency-graph/sbom' "$ROOT/.github/workflows/dependency-review.yml" >/dev/null \
-    && grep -F "if: steps.dependency-graph.outputs.available == 'true'" "$ROOT/.github/workflows/dependency-review.yml" >/dev/null \
-    && grep -F 'Dependency graph is an external repository setting' "$ROOT/.github/workflows/dependency-review.yml" >/dev/null; then
+    && grep -F 'classify_dependency_graph_status.sh "$repository_status" "$graph_status"' "$ROOT/.github/workflows/dependency-review.yml" >/dev/null \
+    && grep -F "if: steps.dependency-graph.outputs.available == 'true'" "$ROOT/.github/workflows/dependency-review.yml" >/dev/null; then
     pass "dependency review reports an unavailable external graph without hiding lockfile gates"
 else
     fail "dependency review reports an unavailable external graph without hiding lockfile gates"

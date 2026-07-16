@@ -10,9 +10,10 @@ protection enabled. The dependency graph, main branch protection, Dependabot
 security updates, private vulnerability reporting, immutable releases, required
 checks, restricted actions, and optional public Scorecard publication remain
 owner-controlled and disabled or unenforced. The PR workflow detects an
-unavailable dependency graph, reports it as an explicit warning, and preserves
-the independent Cargo/Python lockfile audits instead of producing a false
-dependency-review failure.
+unavailable dependency graph only after confirming repository API access,
+reports it as an explicit warning, and preserves the independent Cargo/Python
+lockfile audits instead of producing a false dependency-review failure. Any
+permission, repository-access, forbidden, or unexpected API status fails closed.
 
 Deterministic source, community-app, and official unsigned-app SPDX inventories
 plus pinned-tool Python/Rust CycloneDX inventories exist under `sbom/`.

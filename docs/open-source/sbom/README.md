@@ -6,7 +6,7 @@ They are not an attestation for a future Developer ID-signed artifact.
 
 | File | Scope | Generator | Records |
 |---|---|---|---|
-| `source.spdx.json` | Tracked/unignored repository source excluding Git, generated outputs, and this SBOM directory | `scripts/generate_spdx_sbom.py`, SPDX 2.3 JSON | 1 package, 245 regular files |
+| `source.spdx.json` | Tracked/unignored repository source excluding Git, generated outputs, and this SBOM directory | `scripts/generate_spdx_sbom.py`, SPDX 2.3 JSON | 1 package, 246 regular files |
 | `community-app.spdx.json` | Exact ad-hoc signed `LiteratureAtlasCommunity.app` built from `647911a` | `scripts/generate_spdx_sbom.py`, SPDX 2.3 JSON | 1 package, 40 regular files |
 | `official-unsigned-app.spdx.json` | Exact signature-free official pre-sign app built from `647911a` | `scripts/generate_spdx_sbom.py`, SPDX 2.3 JSON | 1 package, 39 regular files |
 | `python-environment.cdx.json` | Locked analytics Python 3.12 environment | cyclonedx-bom 7.2.1, CycloneDX 1.6 | 18 components; 0 missing licenses |
@@ -48,7 +48,7 @@ Current SHA-256 values:
 ```text
 1c8dc2d061b7b7dfe58695a4bff38df8fa89548eada54d0d60c86a4a43105c68  community-app.spdx.json
 65657374f17e19d5f82fc69567396e062d0a4ee8361bf5bf010ae91a0c1e0132  official-unsigned-app.spdx.json
-e8576e7e9c8573a9f0fdd522d3f4ec5d5b46db45a63af187f0d440f31da7d680  source.spdx.json
+b5231010c901d492c9c9285f09a8919aa4dc7b3138f6a2569ca00911951f55bb  source.spdx.json
 4376c231aabcf7968ce054b7c9b3eb4a0cc08f6335e41d3b5622c03477e06e86  python-environment.cdx.json
 204900d5f3865ef0c8065479e31d378770422f425e7fee68ba74faf7e0448906  rust-source.cdx.json
 ```
