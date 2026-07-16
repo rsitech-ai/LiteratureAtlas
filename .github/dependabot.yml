@@ -4,11 +4,17 @@ updates:
     directory: /
     schedule:
       interval: weekly
+    cooldown:
+      default-days: 7
   - package-ecosystem: cargo
     directory: /analytics/ffi
     schedule:
       interval: weekly
-  - package-ecosystem: pip
+    cooldown:
+      default-days: 7
+  - package-ecosystem: uv
     directory: /analytics
     schedule:
       interval: weekly
+    cooldown:
+      default-days: 7

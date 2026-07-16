@@ -121,6 +121,17 @@ script/sign_developer_id.sh \
   --app dist/official/LiteratureAtlas.app \
   --identity "$DEVELOPER_ID_APPLICATION"
 
+script/verify_distribution.sh \
+  --app dist/official/LiteratureAtlas.app \
+  --mode official \
+  --expected-bundle-id "$OFFICIAL_BUNDLE_ID" \
+  --expected-team-id "$DEVELOPER_TEAM_ID" \
+  --expected-version "$VERSION" \
+  --expected-build "$BUILD_NUMBER" \
+  --expected-architecture arm64 \
+  --expected-min-macos 26.0 \
+  --expected-source-revision "$(git rev-parse HEAD)"
+
 script/create_dmg.sh \
   --app dist/official/LiteratureAtlas.app \
   --output dist/official/LiteratureAtlas-1.0.0.dmg
@@ -129,6 +140,7 @@ script/create_dmg.sh \
 script/notarize_dmg.sh \
   --dmg dist/official/LiteratureAtlas-1.0.0.dmg \
   --keychain-profile LiteratureAtlasNotary \
+  --expected-sha256 "$APPROVED_DMG_SHA256" \
   --submit
 ```
 

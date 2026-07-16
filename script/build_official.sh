@@ -35,6 +35,10 @@ if [ "$dry_run" = true ]; then
     exit 0
 fi
 
+case "$(release_source_revision)" in
+    *-dirty) release_die "official builds require a clean source tree" ;;
+esac
+
 app=$(release_build_presign_app "$product_name" "$bundle_id" "$version" "$build_number" "$output" false)
 release_require_command codesign
 codesign --remove-signature "$app"

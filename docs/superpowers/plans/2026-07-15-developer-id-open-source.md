@@ -74,8 +74,8 @@
 - `build_community.sh --product-name NAME --bundle-id ID --version VERSION --build BUILD --output DIR`
 - `build_official.sh` produces the same unsigned payload and refuses to notarize or publish.
 - `sign_developer_id.sh --app APP --identity IDENTITY` rejects non-Developer-ID identities.
-- `notarize_dmg.sh --dmg DMG --keychain-profile PROFILE --submit` is the only command with an external Apple write and is never invoked without exact approval.
-- `verify_distribution.sh --app APP [--dmg DMG] --mode community|official|notarized` emits machine-readable pass/fail evidence without secret values.
+- `notarize_dmg.sh --dmg DMG --keychain-profile PROFILE --expected-sha256 SHA256 --submit` is the only command with an external Apple write and is never invoked without exact artifact approval.
+- `verify_distribution.sh --app APP [--dmg DMG] --mode community|official|notarized` emits machine-readable pass/fail evidence without secret values; official modes also require owner-approved identity, version, architecture, and deployment-target expectations.
 
 - [ ] Write shell tests for missing arguments, invalid identities, unsafe product/bundle values, output confinement, and no-notarization-by-default.
 - [ ] Run the shell tests and confirm the scripts do not yet exist.

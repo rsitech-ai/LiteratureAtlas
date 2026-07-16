@@ -515,7 +515,7 @@ struct PaperDetailView: View {
 
                 HStack {
                     Button {
-                        openFile(at: paper.fileURL)
+                        model.openSourceDocument(for: paper.id)
                     } label: {
                         Label(paper.sourceKind == .markdown ? "Open Markdown source" : "Open PDF source", systemImage: paper.sourceKind == .markdown ? "doc.text" : "doc.richtext")
                     }

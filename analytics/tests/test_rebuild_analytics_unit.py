@@ -12,6 +12,7 @@ from analytics.rebuild_analytics import (
     compute_factor_loadings,
     load_chunks,
     load_papers,
+    load_user_events,
     paper_layout_quality_metrics,
     persist_duckdb,
     write_embeddings_whitened_parquet,
@@ -81,6 +82,89 @@ class RebuildAnalyticsUnitTests(unittest.TestCase):
             self.assertEqual(len(trading_rows), 1)
             self.assertEqual(rows[0].paper_id, "paper-1")
 
+    def test_load_papers_deduplicates_paper_and_document_exports_by_id(self):
+        with tempfile.TemporaryDirectory() as tmp:
+            output_root = Path(tmp)
+            papers_dir = output_root / "papers"
+            documents_dir = output_root / "documents"
+            papers_dir.mkdir()
+            documents_dir.mkdir()
+            canonical = {
+                "id": "paper-1",
+                "title": "Canonical paper export",
+                "embedding": [0.1, 0.2, 0.3],
+                "summary": "canonical",
+            }
+            duplicate = {
+                **canonical,
+                "title": "Duplicate document export",
+                "summary": "duplicate",
+            }
+            (papers_dir / "paper.paper.json").write_text(json.dumps(canonical), encoding="utf-8")
+            (documents_dir / "paper.document.json").write_text(json.dumps(duplicate), encoding="utf-8")
+
+            rows, embeddings, trading_rows = load_papers(papers_dir)
+
+            self.assertEqual(len(rows), 1)
+            self.assertEqual(len(embeddings), 1)
+            self.assertEqual(len(trading_rows), 1)
+            self.assertEqual(rows[0].paper_id, "paper-1")
+            self.assertEqual(rows[0].title, "Canonical paper export")
+
+    def test_load_papers_rejects_non_numeric_and_non_finite_embeddings(self):
+        with tempfile.TemporaryDirectory() as tmp:
+            papers_dir = Path(tmp)
+            fixtures = {
+                "valid.paper.json": {
+                    "id": "valid",
+                    "title": "Valid",
+                    "embedding": [0.1, 0.2, 0.3],
+                },
+                "text.paper.json": {
+                    "id": "text",
+                    "title": "Text",
+                    "embedding": [0.1, "not-a-number", 0.3],
+                },
+                "nan.paper.json": {
+                    "id": "nan",
+                    "title": "NaN",
+                    "embedding": [0.1, float("nan"), 0.3],
+                },
+                "boolean.paper.json": {
+                    "id": "boolean",
+                    "title": "Boolean",
+                    "embedding": [0.1, True, 0.3],
+                },
+            }
+            for filename, payload in fixtures.items():
+                (papers_dir / filename).write_text(json.dumps(payload), encoding="utf-8")
+
+            rows, embeddings, trading_rows = load_papers(papers_dir)
+
+            self.assertEqual([row.paper_id for row in rows], ["valid"])
+            self.assertEqual(embeddings, [[0.1, 0.2, 0.3]])
+            self.assertEqual([row["paper_id"] for row in trading_rows], ["valid"])
+
+    def test_load_papers_uses_modal_embedding_dimension(self):
+        with tempfile.TemporaryDirectory() as tmp:
+            papers_dir = Path(tmp)
+            fixtures = {
+                "a-short.paper.json": {"id": "short", "embedding": [0.1, 0.2]},
+                "b-valid.paper.json": {"id": "valid-1", "embedding": [0.1, 0.2, 0.3]},
+                "c-valid.paper.json": {"id": "valid-2", "embedding": [0.4, 0.5, 0.6]},
+            }
+            for filename, payload in fixtures.items():
+                (papers_dir / filename).write_text(json.dumps(payload), encoding="utf-8")
+
+            rows, embeddings, trading_rows = load_papers(papers_dir)
+
+            self.assertEqual([row.paper_id for row in rows], ["valid-1", "valid-2"])
+            self.assertTrue(all(len(embedding) == 3 for embedding in embeddings))
+            self.assertEqual(
+                [row["paper_id"] for row in trading_rows],
+                ["valid-1", "valid-2"],
+            )
+
     def test_load_chunks_handles_malformed_and_non_dict_entries(self):
         with tempfile.TemporaryDirectory() as tmp:
             chunks_path = Path(tmp) / "chunks.json"
@@ -102,6 +186,19 @@ class RebuildAnalyticsUnitTests(unittest.TestCase):
             chunks = load_chunks(chunks_path)
             self.assertEqual(len(chunks), 1)
             self.assertEqual(chunks[0]["paperID"], "p1")
+
+    def test_load_user_events_logs_malformed_lines(self):
+        with tempfile.TemporaryDirectory() as tmp:
+            output_root = Path(tmp)
+            analytics_dir = output_root / "analytics"
+            analytics_dir.mkdir()
+            (analytics_dir / "user_events.jsonl").write_text('{"type":"valid"}\nnot-json\n', encoding="utf-8")
+
+            with self.assertLogs("analytics.rebuild_analytics", level="WARNING") as logs:
+                events = load_user_events(output_root)
+
+            self.assertEqual(events, [{"type": "valid"}])
+            self.assertTrue(any("line 2" in message for message in logs.output))
 
     def test_compute_factor_loadings_handles_empty_tag_vocabulary(self):
         embeddings = np.array(

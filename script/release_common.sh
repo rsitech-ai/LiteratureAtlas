@@ -22,11 +22,8 @@ release_validate_product_name() {
 
 release_validate_bundle_id() {
     value=$1
-    printf '%s' "$value" | LC_ALL=C grep -Eq '^[A-Za-z0-9][A-Za-z0-9.-]*\.[A-Za-z0-9][A-Za-z0-9.-]*$' \
+    printf '%s' "$value" | LC_ALL=C grep -Eq '^[A-Za-z0-9][A-Za-z0-9-]*(\.[A-Za-z0-9][A-Za-z0-9-]*)+$' \
         || release_die "unsafe bundle identifier: $value"
-    case "$value" in
-        *..*) release_die "unsafe bundle identifier: $value" ;;
-    esac
 }
 
 release_validate_version() {
@@ -52,6 +49,16 @@ release_print_command() {
     printf '\n'
 }
 
+release_source_revision() {
+    release_require_command git
+    revision=$(git -C "$RELEASE_ROOT" rev-parse HEAD) \
+        || release_die "unable to resolve source revision"
+    if [ -n "$(git -C "$RELEASE_ROOT" status --porcelain --untracked-files=normal)" ]; then
+        revision="$revision-dirty"
+    fi
+    printf '%s\n' "$revision"
+}
+
 release_build_presign_app() {
     product_name=$1
     bundle_id=$2
@@ -59,6 +66,7 @@ release_build_presign_app() {
     build_number=$4
     output=$5
     dry_run=$6
+    source_revision=$(release_source_revision)
 
     release_validate_product_name "$product_name"
     release_validate_bundle_id "$bundle_id"
@@ -75,6 +83,8 @@ release_build_presign_app() {
             -destination generic/platform=macOS \
             PRODUCT_NAME="$product_name" \
             PRODUCT_BUNDLE_IDENTIFIER="$bundle_id" \
+            INFOPLIST_KEY_CFBundleDisplayName="$product_name" \
+            LITERATURE_ATLAS_SOURCE_REVISION="$source_revision" \
             MARKETING_VERSION="$version" \
             CURRENT_PROJECT_VERSION="$build_number" \
             ARCHS=arm64 ONLY_ACTIVE_ARCH=YES \
@@ -104,6 +114,8 @@ release_build_presign_app() {
         -derivedDataPath "$build_root/DerivedData" \
         PRODUCT_NAME="$product_name" \
         PRODUCT_BUNDLE_IDENTIFIER="$bundle_id" \
+        INFOPLIST_KEY_CFBundleDisplayName="$product_name" \
+        LITERATURE_ATLAS_SOURCE_REVISION="$source_revision" \
         MARKETING_VERSION="$version" \
         CURRENT_PROJECT_VERSION="$build_number" \
         ARCHS=arm64 ONLY_ACTIVE_ARCH=YES \
@@ -111,8 +123,12 @@ release_build_presign_app() {
         build >&2
 
     source_app="$build_root/DerivedData/Build/Products/Release/$product_name.app"
+    source_dsym="$build_root/DerivedData/Build/Products/Release/$product_name.app.dSYM"
     [ -d "$source_app" ] || release_die "Xcode did not produce $source_app"
+    [ -d "$source_dsym" ] || release_die "Xcode did not produce $source_dsym"
     ditto "$source_app" "$target"
+    target_dsym="$output/$product_name.app.dSYM"
+    ditto "$source_dsym" "$target_dsym"
     rm -rf "$build_root"
     trap - EXIT
 

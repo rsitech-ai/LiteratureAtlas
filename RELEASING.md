@@ -38,12 +38,22 @@ script/sign_developer_id.sh \
 
 script/verify_distribution.sh \
   --app dist/official/LiteratureAtlas.app \
-  --mode official
+  --mode official \
+  --expected-bundle-id "$OFFICIAL_BUNDLE_ID" \
+  --expected-team-id "$DEVELOPER_TEAM_ID" \
+  --expected-version "$VERSION" \
+  --expected-build "$BUILD_NUMBER" \
+  --expected-architecture arm64 \
+  --expected-min-macos 26.0 \
+  --expected-source-revision "$(git rev-parse HEAD)"
 ```
 
 The signer works on a staged copy and replaces the unsigned app only after a
-verified signature. If keychain authorization fails, resolve it interactively;
-do not export a private key into the repository or command history.
+verified signature. The verifier binds the output to the owner-approved bundle,
+Team ID, version, build, architecture, and deployment target. The unsigned build
+also retains its `.dSYM` beside the app for private crash symbolication. If
+keychain authorization fails, resolve it interactively; do not export a private
+key into the repository or command history.
 
 ## 5. Create and inspect the DMG
 
@@ -65,6 +75,7 @@ release owner approves this exact DMG and submission:
 script/notarize_dmg.sh \
   --dmg "dist/official/LiteratureAtlas-$VERSION.dmg" \
   --keychain-profile "$NOTARY_KEYCHAIN_PROFILE" \
+  --expected-sha256 "$APPROVED_DMG_SHA256" \
   --submit
 ```
 
@@ -75,7 +86,14 @@ requires `Accepted`, staples and validates the DMG, then checks Gatekeeper.
 script/verify_distribution.sh \
   --app dist/official/LiteratureAtlas.app \
   --dmg "dist/official/LiteratureAtlas-$VERSION.dmg" \
-  --mode notarized
+  --mode notarized \
+  --expected-bundle-id "$OFFICIAL_BUNDLE_ID" \
+  --expected-team-id "$DEVELOPER_TEAM_ID" \
+  --expected-version "$VERSION" \
+  --expected-build "$BUILD_NUMBER" \
+  --expected-architecture arm64 \
+  --expected-min-macos 26.0 \
+  --expected-source-revision "$(git rev-parse HEAD)"
 ```
 
 Also test a freshly downloaded/quarantined copy on supported hardware.

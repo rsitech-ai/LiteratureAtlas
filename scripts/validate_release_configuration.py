@@ -152,8 +152,9 @@ def validate(root: Path) -> dict[str, Any]:
         mac_entitlements.get("com.apple.security.app-sandbox") is True
         and mac_entitlements.get("com.apple.security.files.user-selected.read-only")
         is True
+        and mac_entitlements.get("com.apple.security.files.bookmarks.app-scope") is True
         and "com.apple.security.files.user-selected.read-write" not in mac_entitlements,
-        "Mac target uses App Sandbox and read-only user-selected file access",
+        "Mac target uses App Sandbox with persistent read-only user-selected file access",
     )
     ios_entitlements = read_plist(root / "Resources/iOS/LiteratureAtlas.entitlements")
     add_gate(
@@ -229,11 +230,24 @@ def validate(root: Path) -> dict[str, Any]:
     folder_enumeration_index = app_model.find(
         "let sourceFiles = discoverSourceDocuments(in: folderURL)"
     )
+    source_access_store = read_text(
+        root / "Sources/LiteratureAtlas/Services/SourceAccessStore.swift"
+    )
+    persistent_source_access = (
+        "sourceAccessStore.rememberFolder(url)" in app_model
+        and "sourceAccessStore.withAccess(to: paper.fileURL)" in app_model
+        and ".withSecurityScope" in source_access_store
+        and "resolution.isStale" in source_access_store
+        and "provider.startAccessing(resolution.url)" in source_access_store
+        and "provider.stopAccessing(resolution.url)" in source_access_store
+    )
     add_gate(
         gates,
         "security_scoped_ingest",
-        folder_scope_index >= 0 and folder_scope_index < folder_enumeration_index,
-        "sandboxed ingest opens the selected folder security scope before enumeration",
+        folder_scope_index >= 0
+        and folder_scope_index < folder_enumeration_index
+        and persistent_source_access,
+        "sandboxed ingest persists, refreshes, balances, and reuses read-only source access",
     )
 
     icon_root = root / "Resources/Shared/Assets.xcassets/AppIcon.appiconset"
@@ -251,7 +265,11 @@ def validate(root: Path) -> dict[str, Any]:
         gates,
         "app_icon_artwork",
         icon_ok,
-        "AppIcon catalog references real committed artwork for all declared entries",
+        (
+            "AppIcon catalog references real committed artwork for all declared entries"
+            if icon_ok
+            else "AppIcon catalog is missing committed artwork files"
+        ),
     )
 
     failed_gates = [name for name, result in gates.items() if not result["passed"]]

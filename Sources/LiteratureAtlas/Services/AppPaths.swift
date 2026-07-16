@@ -9,6 +9,7 @@ enum AppPaths {
 
     static func repoRoot() -> URL {
         let fm = FileManager.default
+        #if !DISTRIBUTED_APP_BUILD
         let env = ProcessInfo.processInfo.environment
 
         if let override = env["LITERATURE_ATLAS_REPO_ROOT"],
@@ -16,6 +17,7 @@ enum AppPaths {
             let url = URL(fileURLWithPath: override, isDirectory: true)
             if looksLikeRepoRoot(url, fileManager: fm) { return url }
         }
+        #endif
 
         var candidates: [URL] = [
             URL(fileURLWithPath: fm.currentDirectoryPath, isDirectory: true),

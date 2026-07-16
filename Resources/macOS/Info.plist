@@ -26,6 +26,8 @@
 	<string>public.app-category.reference</string>
 	<key>LSMinimumSystemVersion</key>
 	<string>$(MACOSX_DEPLOYMENT_TARGET)</string>
+	<key>LiteratureAtlasSourceRevision</key>
+	<string>$(LITERATURE_ATLAS_SOURCE_REVISION)</string>
 	<key>NSHighResolutionCapable</key>
 	<true/>
 </dict>

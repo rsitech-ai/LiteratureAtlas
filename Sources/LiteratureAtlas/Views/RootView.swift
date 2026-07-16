@@ -3,6 +3,7 @@ import SwiftUI
 @available(macOS 26, iOS 26, *)
 struct RootView: View {
     @EnvironmentObject private var nav: AppNavigation
+    @EnvironmentObject private var model: AppModel
     @Environment(\.horizontalSizeClass) private var horizontalSizeClass
 
     var body: some View {
@@ -36,6 +37,28 @@ struct RootView: View {
             }
         }
         .tint(GalaxyTheme.nebulaBlue)
+        .alert(
+            "Source Access Needed",
+            isPresented: Binding(
+                get: { model.sourceAccessError != nil },
+                set: { if !$0 { model.sourceAccessError = nil } }
+            )
+        ) {
+            Button("OK", role: .cancel) { model.sourceAccessError = nil }
+        } message: {
+            Text(model.sourceAccessError ?? "Select the source folder again to restore access.")
+        }
+        .alert(
+            "Save Failed",
+            isPresented: Binding(
+                get: { model.persistenceError != nil },
+                set: { if !$0 { model.persistenceError = nil } }
+            )
+        ) {
+            Button("OK", role: .cancel) { model.persistenceError = nil }
+        } message: {
+            Text(model.persistenceError ?? "The change could not be saved.")
+        }
     }
 
     private var selectedTab: Binding<AppNavigation.Tab?> {

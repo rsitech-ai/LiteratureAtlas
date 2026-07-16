@@ -37,7 +37,16 @@ app_parent=$(cd "$(dirname "$app")" && pwd)
 app_name=$(basename "$app")
 stage=$(mktemp -d "$app_parent/.literatureatlas-signing.XXXXXX")
 candidate="$stage/$app_name"
-trap 'rm -rf "$stage"' EXIT
+backup=
+cleanup() {
+    if [ -n "$backup" ] && [ -e "$backup" ] && [ ! -e "$app" ]; then
+        mv "$backup" "$app" || true
+    fi
+    rm -rf "$stage"
+}
+trap cleanup EXIT
+trap 'exit 130' HUP INT
+trap 'exit 143' TERM
 ditto "$app" "$candidate"
 
 for nested_root in Frameworks PlugIns XPCServices Library/SystemExtensions Extensions; do
@@ -60,8 +69,10 @@ backup="$app_parent/.$app_name.unsigned.$$"
 mv "$app" "$backup"
 if mv "$candidate" "$app"; then
     rm -rf "$backup"
+    backup=
 else
     mv "$backup" "$app"
+    backup=
     release_die "failed to replace unsigned app with verified signed app"
 fi
 rm -rf "$stage"
