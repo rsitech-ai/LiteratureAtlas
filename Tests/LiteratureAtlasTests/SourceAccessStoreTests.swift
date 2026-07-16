@@ -35,6 +35,7 @@ private final class FakeSecurityScopedBookmarkProvider: SecurityScopedBookmarkPr
     }
 }
 
+@MainActor
 @Suite("Source access bookmarks")
 struct SourceAccessStoreTests {
     @Test("bookmark access survives store recreation and balances scope")
@@ -97,6 +98,28 @@ struct SourceAccessStoreTests {
             #expect(provider.startCount == 1)
             #expect(provider.stopCount == 0)
         }
+    }
+
+    @Test("async access holds the resolved scope until the operation finishes")
+    func asyncAccessHoldsScope() async throws {
+        let temporaryRoot = FileManager.default.temporaryDirectory
+            .appendingPathComponent(UUID().uuidString, isDirectory: true)
+        let selectedFolder = temporaryRoot.appendingPathComponent("Library", isDirectory: true)
+        let provider = FakeSecurityScopedBookmarkProvider()
+        let store = SourceAccessStore(
+            storageURL: temporaryRoot.appendingPathComponent("source-access.json"),
+            provider: provider
+        )
+        try store.rememberFolder(selectedFolder)
+
+        try await store.withAccess(to: selectedFolder) { _ in
+            await Task.yield()
+            #expect(provider.startCount == 2)
+            #expect(provider.stopCount == 1)
+        }
+
+        #expect(provider.startCount == 2)
+        #expect(provider.stopCount == 2)
     }
 }
 #endif
