@@ -11,7 +11,7 @@
 - [x] Generate publication artifacts (DoD: required open-source reports, SBOMs, and manifest are complete and internally consistent)
 - [x] Clean obsolete release/build state (DoD: only generated or superseded artifacts/worktrees are removed after clean-state and ancestry proof; unique commits remain preserved)
 - [x] Run full static and code-level security review (DoD: full diff/source/docs/workflow review has no unresolved blocker/high implementation finding; Codex Security remains explicitly deferred)
-- [ ] Verify from a fresh clone/worktree (DoD: public docs alone reproduce the community build and tests)
+- [x] Verify from a fresh clone/worktree (DoD: public docs alone reproduce the community build and tests)
 - [x] Complete native macOS E2E audit (DoD: app relaunch, primary workflows, controls, edge states, persistence, accessibility/help, and focused runtime logs are captured in an audit report)
 - [ ] Request final independent review (DoD: all critical/important findings resolved and re-reviewed)
 - [ ] Create and harden PR (DoD: branch pushed, PR opened, GitHub checks/review inspected, and all actionable findings resolved)
@@ -20,7 +20,7 @@
 - [ ] Final handoff (DoD: exact verdicts, exceptions, blockers, approvals, artifact paths, commits, and next action are recorded)
 
 ## In progress
-- [ ] Reproduce the final evidence commit from a fresh clone, then request exact-diff review and harden the PR.
+- [ ] Request exact-diff review of `origin/main...HEAD`, then harden and merge the PR.
 
 ## Done
 - [x] Session bootstrap and repository instructions reviewed.
@@ -33,6 +33,7 @@
 - [x] REUSE 3.3, workflow actionlint/zizmor, CFF/JSON validation, SBOM generation, Cargo audit, pip-audit, and OSV lock scanning completed.
 - [x] Exact community app/DMG from `647911a` verified, launched, navigated, ingested a real sandboxed fixture, and restored persisted state after relaunch.
 - [x] Exact signature-free official pre-sign app from `647911a` inspected with source mapping and retained dSYM.
+- [x] Fresh clone at `a8f2f2a` restored from the lock, passed all Swift/Python/Rust/release gates, and produced warning-free macOS and iOS Release apps.
 
 ## External / owner-controlled blockers
 

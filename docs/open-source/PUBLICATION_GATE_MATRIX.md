@@ -20,7 +20,7 @@
 | Private security contact | Blocked external | Enable GitHub private reporting or approved monitored route |
 | Governance/DCO | Blocked owner | Approve roster, authority, DCO versus CLA |
 | Trademark/branding authority | Blocked owner | Confirm owner and marks; technical rebrand policy exists |
-| Fresh clone | Pending | Run after final evidence commit |
+| Fresh clone | Pass | Commit `a8f2f2a`: locked restore, complete language/release suite, and warning-free macOS/iOS Release builds |
 | macOS 26 local hardware | Pass | Relocated community app launched, navigated, ingested, and relaunched cleanly |
 | Download quarantine acceptance | Blocked external | Test the future downloaded and notarized DMG on supported hardware |
 | Tag/release/public announcement | Not authorized | Separate explicit approval required |

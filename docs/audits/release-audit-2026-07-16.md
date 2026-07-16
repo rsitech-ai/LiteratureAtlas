@@ -109,6 +109,9 @@ is stored outside exported paper JSON.
   provenance, dSYM, workflow-trigger, and input-boundary cases passed.
 - Xcode: macOS and iOS Release builds passed; the distribution build transcript
   was warning/error clean with Swift warnings-as-errors enabled.
+- Fresh clone: commit `a8f2f2a` restored the locked Python environment and
+  repeated the complete Swift/Python/Rust/release-policy suite plus macOS and
+  iOS Release builds. Both redirected Xcode diagnostic transcripts were empty.
 - Release validator: every gate passed except the explicitly named
   `app_icon_artwork` owner blocker.
 
