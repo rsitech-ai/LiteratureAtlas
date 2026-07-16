@@ -9,6 +9,8 @@
 - Open-source publication: **blocked** by legal/history, artwork/brand,
   governance/reporting, and Apple owner gates.
 - Codex Security: explicitly deferred by the owner; not run or claimed.
+- Independent review: no blocker, high, or important finding in
+  `origin/main...6633779`.
 
 ## Scope and standards
 
