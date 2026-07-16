@@ -218,6 +218,15 @@ for workflow in dependency-review.yml license-compliance.yml codeql.yml; do
     fi
 done
 
+if grep -F 'id: dependency-graph' "$ROOT/.github/workflows/dependency-review.yml" >/dev/null \
+    && grep -F '/dependency-graph/sbom' "$ROOT/.github/workflows/dependency-review.yml" >/dev/null \
+    && grep -F "if: steps.dependency-graph.outputs.available == 'true'" "$ROOT/.github/workflows/dependency-review.yml" >/dev/null \
+    && grep -F 'Dependency graph is an external repository setting' "$ROOT/.github/workflows/dependency-review.yml" >/dev/null; then
+    pass "dependency review reports an unavailable external graph without hiding lockfile gates"
+else
+    fail "dependency review reports an unavailable external graph without hiding lockfile gates"
+fi
+
 if grep -F -- '--remove-signature' "$ROOT/script/build_official.sh" >/dev/null \
     && grep -F 'code object is not signed at all' "$ROOT/script/build_official.sh" >/dev/null; then
     pass "official build proves a signature-free pre-sign candidate"

@@ -120,6 +120,10 @@ is stored outside exported paper JSON.
   REUSE 3.3 and CFF validation passed; Python/Rust advisory checks found no
   vulnerability; exact-tree/history signature matching and GitHub secret
   scanning found zero credential alert.
+- Hosted PR: GitHub's dependency-review action reported that the repository
+  dependency graph is disabled. The workflow now preflights that owner setting,
+  warns and skips only when unavailable, and still fails on findings whenever
+  the graph is enabled; Cargo/Python lockfile audits remain mandatory.
 
 ## Residual and external blockers
 
