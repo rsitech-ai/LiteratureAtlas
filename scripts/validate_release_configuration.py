@@ -85,8 +85,9 @@ def validate(root: Path) -> dict[str, Any]:
         gates,
         "release_optimization",
         "SWIFT_COMPILATION_MODE = wholemodule" in release_config
-        and "SWIFT_OPTIMIZATION_LEVEL = -O" in release_config,
-        "Release configuration uses whole-module optimized distributed compilation",
+        and "SWIFT_OPTIMIZATION_LEVEL = -O" in release_config
+        and "SWIFT_TREAT_WARNINGS_AS_ERRORS = YES" in release_config,
+        "Release configuration uses whole-module optimization and fails on Swift warnings",
     )
     add_gate(
         gates,
