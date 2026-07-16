@@ -126,6 +126,11 @@ is stored outside exported paper JSON.
   that accessible repository, fails closed on permission/access/unexpected
   statuses, and still fails on findings whenever the graph is enabled;
   Cargo/Python lockfile audits remain mandatory.
+- Hosted CI also caught two runner-only assumptions before merge: Python
+  3.12.13 is absent from the `macos-26` arm64 toolcache, and XcodeGen 2.45.4's
+  archive has a nested `xcodegen/bin` root. The workflow now pins available
+  Python 3.12.10 and the checksum-verified extracted binary path; local policy
+  tests and official manifest/archive inspection cover both corrections.
 
 ## Residual and external blockers
 

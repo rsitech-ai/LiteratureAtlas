@@ -25,20 +25,20 @@ jobs:
           fetch-depth: 1
       - uses: actions/setup-python@ece7cb06caefa5fff74198d8649806c4678c61a1 # v6.3.0
         with:
-          python-version: "3.12.13"
+          python-version: "3.12.10"
       - uses: astral-sh/setup-uv@11f9893b081a58869d3b5fccaea48c9e9e46f990 # v8.3.2
         with:
           version: "0.5.23"
       - name: Verify lock and install
         run: |
           uv lock --check --project analytics
-          uv sync --project analytics --python 3.12.13 --extra dev --frozen
+          uv sync --project analytics --python 3.12.10 --extra dev --frozen
       - name: Format
-        run: uv run --project analytics --python 3.12.13 --extra dev --frozen ruff format --check analytics scripts
+        run: uv run --project analytics --python 3.12.10 --extra dev --frozen ruff format --check analytics scripts
       - name: Lint
-        run: uv run --project analytics --python 3.12.13 --extra dev --frozen ruff check analytics scripts
+        run: uv run --project analytics --python 3.12.10 --extra dev --frozen ruff check analytics scripts
       - name: Test
-        run: uv run --project analytics --python 3.12.13 --extra dev --frozen pytest analytics/tests -q
+        run: uv run --project analytics --python 3.12.10 --extra dev --frozen pytest analytics/tests -q
 
   rust:
     name: Rust / quality
@@ -99,7 +99,7 @@ jobs:
             https://github.com/yonaskolb/XcodeGen/releases/download/2.45.4/xcodegen.zip
           echo "090ec29491aad50aec10631bf6e62253fed733c50f3aab0f5ffc86bc170bdbef  $RUNNER_TEMP/xcodegen.zip" | shasum -a 256 --check
           ditto -x -k "$RUNNER_TEMP/xcodegen.zip" "$RUNNER_TEMP/xcodegen"
-          echo "$RUNNER_TEMP/xcodegen/bin" >> "$GITHUB_PATH"
+          echo "$RUNNER_TEMP/xcodegen/xcodegen/bin" >> "$GITHUB_PATH"
       - name: Verify generated Xcode project
         run: |
           xcodegen generate --spec project.yml
