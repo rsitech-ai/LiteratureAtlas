@@ -22,7 +22,7 @@
   "unknown_license_count": 0,
   "known_dependency_advisory_count": 0,
   "known_dependency_maintenance_warnings": 1,
-  "secret_scan_status": "no credential found in current tree or reachable history; exact final-commit rerun required after this manifest is committed",
+  "secret_scan_status": "no credential signature or open GitHub secret-scanning alert found after the audit evidence was committed; exact future signed artifact must be scanned separately",
   "history_scan_status": "blocked by four reachable third-party PDF blobs",
   "rotated_secret_count": 0,
   "unresolved_ownership_items": [
