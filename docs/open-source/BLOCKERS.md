@@ -22,12 +22,14 @@
 
 9. Confirm official bundle ID, Developer ID identity, release owner, and support
    metadata.
-10. Rebuild the exact official candidate and authorize its private key in the
-    keychain; the prior local signing attempt failed with `errSecInternalComponent`.
+10. Approve exact source commit `647911a` (or rebuild from the approved successor)
+    and authorize its Developer ID private key in the keychain. The local
+    signature-free pre-sign candidate is verified; no signing was attempted in
+    this audit pass.
 11. Explicitly approve the exact notarization upload, then retain submission/log,
     staple, Gatekeeper, quarantine, and supported-hardware evidence.
-12. Generate and reconcile exact source/artifact SBOMs, notices, hashes, and
-    source-release mapping.
+12. Generate and reconcile the exact future signed/stapled-artifact SBOM,
+    notices, hashes, signature/notary evidence, and source-release mapping.
 
 No notarization upload, Git tag, GitHub Release, visibility mutation, history
 rewrite, public artifact, or announcement has been performed.
