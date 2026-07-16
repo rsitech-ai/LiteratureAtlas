@@ -12,6 +12,7 @@ Usage:
 
 The script keeps everything local—no network calls. You can iterate in notebooks by opening atlas.duckdb.
 """
+
 from __future__ import annotations
 
 import argparse
@@ -67,8 +68,11 @@ except Exception as e:
 
 # ---------- Paths ----------
 
+
 def resolve_paths(base_arg: str | None) -> dict[str, pathlib.Path]:
-    repo_root = pathlib.Path(base_arg).expanduser().resolve() if base_arg else pathlib.Path(__file__).resolve().parents[1]
+    repo_root = (
+        pathlib.Path(base_arg).expanduser().resolve() if base_arg else pathlib.Path(__file__).resolve().parents[1]
+    )
     output = repo_root / "Output"
     papers_dir = output / "papers"
     chunks_path = output / "chunks" / "chunks.json"
@@ -84,7 +88,9 @@ def resolve_paths(base_arg: str | None) -> dict[str, pathlib.Path]:
         "db_path": db_path,
     }
 
+
 # ---------- Loading ----------
+
 
 @dataclass
 class PaperRow:
@@ -152,6 +158,8 @@ def load_papers(papers_dir: pathlib.Path) -> tuple[list[PaperRow], list[list[flo
     if documents_dir.exists():
         candidate_paths.extend(sorted(documents_dir.glob("*.document.json")))
 
+    valid_candidates: list[tuple[pathlib.Path, dict[str, Any], str, list[float]]] = []
+    candidate_ids: set[str] = set()
     for path in candidate_paths:
         data = _read_json_file(path)
         if not isinstance(data, dict):
@@ -167,6 +175,34 @@ def load_papers(papers_dir: pathlib.Path) -> tuple[list[PaperRow], list[list[flo
             _logger.warning("Skipping %s because 'embedding' is not a list", path)
             continue
         if not emb:
+            continue
+        if paper_id in candidate_ids:
+            _logger.warning("Skipping duplicate paper id %s from %s", paper_id, path)
+            continue
+        if any(isinstance(value, bool) or not isinstance(value, (int, float)) for value in emb):
+            _logger.warning("Skipping %s because 'embedding' contains a non-numeric value", path)
+            continue
+        numeric_embedding = [float(value) for value in emb]
+        if not all(math.isfinite(value) for value in numeric_embedding):
+            _logger.warning("Skipping %s because 'embedding' contains a non-finite value", path)
+            continue
+        candidate_ids.add(paper_id)
+        valid_candidates.append((path, data, paper_id, numeric_embedding))
+
+    if not valid_candidates:
+        return rows, embeddings, trading_rows
+
+    dimension_counts = Counter(len(embedding) for _, _, _, embedding in valid_candidates)
+    canonical_dimension = dimension_counts.most_common(1)[0][0]
+
+    for path, data, paper_id, emb in valid_candidates:
+        if len(emb) != canonical_dimension:
+            _logger.warning(
+                "Skipping %s because embedding dimension %d does not match canonical dimension %d",
+                path,
+                len(emb),
+                canonical_dimension,
+            )
             continue
         year = data.get("year")
         cluster_id = data.get("clusterIndex")
@@ -303,14 +339,18 @@ def load_user_events(output_root: pathlib.Path) -> list[dict[str, Any]]:
     if not events_path.exists():
         return []
     events: list[dict[str, Any]] = []
-    for line in events_path.read_text().splitlines():
+    for line_number, line in enumerate(events_path.read_text(encoding="utf-8").splitlines(), start=1):
         line = line.strip()
         if not line:
             continue
         try:
             evt = json.loads(line)
-            events.append(evt)
-        except json.JSONDecodeError:
+            if isinstance(evt, dict):
+                events.append(evt)
+            else:
+                _logger.warning("Skipping non-object user event on line %d", line_number)
+        except json.JSONDecodeError as exc:
+            _logger.warning("Skipping malformed user event on line %d: %s", line_number, exc)
             continue
     return events
 
@@ -328,11 +368,43 @@ def load_claim_edge_snapshot(output_root: pathlib.Path) -> dict[str, Any] | None
     if isinstance(data, dict) and isinstance(data.get("edges"), list):
         return data
     return None
+
+
 # ---------- Helpers ----------
 
 _STOPWORDS = {
-    "a", "an", "and", "are", "as", "at", "be", "by", "for", "from", "has", "have", "in", "is", "it", "its", "of",
-    "on", "or", "that", "the", "their", "this", "to", "we", "with", "without", "our", "they", "them", "these", "those",
+    "a",
+    "an",
+    "and",
+    "are",
+    "as",
+    "at",
+    "be",
+    "by",
+    "for",
+    "from",
+    "has",
+    "have",
+    "in",
+    "is",
+    "it",
+    "its",
+    "of",
+    "on",
+    "or",
+    "that",
+    "the",
+    "their",
+    "this",
+    "to",
+    "we",
+    "with",
+    "without",
+    "our",
+    "they",
+    "them",
+    "these",
+    "those",
 }
 
 
@@ -363,7 +435,7 @@ def compute_corpus_version(rows: list[PaperRow]) -> str:
     Match Swift's AppModel.currentCorpusVersion() hash: djb2 over "filePath|v<version>" joined by "||", mod 2^64.
     """
     parts: list[str] = []
-    for row in sorted(rows, key=lambda r: (r.file_path or "")):
+    for row in sorted(rows, key=lambda r: r.file_path or ""):
         v = row.version if isinstance(row.version, int) else 0
         parts.append(f"{row.file_path}|v{v}")
     signature = "||".join(parts)
@@ -511,12 +583,18 @@ def summarize_trading_lens(trading_rows: list[dict[str, Any]]) -> dict[str, Any]
         "tag_trends": tag_trends,
         "score_points": score_points[: min(5000, len(score_points))],
         "top_priority": [
-            {"paper_id": r.get("paper_id"), "priority": r.get("priority"), "one_line_verdict": r.get("one_line_verdict")}
+            {
+                "paper_id": r.get("paper_id"),
+                "priority": r.get("priority"),
+                "one_line_verdict": r.get("one_line_verdict"),
+            }
             for r in score_points[:50]
         ],
     }
 
+
 # ---------- Embedding transforms ----------
+
 
 def whiten_embeddings(embeddings: np.ndarray, max_components: int = 128) -> tuple[np.ndarray, PCA]:
     """
@@ -530,7 +608,9 @@ def whiten_embeddings(embeddings: np.ndarray, max_components: int = 128) -> tupl
     Z = pca.fit_transform(embeddings)
     return Z.astype(np.float32), pca
 
+
 # ---------- Analytics ----------
+
 
 def _flatten_galaxy_clusters(nodes: list[dict[str, Any]]) -> list[dict[str, Any]]:
     out: list[dict[str, Any]] = []
@@ -817,7 +897,11 @@ def paper_layout_quality_metrics(
     ]
     grid.sort(key=lambda r: (-r["avg_distortion"], -r["count"]))
 
-    q = np.quantile(np.array(list(distort.values()), dtype=np.float32), [0.5, 0.9, 0.95, 0.99]).tolist() if distort else [0, 0, 0, 0]
+    q = (
+        np.quantile(np.array(list(distort.values()), dtype=np.float32), [0.5, 0.9, 0.95, 0.99]).tolist()
+        if distort
+        else [0, 0, 0, 0]
+    )
     summary = {
         "available": True,
         "level": "paper",
@@ -854,7 +938,9 @@ def cosine_similarity(a: np.ndarray, b: np.ndarray) -> float:
     return float(np.dot(a, b) / denom)
 
 
-def compute_multi_novelty(df_papers: pd.DataFrame, Z: np.ndarray, drift_vectors: dict[tuple[int, int], np.ndarray]) -> dict[str, dict[str, float]]:
+def compute_multi_novelty(
+    df_papers: pd.DataFrame, Z: np.ndarray, drift_vectors: dict[tuple[int, int], np.ndarray]
+) -> dict[str, dict[str, float]]:
     """
     Returns map paper_id -> {nov_cluster, nov_global, nov_directional}
     using whitened embeddings Z.
@@ -903,13 +989,18 @@ def compute_multi_novelty(df_papers: pd.DataFrame, Z: np.ndarray, drift_vectors:
     return results
 
 
-def novelty_uncertainty(df_papers: pd.DataFrame, Z: np.ndarray, centroids: dict[int, np.ndarray], trials: int = 5, noise: float = 0.01) -> dict[str, float]:
+def novelty_uncertainty(
+    df_papers: pd.DataFrame, Z: np.ndarray, centroids: dict[int, np.ndarray], trials: int = 5, noise: float = 0.01
+) -> dict[str, float]:
     """
     Bootstrap novelty by jittering embeddings.
     Returns std dev of cluster-norm distance across jitters.
     """
     rng = np.random.default_rng(seed=0)
-    base = {row.paper_id: float(np.linalg.norm(Z[i] - centroids[row.cluster_id])) if row.cluster_id in centroids else 0.0 for i, row in df_papers.iterrows()}
+    base = {
+        row.paper_id: float(np.linalg.norm(Z[i] - centroids[row.cluster_id])) if row.cluster_id in centroids else 0.0
+        for i, row in df_papers.iterrows()
+    }
     accum: dict[str, list[float]] = {pid: [val] for pid, val in base.items()}
     for _ in range(trials):
         jitter = Z + rng.normal(scale=noise, size=Z.shape)
@@ -942,6 +1033,7 @@ def compute_topic_trends(df_papers: pd.DataFrame) -> list[dict[str, Any]]:
 
 
 # ---------- Factor model (lightweight PCA surrogate) ----------
+
 
 def compute_factor_loadings(
     embeddings: np.ndarray,
@@ -979,7 +1071,12 @@ def compute_factor_loadings(
     # If tags are too sparse, fall back to dense labels
     factor_labels: list[str] = []
     if tfidf_mat is not None and tfidf_mat.shape[0] >= 3 and tfidf_mat.shape[1] >= 4:
-        nmf = NMF(n_components=min(n_factors, tfidf_mat.shape[1], tfidf_mat.shape[0]), init="nndsvda", random_state=0, max_iter=300)
+        nmf = NMF(
+            n_components=min(n_factors, tfidf_mat.shape[1], tfidf_mat.shape[0]),
+            init="nndsvda",
+            random_state=0,
+            max_iter=300,
+        )
         nmf.fit(tfidf_mat)
         H = nmf.components_
         for row in H:
@@ -987,7 +1084,7 @@ def compute_factor_loadings(
             labels = [vocab[i] for i in top_idx if row[i] > 0]
             factor_labels.append(", ".join(labels) if labels else "Factor")
     else:
-        factor_labels = [f"Factor {i+1}" for i in range(n_factors)]
+        factor_labels = [f"Factor {i + 1}" for i in range(n_factors)]
 
     # ----- Combine scores (semantic) and return -----
     loadings = []
@@ -997,12 +1094,14 @@ def compute_factor_loadings(
     factors = dense_comps.tolist()
     # If we have nmf components, blend names; otherwise fallback
     if len(factor_labels) < n_factors:
-        factor_labels += [f"Factor {i+1}" for i in range(len(factor_labels), n_factors)]
+        factor_labels += [f"Factor {i + 1}" for i in range(len(factor_labels), n_factors)]
 
     return factors, loadings, factor_labels[:n_factors]
 
 
-def factor_exposures_over_time(loadings: list[dict[str, Any]], years: list[int | None], n_factors: int) -> list[dict[str, Any]]:
+def factor_exposures_over_time(
+    loadings: list[dict[str, Any]], years: list[int | None], n_factors: int
+) -> list[dict[str, Any]]:
     rows = []
     for item, year in zip(loadings, years):
         if year is None or (isinstance(year, float) and math.isnan(year)):
@@ -1014,13 +1113,12 @@ def factor_exposures_over_time(loadings: list[dict[str, Any]], years: list[int |
         return []
     df = pd.DataFrame(rows)
     agg = df.groupby(["year", "factor"]).score.mean().reset_index()
-    return [
-        {"year": int(r.year), "factor": int(r.factor), "score": float(r.score)}
-        for _, r in agg.iterrows()
-    ]
+    return [{"year": int(r.year), "factor": int(r.factor), "score": float(r.score)} for _, r in agg.iterrows()]
 
 
-def factor_exposures_from_reads(loadings: list[dict[str, Any]], df_papers: pd.DataFrame, user_events: list[dict[str, Any]], n_factors: int) -> list[dict[str, Any]]:
+def factor_exposures_from_reads(
+    loadings: list[dict[str, Any]], df_papers: pd.DataFrame, user_events: list[dict[str, Any]], n_factors: int
+) -> list[dict[str, Any]]:
     """
     Build exposures based on user interaction/reading time rather than publication year.
     Priority:
@@ -1079,10 +1177,7 @@ def factor_exposures_from_reads(loadings: list[dict[str, Any]], df_papers: pd.Da
         return []
     df = pd.DataFrame(rows)
     agg = df.groupby(["year", "factor"]).score.mean().reset_index()
-    return [
-        {"year": int(r.year), "factor": int(r.factor), "score": float(r.score)}
-        for _, r in agg.iterrows()
-    ]
+    return [{"year": int(r.year), "factor": int(r.factor), "score": float(r.score)} for _, r in agg.iterrows()]
 
 
 def build_knn(embeddings: np.ndarray, paper_ids: list[str], k: int = 8) -> list[dict[str, Any]]:
@@ -1104,11 +1199,7 @@ def build_knn(embeddings: np.ndarray, paper_ids: list[str], k: int = 8) -> list[
         else:
             idx = np.argpartition(-row, k_eff)[:k_eff]
             ordered = idx[np.argsort(-row[idx])]
-            top = [
-                {"paper_id": paper_ids[j], "score": float(row[j])}
-                for j in ordered
-                if not math.isnan(row[j])
-            ]
+            top = [{"paper_id": paper_ids[j], "score": float(row[j])} for j in ordered if not math.isnan(row[j])]
         neighbors.append({"paper_id": pid, "neighbors": top})
     return neighbors
 
@@ -1350,7 +1441,9 @@ def cluster_stability_multi_seed_kmeans(
     agreement = p[np.arange(len(paper_ids)), base_labels].astype(np.float32)
 
     per_paper: list[dict[str, Any]] = []
-    for pid, t1, t2, agree, bc, a, m, dm in zip(paper_ids, top1, top2, agreement, best_conf, ambiguity, margin, dist_margin):
+    for pid, t1, t2, agree, bc, a, m, dm in zip(
+        paper_ids, top1, top2, agreement, best_conf, ambiguity, margin, dist_margin
+    ):
         per_paper.append(
             {
                 "paper_id": pid,
@@ -1527,6 +1620,7 @@ def eigen_centrality_from_knn(knn: list[dict[str, Any]], max_iter: int = 80, tol
 
 # ---------- Drift over time ----------
 
+
 def compute_drift(df_papers: pd.DataFrame, embeddings: np.ndarray) -> list[dict[str, Any]]:
     if "cluster_id" not in df_papers.columns or "year" not in df_papers.columns:
         return []
@@ -1551,7 +1645,17 @@ def compute_drift(df_papers: pd.DataFrame, embeddings: np.ndarray) -> list[dict[
                     if delta.shape[0] >= 2:
                         dx = float(delta[0] / drift_mag)
                         dy = float(delta[1] / drift_mag)
-            data.append({"cluster_id": int(cid), "year": int(year), "drift": drift_mag, "dx": dx, "dy": dy, "from_year": prev_year, "to_year": int(year)})
+            data.append(
+                {
+                    "cluster_id": int(cid),
+                    "year": int(year),
+                    "drift": drift_mag,
+                    "dx": dx,
+                    "dy": dy,
+                    "from_year": prev_year,
+                    "to_year": int(year),
+                }
+            )
             prev_centroid = centroid
             prev_year = int(year)
     return data
@@ -1577,7 +1681,12 @@ def drift_vector_map(df_papers: pd.DataFrame, embeddings: np.ndarray) -> dict[tu
     return vectors
 
 
-def drift_contribution(df_papers: pd.DataFrame, Z: np.ndarray, drift_vectors: dict[tuple[int, int], np.ndarray], influence_map: dict[str, float]) -> dict[str, float]:
+def drift_contribution(
+    df_papers: pd.DataFrame,
+    Z: np.ndarray,
+    drift_vectors: dict[tuple[int, int], np.ndarray],
+    influence_map: dict[str, float],
+) -> dict[str, float]:
     """
     Approximate how much each paper pushes its cluster in the observed drift direction.
     """
@@ -1667,7 +1776,10 @@ def zscore(values: dict[str, float]) -> dict[str, float]:
 
 # ---------- Influence (simple PageRank) ----------
 
-def pagerank(n: int, edges: list[tuple[int, int]], weights: list[float] | None = None, d: float = 0.85, iters: int = 60):
+
+def pagerank(
+    n: int, edges: list[tuple[int, int]], weights: list[float] | None = None, d: float = 0.85, iters: int = 60
+):
     if n == 0:
         return []
     rank = np.full(n, 1.0 / n, dtype=np.float64)
@@ -1686,6 +1798,7 @@ def pagerank(n: int, edges: list[tuple[int, int]], weights: list[float] | None =
 
 
 # ---------- Topic lifecycle (bursts / changepoints) ----------
+
 
 def burst_scores(series: pd.Series, window: int = 4) -> pd.Series:
     """
@@ -1791,7 +1904,9 @@ def topic_lifecycle_metrics(df_papers: pd.DataFrame, centrality_map: dict[str, f
         burst_years = [int(y) for y in z.index[z.values >= 2.0].tolist()]
         for y, val in z.items():
             if val >= 2.0:
-                burst_events.append({"cluster_id": int(cid), "year": int(y), "burst_z": float(val), "count": int(counts.loc[y])})
+                burst_events.append(
+                    {"cluster_id": int(cid), "year": int(y), "burst_z": float(val), "count": int(counts.loc[y])}
+                )
         per_cluster.append(
             {
                 "cluster_id": int(cid),
@@ -1804,12 +1919,15 @@ def topic_lifecycle_metrics(df_papers: pd.DataFrame, centrality_map: dict[str, f
                 "latest_weighted_burst_z": float(zw.iloc[-1]),
             }
         )
-    per_cluster.sort(key=lambda x: (x["phase"] != "emerging", -(x.get("latest_burst_z") or 0.0), -(x.get("latest_count") or 0)))
+    per_cluster.sort(
+        key=lambda x: (x["phase"] != "emerging", -(x.get("latest_burst_z") or 0.0), -(x.get("latest_count") or 0))
+    )
 
     return {"available": True, "per_cluster": per_cluster, "burst_events": burst_events[:500]}
 
 
 # ---------- Bridge / recombination analytics ----------
+
 
 def _cosine_sim_matrix(A: np.ndarray, B: np.ndarray) -> np.ndarray:
     A = A.astype(np.float32)
@@ -2010,7 +2128,11 @@ def paper_recombination_metrics(
     """
     Paper recombination index: entropy of neighbor cluster IDs in kNN space.
     """
-    cluster_by_paper = {str(row.paper_id): int(row.cluster_id) for _, row in df_papers.iterrows() if row.cluster_id is not None and not pd.isna(row.cluster_id)}
+    cluster_by_paper = {
+        str(row.paper_id): int(row.cluster_id)
+        for _, row in df_papers.iterrows()
+        if row.cluster_id is not None and not pd.isna(row.cluster_id)
+    }
     all_clusters = sorted(set(cluster_by_paper.values()))
     if not all_clusters:
         return {"available": False, "reason": "no cluster labels"}
@@ -2098,13 +2220,15 @@ def _guess_ref_title(ref: str) -> str | None:
     # Heuristic: split by periods and pick the longest mid segment
     parts = [p.strip() for p in ref.split(".") if p.strip()]
     if len(parts) >= 2:
-        cand = max(parts[1: min(4, len(parts))], key=len, default="")
+        cand = max(parts[1 : min(4, len(parts))], key=len, default="")
         if len(cand) >= 12:
             return _norm_text(cand)
     return None
 
 
-def extract_reference_tables(chunks: list[dict[str, Any]]) -> tuple[list[dict[str, Any]], dict[str, list[dict[str, Any]]]]:
+def extract_reference_tables(
+    chunks: list[dict[str, Any]],
+) -> tuple[list[dict[str, Any]], dict[str, list[dict[str, Any]]]]:
     """
     Returns (refs_rows, refs_by_paper) where refs_rows entries:
       {paper_id, ref_index, ref_text, ref_title_guess, year_guess, doi_guess, url_guess, arxiv_guess}
@@ -2165,8 +2289,15 @@ def match_in_corpus_citations(
     """
     if not refs_rows:
         return []
-    paper_title_tokens: dict[str, set[str]] = {str(r.paper_id): _token_set(str(r.title)) for _, r in df_papers.iterrows()}
-    paper_year: dict[str, int | None] = {str(r.paper_id): (int(r.year) if r.year is not None and not (isinstance(r.year, float) and math.isnan(r.year)) else None) for _, r in df_papers.iterrows()}
+    paper_title_tokens: dict[str, set[str]] = {
+        str(r.paper_id): _token_set(str(r.title)) for _, r in df_papers.iterrows()
+    }
+    paper_year: dict[str, int | None] = {
+        str(r.paper_id): (
+            int(r.year) if r.year is not None and not (isinstance(r.year, float) and math.isnan(r.year)) else None
+        )
+        for _, r in df_papers.iterrows()
+    }
 
     # Inverted index token -> candidate papers
     inv: dict[str, set[str]] = {}
@@ -2247,7 +2378,15 @@ def citation_graph_metrics(
     for s, d in edges_idx:
         out_deg[ids[s]] += 1
         in_deg[ids[d]] += 1
-    pagerank_rows = [{"paper_id": ids[i], "pagerank": float(pr[i]), "in_degree": int(in_deg[ids[i]]), "out_degree": int(out_deg[ids[i]])} for i in range(len(ids))]
+    pagerank_rows = [
+        {
+            "paper_id": ids[i],
+            "pagerank": float(pr[i]),
+            "in_degree": int(in_deg[ids[i]]),
+            "out_degree": int(out_deg[ids[i]]),
+        }
+        for i in range(len(ids))
+    ]
     pagerank_rows.sort(key=lambda x: x["pagerank"], reverse=True)
 
     # Bibliographic coupling: shared outgoing citations
@@ -2285,7 +2424,10 @@ def citation_graph_metrics(
         cocite_pairs = cocite_pairs[:max_pairs]
 
     # Foundational papers per topic
-    cluster_by_paper = {str(r.paper_id): (int(r.cluster_id) if r.cluster_id is not None and not pd.isna(r.cluster_id) else None) for _, r in df_papers.iterrows()}
+    cluster_by_paper = {
+        str(r.paper_id): (int(r.cluster_id) if r.cluster_id is not None and not pd.isna(r.cluster_id) else None)
+        for _, r in df_papers.iterrows()
+    }
     foundational: dict[int, list[dict[str, Any]]] = {}
     for row in pagerank_rows[: min(500, len(pagerank_rows))]:
         pid = row["paper_id"]
@@ -2308,6 +2450,7 @@ def citation_graph_metrics(
 
 
 # ---------- Claim-level controversy / maturity / gaps ----------
+
 
 def _extract_gap_sentences(text: str, limit: int = 3) -> list[str]:
     if not text:
@@ -2339,7 +2482,9 @@ def _extract_gap_sentences(text: str, limit: int = 3) -> list[str]:
     return out
 
 
-def claim_edge_controversy_metrics(claim_edge_snapshot: dict[str, Any] | None, df_papers: pd.DataFrame) -> dict[str, Any]:
+def claim_edge_controversy_metrics(
+    claim_edge_snapshot: dict[str, Any] | None, df_papers: pd.DataFrame
+) -> dict[str, Any]:
     """
     Topic-level disagreement using ClaimGraph edge kinds persisted by the Swift app (Output/analytics/claim_edges.json).
 
@@ -2384,7 +2529,7 @@ def claim_edge_controversy_metrics(claim_edge_snapshot: dict[str, Any] | None, d
         kind_s = str(kind) if kind is not None else ""
         kind_s = kind_s.strip()
 
-        same_cluster = (csrc == cdst)
+        same_cluster = csrc == cdst
         supportive = kind_s in {"supports", "extends"}
         contradictory = kind_s == "contradicts"
         comparative = kind_s == "comparesTo"
@@ -2445,7 +2590,11 @@ def claim_edge_controversy_metrics(claim_edge_snapshot: dict[str, Any] | None, d
         consensus_score = float((supports - contradicts) / denom)
         claim_ids = bucket.get("claim_ids") or set()
         paper_ids = bucket.get("paper_ids") or set()
-        claim_diversity = float(len(claim_ids) / max(1, len(paper_ids))) if isinstance(claim_ids, set) and isinstance(paper_ids, set) else None
+        claim_diversity = (
+            float(len(claim_ids) / max(1, len(paper_ids)))
+            if isinstance(claim_ids, set) and isinstance(paper_ids, set)
+            else None
+        )
         per_cluster.append(
             {
                 "cluster_id": int(cid),
@@ -2457,7 +2606,7 @@ def claim_edge_controversy_metrics(claim_edge_snapshot: dict[str, Any] | None, d
                 "consensus_score": consensus_score,
             }
         )
-    per_cluster.sort(key=lambda x: (x.get("contradiction_rate") or 0.0), reverse=True)
+    per_cluster.sort(key=lambda x: x.get("contradiction_rate") or 0.0, reverse=True)
 
     return {
         "available": True,
@@ -2541,7 +2690,7 @@ def stress_test_gap_analytics(user_events: list[dict[str, Any]]) -> dict[str, An
                 "top_suggested_tests": [{"text": t, "count": int(c)} for t, c in top_tests],
             }
         )
-    per_cluster.sort(key=lambda x: (x.get("affected_papers") or 0), reverse=True)
+    per_cluster.sort(key=lambda x: x.get("affected_papers") or 0, reverse=True)
 
     return {
         "available": True,
@@ -2552,7 +2701,10 @@ def stress_test_gap_analytics(user_events: list[dict[str, Any]]) -> dict[str, An
 
 def claim_controversy_and_maturity(df_papers: pd.DataFrame, paper_rows: list[PaperRow]) -> dict[str, Any]:
     # Gather claims with cluster ids
-    cluster_by_paper = {str(r.paper_id): (int(r.cluster_id) if r.cluster_id is not None and not pd.isna(r.cluster_id) else None) for _, r in df_papers.iterrows()}
+    cluster_by_paper = {
+        str(r.paper_id): (int(r.cluster_id) if r.cluster_id is not None and not pd.isna(r.cluster_id) else None)
+        for _, r in df_papers.iterrows()
+    }
     claims: list[dict[str, Any]] = []
     for row in paper_rows:
         cid = cluster_by_paper.get(row.paper_id)
@@ -2657,9 +2809,23 @@ def claim_controversy_and_maturity(df_papers: pd.DataFrame, paper_rows: list[Pap
             rep = max(comp, key=lambda i: float(np.sum(sims[i])), default=comp[0])
             rep_text = texts[int(rep)]
             if contradictions_present:
-                top_contested.append({"cluster_id": int(cid), "statement": rep_text, "maturity": float(maturity), "papers": unique_papers})
+                top_contested.append(
+                    {
+                        "cluster_id": int(cid),
+                        "statement": rep_text,
+                        "maturity": float(maturity),
+                        "papers": unique_papers,
+                    }
+                )
             elif maturity >= 0.35 and unique_papers >= 2:
-                top_mature.append({"cluster_id": int(cid), "statement": rep_text, "maturity": float(maturity), "papers": unique_papers})
+                top_mature.append(
+                    {
+                        "cluster_id": int(cid),
+                        "statement": rep_text,
+                        "maturity": float(maturity),
+                        "papers": unique_papers,
+                    }
+                )
 
         maturity_by_cluster.append(
             {
@@ -2742,10 +2908,26 @@ def extract_urls(text: str) -> list[str]:
 
 def artifact_flags(urls: list[str], text: str) -> dict[str, Any]:
     lower = (text or "").lower()
-    has_code_phrase = any(p in lower for p in ["code available", "open-source", "open source", "github", "gitlab", "we release code", "released code"])
-    has_data_phrase = any(p in lower for p in ["data available", "dataset available", "we release data", "released data", "data can be found"])
+    has_code_phrase = any(
+        p in lower
+        for p in [
+            "code available",
+            "open-source",
+            "open source",
+            "github",
+            "gitlab",
+            "we release code",
+            "released code",
+        ]
+    )
+    has_data_phrase = any(
+        p in lower
+        for p in ["data available", "dataset available", "we release data", "released data", "data can be found"]
+    )
     has_code_link = any(("github.com" in u or "gitlab.com" in u or "bitbucket.org" in u) for u in urls)
-    has_data_link = any(any(tok in u for tok in ["zenodo", "figshare", "kaggle", "osf.io", "dataverse", "data"]) for u in urls)
+    has_data_link = any(
+        any(tok in u for tok in ["zenodo", "figshare", "kaggle", "osf.io", "dataverse", "data"]) for u in urls
+    )
     has_model_link = any(any(tok in u for tok in ["huggingface.co", "model", "weights"]) for u in urls)
     openness = 0.0
     openness += 0.5 if (has_code_link or has_code_phrase) else 0.0
@@ -2765,7 +2947,9 @@ def rigor_proxy(text: str, urls: list[str]) -> tuple[float, dict[str, Any]]:
     cues = {
         "ablation": lower.count("ablation"),
         "baseline": lower.count("baseline"),
-        "stat_test": int(any(t in lower for t in ["p-value", "p value", "statistically significant", "t-test", "wilcoxon", "anova"])),
+        "stat_test": int(
+            any(t in lower for t in ["p-value", "p value", "statistically significant", "t-test", "wilcoxon", "anova"])
+        ),
         "ci": int(any(t in lower for t in ["confidence interval", "std.", "standard deviation", "error bar"])),
         "limitations": int("limitation" in lower or "limitations" in lower),
         "figures": len(re.findall(r"\bfig(?:ure)?\s*\d+\b", lower)),
@@ -2808,10 +2992,16 @@ def extract_entities(text: str, max_each: int = 6) -> dict[str, list[str]]:
     for tok in acr:
         # Context windows to categorize
         pos = s.find(tok)
-        window = lower[max(0, pos - 60): pos + 60] if pos >= 0 else lower
-        if any(k in window for k in ["dataset", "survey", "catalog", "benchmark", "corpus", "data from", "observations from"]):
+        window = lower[max(0, pos - 60) : pos + 60] if pos >= 0 else lower
+        if any(
+            k in window
+            for k in ["dataset", "survey", "catalog", "benchmark", "corpus", "data from", "observations from"]
+        ):
             datasets[tok] = datasets.get(tok, 0) + 1
-        elif any(k in window for k in ["we propose", "we introduce", "we present", "method", "algorithm", "model", "approach"]):
+        elif any(
+            k in window
+            for k in ["we propose", "we introduce", "we present", "method", "algorithm", "model", "approach"]
+        ):
             methods[tok] = methods.get(tok, 0) + 1
 
     # Named datasets: "dataset <Name>" / "using <Name> dataset"
@@ -2927,7 +3117,9 @@ def methods_datasets_adoption(
                 mid = ent_id(metric_vocab, m)
                 counts_metrics[(mid, year_i)] = counts_metrics.get((mid, year_i), 0) + 1
 
-    def top_entities(vocab: dict[str, int], counts: dict[tuple[int, int], int], limit: int = 40) -> list[tuple[int, str, int]]:
+    def top_entities(
+        vocab: dict[str, int], counts: dict[tuple[int, int], int], limit: int = 40
+    ) -> list[tuple[int, str, int]]:
         totals: dict[int, int] = {}
         for (eid, _), c in counts.items():
             totals[eid] = totals.get(eid, 0) + int(c)
@@ -2959,6 +3151,7 @@ def methods_datasets_adoption(
 
 
 # ---------- Workflow analytics: coverage, blind spots, Q&A gaps ----------
+
 
 def workflow_coverage_and_blindspots(
     df_papers: pd.DataFrame,
@@ -3048,7 +3241,14 @@ def workflow_coverage_and_blindspots(
             cov = next((x["coverage"] for x in per_cluster if x["cluster_id"] == int(cid)), 0.0)
             sim = cosine_similarity(prof, cent)
             score = float(max(0.0, sim) * (1.0 - cov))
-            blindspots.append({"cluster_id": int(cid), "interest_similarity": float(sim), "coverage": float(cov), "blindspot_score": score})
+            blindspots.append(
+                {
+                    "cluster_id": int(cid),
+                    "interest_similarity": float(sim),
+                    "coverage": float(cov),
+                    "blindspot_score": score,
+                }
+            )
         blindspots.sort(key=lambda x: x["blindspot_score"], reverse=True)
 
     return {
@@ -3094,7 +3294,10 @@ def qa_gap_analytics(
     docs = [(str(r.title or "") + "\n" + str(r.summary or "")) for _, r in df_papers.iterrows()]
     tfidf = TfidfVectorizer(max_features=8000, ngram_range=(1, 2))
     mat = normalize(tfidf.fit_transform(docs)) if docs else None
-    cluster_by_pid = {str(r.paper_id): (int(r.cluster_id) if r.cluster_id is not None and not pd.isna(r.cluster_id) else None) for _, r in df_papers.iterrows()}
+    cluster_by_pid = {
+        str(r.paper_id): (int(r.cluster_id) if r.cluster_id is not None and not pd.isna(r.cluster_id) else None)
+        for _, r in df_papers.iterrows()
+    }
 
     per_q: list[dict[str, Any]] = []
     for q, st in questions.items():
@@ -3105,7 +3308,11 @@ def qa_gap_analytics(
             top = last.get("top_scores") or []
             top = [float(x) for x in top if isinstance(x, (int, float))][:6]
             margin = float(top[0] - top[1]) if len(top) >= 2 else float(top[0]) if top else 0.0
-            breadth = float(last.get("support_breadth", 0.0)) if isinstance(last.get("support_breadth"), (int, float)) else 0.0
+            breadth = (
+                float(last.get("support_breadth", 0.0))
+                if isinstance(last.get("support_breadth"), (int, float))
+                else 0.0
+            )
             per_q.append(
                 {
                     "question": q,
@@ -3122,7 +3329,13 @@ def qa_gap_analytics(
             sims = (mat @ qv.T).toarray().reshape(-1)
             order = np.argsort(-sims)[:6]
             top_scores = sims[order]
-            margin = float(top_scores[0] - top_scores[1]) if len(top_scores) >= 2 else float(top_scores[0]) if len(top_scores) >= 1 else 0.0
+            margin = (
+                float(top_scores[0] - top_scores[1])
+                if len(top_scores) >= 2
+                else float(top_scores[0])
+                if len(top_scores) >= 1
+                else 0.0
+            )
             # Breadth: entropy over clusters among top papers
             cids = [cluster_by_pid.get(str(df_papers.iloc[int(i)].paper_id)) for i in order]
             counts: dict[int, int] = {}
@@ -3258,6 +3471,7 @@ def marginal_information_gain_recommendations(
 
 # ---------- Hygiene: duplicates + ingestion diagnostics ----------
 
+
 def title_similarity(a: str, b: str) -> float:
     if not a or not b:
         return 0.0
@@ -3279,7 +3493,14 @@ def detect_duplicates(
     if df_papers.empty:
         return {"available": False, "reason": "no papers"}
     title_map = {str(r.paper_id): str(r.title or "") for _, r in df_papers.iterrows()}
-    page_map = {str(r.paper_id): (int(r.page_count) if r.page_count is not None and not (isinstance(r.page_count, float) and math.isnan(r.page_count)) else None) for _, r in df_papers.iterrows()}
+    page_map = {
+        str(r.paper_id): (
+            int(r.page_count)
+            if r.page_count is not None and not (isinstance(r.page_count, float) and math.isnan(r.page_count))
+            else None
+        )
+        for _, r in df_papers.iterrows()
+    }
 
     pairs: list[dict[str, Any]] = []
     for item in knn:
@@ -3310,11 +3531,13 @@ def detect_duplicates(
 
     # Union-Find groups
     parent: dict[str, str] = {}
+
     def find(x: str) -> str:
         parent.setdefault(x, x)
         if parent[x] != x:
             parent[x] = find(parent[x])
         return parent[x]
+
     def union(a: str, b: str):
         ra, rb = find(a), find(b)
         if ra != rb:
@@ -3350,7 +3573,11 @@ def ingestion_quality_diagnostics(df_papers: pd.DataFrame, chunks: list[dict[str
         title = str(row.title or "").strip()
         year = row.year
         summary = str(row.summary or "")
-        page_count = row.page_count if row.page_count is not None and not (isinstance(row.page_count, float) and math.isnan(row.page_count)) else None
+        page_count = (
+            row.page_count
+            if row.page_count is not None and not (isinstance(row.page_count, float) and math.isnan(row.page_count))
+            else None
+        )
         chunks_list = by_paper.get(pid, [])
         text_len = int(sum(len(str(c.get("text") or "")) for c in chunks_list))
         flags: list[str] = []
@@ -3396,7 +3623,9 @@ def _claim_sign(text: str) -> int:
     return 1
 
 
-def claim_similarity_edges(claims: list[dict[str, Any]], threshold: float = 0.22, time_decay: float = 0.15) -> list[dict[str, Any]]:
+def claim_similarity_edges(
+    claims: list[dict[str, Any]], threshold: float = 0.22, time_decay: float = 0.15
+) -> list[dict[str, Any]]:
     """Build directed edges from older -> newer similar claims using TF-IDF cosine with sign and temporal decay."""
     if not claims:
         return []
@@ -3435,7 +3664,9 @@ def claim_similarity_edges(claims: list[dict[str, Any]], threshold: float = 0.22
     return edges
 
 
-def compute_influence(df_papers: pd.DataFrame, claims: list[dict[str, Any]], edges_raw: list[dict[str, Any]] | None = None) -> tuple[list[dict[str, Any]], list[dict[str, Any]], list[dict[str, Any]], dict[str, float], dict[str, float]]:
+def compute_influence(
+    df_papers: pd.DataFrame, claims: list[dict[str, Any]], edges_raw: list[dict[str, Any]] | None = None
+) -> tuple[list[dict[str, Any]], list[dict[str, Any]], list[dict[str, Any]], dict[str, float], dict[str, float]]:
     if not claims:
         return [], [], [], {}, {}
     ids = df_papers.paper_id.tolist()
@@ -3480,7 +3711,10 @@ def idea_flow_edges(claims: list[dict[str, Any]]) -> list[dict[str, Any]]:
 
 # ---------- Recommendation (simple LinUCB-ish heuristic) ----------
 
-def recommend_papers(loadings: list[dict[str, Any]], novelty: list[dict[str, Any]], centrality: list[dict[str, Any]], k: int = 5) -> list[str]:
+
+def recommend_papers(
+    loadings: list[dict[str, Any]], novelty: list[dict[str, Any]], centrality: list[dict[str, Any]], k: int = 5
+) -> list[str]:
     novelty_map = {n["paper_id"]: n["novelty"] for n in novelty}
     cent_map = {c["paper_id"]: c.get("weighted_degree", 0.0) for c in centrality}
     scored = []
@@ -3496,6 +3730,7 @@ def recommend_papers(loadings: list[dict[str, Any]], novelty: list[dict[str, Any
 
 
 # ---------- Uncertainty (bootstrap overlap) ----------
+
 
 def estimate_answer_confidence(top_sets: list[list[str]]) -> float:
     if not top_sets:
@@ -3562,7 +3797,12 @@ def build_paper_metrics(
     consensus_claim = {pid: consensus_score(incoming_pos, incoming_neg, pid) for pid in years.keys()}
     consensus_temporal = {pid: consensus_score(outgoing_pos, outgoing_neg, pid) for pid in years.keys()}
 
-    consensus_total_raw = {pid: 0.6 * consensus_struct.get(pid, 0.0) + 0.2 * consensus_claim.get(pid, 0.0) + 0.2 * consensus_temporal.get(pid, 0.0) for pid in years.keys()}
+    consensus_total_raw = {
+        pid: 0.6 * consensus_struct.get(pid, 0.0)
+        + 0.2 * consensus_claim.get(pid, 0.0)
+        + 0.2 * consensus_temporal.get(pid, 0.0)
+        for pid in years.keys()
+    }
     consensus_z = zscore_by_year(consensus_total_raw, years)
 
     # novelty z-score by year (using cluster distance)
@@ -3617,6 +3857,7 @@ def build_paper_metrics(
 
 # ---------- DuckDB persistence ----------
 
+
 def persist_duckdb(
     db_path: pathlib.Path,
     df_papers: pd.DataFrame,
@@ -3642,7 +3883,11 @@ def persist_duckdb(
     con.execute("CREATE OR REPLACE TABLE paper_embeddings AS SELECT * FROM df_embeddings")
 
     # Chunks
-    chunk_df = pd.DataFrame(chunks) if chunks else pd.DataFrame(columns=["id", "paperID", "text", "embedding", "order", "pageHint"])
+    chunk_df = (
+        pd.DataFrame(chunks)
+        if chunks
+        else pd.DataFrame(columns=["id", "paperID", "text", "embedding", "order", "pageHint"])
+    )
     con.register("df_chunks", chunk_df)
     con.execute("CREATE OR REPLACE TABLE paper_chunks AS SELECT * FROM df_chunks")
 
@@ -3665,7 +3910,11 @@ def persist_duckdb(
                     "strength": claim.get("strength"),
                 }
             )
-    claim_df = pd.DataFrame(claims_rows) if claims_rows else pd.DataFrame(columns=["claim_id", "paper_id", "statement", "assumptions", "year", "strength"])
+    claim_df = (
+        pd.DataFrame(claims_rows)
+        if claims_rows
+        else pd.DataFrame(columns=["claim_id", "paper_id", "statement", "assumptions", "year", "strength"])
+    )
     con.register("df_claims", claim_df)
     con.execute("CREATE OR REPLACE TABLE claims AS SELECT * FROM df_claims")
 
@@ -3708,7 +3957,9 @@ def persist_duckdb(
     con.close()
 
 
-def write_embeddings_whitened_parquet(paper_ids: list[str], embeddings_whitened: np.ndarray, out_path: pathlib.Path) -> None:
+def write_embeddings_whitened_parquet(
+    paper_ids: list[str], embeddings_whitened: np.ndarray, out_path: pathlib.Path
+) -> None:
     """Persist whitened embeddings as Parquet using DuckDB (no pyarrow dependency)."""
     out_path.parent.mkdir(parents=True, exist_ok=True)
     emb_df = pd.DataFrame({"paper_id": paper_ids, "embedding_z": [row.tolist() for row in embeddings_whitened]})
@@ -3721,7 +3972,9 @@ def write_embeddings_whitened_parquet(paper_ids: list[str], embeddings_whitened:
     finally:
         con.close()
 
+
 # ---------- Summary export ----------
+
 
 def write_summary(analytics_dir: pathlib.Path, summary: dict[str, Any]):
     out_path = analytics_dir / "analytics.json"
@@ -3729,7 +3982,9 @@ def write_summary(analytics_dir: pathlib.Path, summary: dict[str, Any]):
     out_path.write_text(json.dumps(summary, indent=2))
     _logger.info("Wrote summary to %s", out_path)
 
+
 # ---------- Main entry ----------
+
 
 def main():
     # Configure logging for CLI usage
@@ -3742,7 +3997,13 @@ def main():
     parser.add_argument("--base", help="Repo root (defaults to script parent)", default=None)
     parser.add_argument("--root", dest="base", help="Alias for --base", default=None)
     parser.add_argument("--db", help="DuckDB file path (default Output/atlas.duckdb)", default=None)
-    parser.add_argument("--counterfactual-cutoffs", nargs="*", type=int, default=[2010, 2015, 2020], help="Year cutoffs for counterfactual scenarios.")
+    parser.add_argument(
+        "--counterfactual-cutoffs",
+        nargs="*",
+        type=int,
+        default=[2010, 2015, 2020],
+        help="Year cutoffs for counterfactual scenarios.",
+    )
     args = parser.parse_args()
 
     paths = resolve_paths(args.base)
@@ -3789,7 +4050,9 @@ def main():
     centrality_map = {c["paper_id"]: float(c.get("weighted_degree", 0.0)) for c in centrality}
 
     # Factor model
-    factors, loadings, factor_labels = compute_factor_loadings(embeddings, df_papers.paper_id.tolist(), tag_texts, n_factors=8)
+    factors, loadings, factor_labels = compute_factor_loadings(
+        embeddings, df_papers.paper_id.tolist(), tag_texts, n_factors=8
+    )
     factor_exposures = factor_exposures_over_time(loadings, df_papers.year.tolist(), n_factors=8)
     factor_exposures_user = factor_exposures_from_reads(loadings, df_papers, user_events, n_factors=8)
 
@@ -3798,20 +4061,26 @@ def main():
     for row in paper_rows:
         if row.claims:
             for c in row.claims:
-                all_claims.append({
-                    "paper_id": row.paper_id,
-                    "statement": c.get("statement"),
-                    "assumptions": c.get("assumptions", []),
-                    "year": c.get("year") or row.year,
-                })
+                all_claims.append(
+                    {
+                        "paper_id": row.paper_id,
+                        "statement": c.get("statement"),
+                        "assumptions": c.get("assumptions", []),
+                        "year": c.get("year") or row.year,
+                    }
+                )
     claim_edges = claim_similarity_edges(all_claims, threshold=0.18)
-    influence_abs, influence_pos, influence_neg, out_strength, in_strength = compute_influence(df_papers, all_claims, edges_raw=claim_edges)
+    influence_abs, influence_pos, influence_neg, out_strength, in_strength = compute_influence(
+        df_papers, all_claims, edges_raw=claim_edges
+    )
 
     # Higher-level analytics additions
     stability = cluster_stability_multi_seed_kmeans(df_papers, Z_whitened, runs=20, seed=0)
     stability_boundary = cluster_stability_and_boundary(df_papers, Z_whitened, trials=10, noise=0.01)
     map_quality = map_quality_metrics(galaxy_layout, df_papers, Z_whitened, k=15)
-    paper_map_quality, paper_map_distortion = paper_layout_quality_metrics(df_papers, Z_whitened, k=15, max_n=4000, seed=0)
+    paper_map_quality, paper_map_distortion = paper_layout_quality_metrics(
+        df_papers, Z_whitened, k=15, max_n=4000, seed=0
+    )
     lifecycle = topic_lifecycle_metrics(df_papers, centrality_map=centrality_map)
 
     topic_graph = build_topic_graph(cluster_centroids_z, top_k=5, min_sim=0.15)
@@ -3934,7 +4203,10 @@ def main():
 
     # Merge additional per-paper metrics into paper_metrics for convenience on the Swift side.
     metrics_by_id = {m["paper_id"]: m for m in paper_metrics}
-    cluster_by_pid = {str(r.paper_id): (int(r.cluster_id) if r.cluster_id is not None and not pd.isna(r.cluster_id) else None) for _, r in df_papers.iterrows()}
+    cluster_by_pid = {
+        str(r.paper_id): (int(r.cluster_id) if r.cluster_id is not None and not pd.isna(r.cluster_id) else None)
+        for _, r in df_papers.iterrows()
+    }
 
     if stability.get("available"):
         for row in stability.get("per_paper", []):
@@ -3970,13 +4242,19 @@ def main():
                 metrics_by_id[pid]["citation_in_degree"] = int(row.get("in_degree", 0))
 
     if workflow.get("available"):
-        read_map = {str(r.get("paper_id")): float(r.get("read_score", 0.0)) for r in workflow.get("paper_read_scores", [])}
+        read_map = {
+            str(r.get("paper_id")): float(r.get("read_score", 0.0)) for r in workflow.get("paper_read_scores", [])
+        }
         for pid, sc in read_map.items():
             if pid in metrics_by_id:
                 metrics_by_id[pid]["read_score"] = float(sc)
 
     if map_quality.get("available"):
-        dist_by_cluster = {int(r["cluster_id"]): float(r.get("distortion", 0.0)) for r in map_quality.get("local_distortion", []) if r.get("cluster_id") is not None}
+        dist_by_cluster = {
+            int(r["cluster_id"]): float(r.get("distortion", 0.0))
+            for r in map_quality.get("local_distortion", [])
+            if r.get("cluster_id") is not None
+        }
         for pid, m in metrics_by_id.items():
             cid = cluster_by_pid.get(pid)
             if cid is not None:
@@ -4012,7 +4290,9 @@ def main():
         (
             {
                 "paper_id": pid,
-                "cluster_id": int(df_papers.loc[df_papers.paper_id == pid, "cluster_id"].iloc[0]) if not pd.isna(df_papers.loc[df_papers.paper_id == pid, "cluster_id"].iloc[0]) else None,
+                "cluster_id": int(df_papers.loc[df_papers.paper_id == pid, "cluster_id"].iloc[0])
+                if not pd.isna(df_papers.loc[df_papers.paper_id == pid, "cluster_id"].iloc[0])
+                else None,
                 "novelty": vals.get("nov_cluster", 0.0),
             }
             for pid, vals in multi_nov.items()
@@ -4104,7 +4384,9 @@ def main():
         if edge_rows:
             extra_tables["claim_edges"] = pd.DataFrame(edge_rows)
 
-    stress_events = [e for e in (user_events or []) if isinstance(e, dict) and e.get("event_type") == "assumption_stress_test"]
+    stress_events = [
+        e for e in (user_events or []) if isinstance(e, dict) and e.get("event_type") == "assumption_stress_test"
+    ]
     if stress_events:
         stress_rows: list[dict[str, Any]] = []
         for evt in stress_events[-10000:]:

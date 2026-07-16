@@ -1,58 +1,60 @@
 # Plan
 
 ## Context
-- The user confirmed LiteratureAtlas should be fully generalized, not trading-first with an optional trading lens.
-- The implementation must remove trading/quant framing from user-facing app surfaces while preserving existing data compatibility.
-- Design spec: `docs/superpowers/specs/2026-06-29-full-generalization-design.md`
-- Implementation plan: `docs/superpowers/plans/2026-06-29-full-generalization.md`
+- Convert the same-day release-hardened LiteratureAtlas version at baseline commit `c7f4215` from a Mac App Store-oriented macOS target into a Developer ID-signed, notarized, direct-download product while hardening the already-public repository for truthful open-source operation.
+- Approved design: `docs/superpowers/specs/2026-07-15-developer-id-open-source-design.md`.
+- Implementation plan: `docs/superpowers/plans/2026-07-15-developer-id-open-source.md`.
 
 ## Assumptions
-- Full generalization means app chrome, UI copy, prompts, exports, and visible workflows should use generic research/insight language.
-- Internal Swift type names and JSON keys may remain if changing them only increases migration risk.
-- Existing `trading_lens` and strategy project data must continue to load.
+- The official first direct-download artifact is macOS 26 on Apple Silicon.
+- The iPad App Store target remains available but is not a shipping deliverable for this task.
+- GitHub `main` remains public and MIT-licensed until an explicit, rights-backed owner decision changes future licensing.
 
 ## Constraints
-- Do not destructively migrate `Output/`.
-- Keep changes product-facing and migration-safe.
-- Verify with Swift build/tests and real app launch.
+- PR creation, feature-branch push, review fixes, merge, and the resulting `main` push are now owner-authorized after all validation and review gates pass.
+- No notarization upload, public binary release, tag, announcement, credential mutation, repository visibility change, history rewrite, or legal identity claim in this pass.
+- No private credentials or user data in Git, CI, reports, artifacts, or command arguments.
+- Preserve all committed release work and existing MIT grants.
 
 ## Options considered
-1. Rename-only generalization.
-2. Migration-preserving product generalization.
-3. Clean-slate removal of trading/strategy subsystems.
+1. Extend the legacy hand-built SwiftPM bundle.
+2. Reuse the deterministic Xcode macOS target and add separate community, Developer ID, DMG, notarization, and verification layers.
+3. Replace the project with a new installer/packaging system.
 
-Chosen: 2 because it removes trading from the app experience without breaking existing corpus artifacts.
+Chosen: 2 because it retains the strongest existing runtime, privacy, and archive evidence while keeping signing secrets outside the project.
 
 ## Execution plan
-1. Generalize navigation and planner chrome.
-2. Generalize the Insights lens UI.
-3. Generalize paper detail and row actions.
-4. Generalize project UI.
-5. Generalize analytics, markdown export, prompt fallback, and log copy.
-6. Update tests/docs/memory.
-7. Run full verification and live app smoke.
+1. Repair baseline developer gates.
+2. Add shared distributed-build runtime behavior and tests.
+3. Implement community/official build, signing, DMG, notarization, and verification scripts.
+4. Complete open-source licensing, governance, security, support, and developer documentation.
+5. Harden GitHub CI and supply-chain controls.
+6. Generate secret, IP, dependency, SBOM, provenance, and publication evidence.
+7. Clean obsolete generated releases/worktrees only after Git and ancestry proof.
+8. Audit the full implementation, official-document assumptions, and runtime behavior beyond tests.
+9. Reproduce the community package from a fresh clone and complete a native macOS interaction/log sweep.
+10. Request independent review, resolve all critical/important findings, and rerun the full matrix.
+11. Push, create the PR, inspect GitHub checks/review, merge, and verify the exact merged `main` revision.
 
 ## Test plan
-- `swift build`
-- `swift test`
-- `.venv/bin/python -m ruff check analytics/`
-- `.venv/bin/python -m pytest analytics/tests -v`
-- `cargo test --manifest-path analytics/ffi/Cargo.toml`
-- `./script/build_and_run.sh --verify`
-- Strict runtime log scan after final launch
+- Follow the complete command matrix in `docs/superpowers/plans/2026-07-15-developer-id-open-source.md`.
+- Behavior changes use red-green-refactor tests; configuration and documentation use deterministic validators and clean-checkout smokes.
 
 ## Risks and rollback
-- Risk: broad copy changes miss a visible trading string.
-  - Rollback: run focused `rg` over Swift/UI/docs and classify remaining internal-only terms.
-- Risk: exporter tests assert old labels.
-  - Rollback: update assertions to generic labels while preserving stored key compatibility.
-- Risk: app launch is fine but route automation remains flaky.
-  - Rollback: verify by screenshot/window state and report automation limits honestly.
+- Direct build weakens the proven App Store boundary -> share the distributed-build path abstraction and keep platform-specific signing outside source behavior.
+- Python/Rust removal breaks user-visible features -> compile out only checkout-only controls, retain native fallback, and document declared exceptions.
+- Legal ownership is uncertain -> keep MIT effective and block relicense/publication claims.
+- Apple or GitHub credentials/settings are unavailable -> finish local reversible work and record exact external blockers.
 
 ## Memory impact
-- Record the generalization boundary: user-facing app is general research/insight language; legacy trading/strategy names can remain as compatibility internals.
+- Record the adopted release baseline, Developer ID/direct-distribution build commands, official/community separation, public repository state, and any durable packaging pitfalls.
 
 ## Notes / Results
-- Changes: Generalized product-facing navigation, planner, Insights, paper details/actions, research projects, analytics, markdown exports, Obsidian setup copy, runtime logs, and prompt templates from trading/quant language to general research/insight language.
-- Tests run: `swift build`; `swift test` (51 tests, 1 opt-in ingestion smoke skipped); `.venv/bin/python -m ruff check analytics/`; `.venv/bin/python -m pytest analytics/tests -v` (9 passed); `cargo test --manifest-path analytics/ffi/Cargo.toml` (3 passed); `./script/build_and_run.sh --verify`; app running from `dist/LiteratureAtlas.app` as process 25120.
-- Tradeoffs: Internal Swift type names, JSON keys, event names, `.strategy.json`, and `quant_kg.json` remain for compatibility. Remaining finance terms are compatibility parsing or claim-graph/test content that only appears when source papers contain those concepts.
+- Changes: Added a shared distributed runtime boundary; persistent read-only source bookmarks held through async ingest; credential-free community and signature-free official pre-sign builds; exact DMG comparison; source/identity-bound verification; staged Developer ID signing; hash-bound atomic notary evidence; privacy-minimized diagnostics; pinned credential-free CI; REUSE metadata; contributor/governance/security policies; IP/secret/license reports; and deterministic source/community/pre-sign SBOMs.
+- Tests run: Swift 59 passed with one opt-in corpus smoke skipped plus 4 bookmark lifetime tests; Python 24 passed; Rust 5 passed with strict Clippy and no known vulnerability; macOS/iOS Release builds, community relocation/navigation/real sandbox ingest/relaunch/DMG, release scripts, actionlint, zizmor, REUSE 3.3, pip-audit, OSV, CFF, JSON, and documentation-link checks passed. A fresh clone at `a8f2f2a` repeated the locked dependency restore, full language/release suite, and warning-free macOS/iOS Release builds. The release validator has only the explicit approved-AppIcon blocker.
+- Tradeoffs: Native-only Apple Silicon first distribution; Python and Rust acceleration remain contributor tooling. Existing MIT stays effective because MPL/CC relicensing authority is unconfirmed. Signing/notarization/publication remain external owner gates.
+- 2026-07-16 audit/merge pass: Codex Security is explicitly deferred. This pass still includes code-level security, privacy, dependency, workflow, and signing-configuration review but will not claim a Codex Security result.
+- 2026-07-16 runtime findings: exact artifact testing caught and fixed display-name/source-revision precedence, generated-xcconfig injection, bookmark-creation scope, and async bookmark-enumeration lifetime defects before PR creation. Verified local artifact evidence embeds commit `647911a`; later documentation commits do not replace that explicit mapping.
+- 2026-07-16 independent review: `origin/main...6633779` had no blocker, high, or important finding. The reviewer separately confirmed the documented Apple, artwork/brand, legal/history, governance/reporting, GitHub-setting, and future signed-artifact blockers; Codex Security remained deferred.
+- 2026-07-16 PR hardening: GitHub dependency review was unsupported because the owner-controlled dependency graph is disabled. The PR workflow now requires successful repository API access, warns/skips only for an unavailable graph on that accessible repository, fails closed on permission/access/unexpected statuses, and retains mandatory Cargo/Python lockfile audits; actionlint, zizmor, and release-policy regressions pass.
+- 2026-07-16 hosted CI findings: the `macos-26` arm64 Python toolcache ends at 3.12.10 and the verified XcodeGen 2.45.4 zip contains `xcodegen/bin/xcodegen` beneath its archive root. CI now pins the available interpreter and exposes the actual extracted binary path; release-policy tests cover both values.

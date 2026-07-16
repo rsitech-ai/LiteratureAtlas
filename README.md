@@ -1,150 +1,173 @@
 # LiteratureAtlas
 
-## 1. Project Title & One-Sentence Tagline
-- **LiteratureAtlas** — macOS-first SwiftUI atlas that ingests research PDFs and Markdown notes, compiles traceable local knowledge artifacts, clusters ideas, and serves interactive maps, Q&A, and analytics.
+LiteratureAtlas is a local-first SwiftUI app for turning research PDFs and Markdown notes into a navigable knowledge atlas. It performs document extraction, on-device summarization, semantic search, clustering, claim analysis, and interactive visualization without requiring a hosted backend.
 
-## 2. High-Level Overview
-- The app reads PDFs and Markdown sources, extracts citation-aware sections, uses Apple’s on-device `LanguageModelSession` for compilation/summarization, and builds a multi-scale “knowledge galaxy” for exploration.
-- A local analytics pipeline (Python + DuckDB + optional Rust helpers) computes topic trends, novelty, centrality, drift, factor exposures, and recommendations consumed by the SwiftUI dashboard.
-- Primary stack: **Swift 6 + SwiftUI + PDFKit + NaturalLanguage + FoundationModels** for the app, **Python 3.10+ + DuckDB + pandas/numpy + scikit-learn** for analytics, and **Rust (cargo)** for ANN/graph acceleration.
+## Release status
 
-## 3. Architecture & Key Components
-- **Data flow**: document ingestion (PDF + Markdown) → citation-aware extraction → compiler pass + chunk embeddings → JSON in `Output/papers`, `Output/documents`, and `Output/chunks` → compiled Markdown + graph export → clustering & galaxy layout → optional Python/Rust analytics → `analytics.json` reloaded by the app → interactive views (Map, Q&A, Analytics).
-- **Swift app (`Sources/LiteratureAtlas/`)**
-  - `App/AppModel.swift`: central state machine for ingestion, clustering, RAG Q&A, recommendations, analytics reloads, and event logging.
-  - `Services/`: 
-    - `PDFProcessor.swift` + `MarkdownProcessor.swift` (mixed-corpus extraction + anchors), `DocumentCompilerProvider.swift` (on-device/OpenAI compiler seam), `CompiledKnowledgeExporter.swift` (document/topic/entity Markdown), `DocumentGraphExporter.swift` (typed graph JSON), `EmbeddingService.swift` (sentence embeddings + KMeans), `VectorIndex.swift` (in-process similarity search fallback), `LLMActors.swift` (cluster naming, Q&A), `ClaimGraph.swift` (claim extraction/relations/stress tests), `TemporalAnalytics.swift` (novelty, drift, panel/debate simulators), `AnalyticsStore.swift` (loads Python-generated `analytics.json`), `AtlasFFI.swift` (HNSW/graph FFI loader).
-  - `Views/`: `IngestView`, `MapView`, `QuestionView`, `AnalyticsView`, `PaperDetailView`, `GlobalProgressOverlay`, etc.
-- **Analytics backend (`analytics/`)**
-  - `rebuild_analytics.py`: loads app outputs, writes `Output/atlas.duckdb`, Parquet snapshots, and `Output/analytics/analytics.json` (baseline metrics plus quality/stability/lifecycle/bridges/citations/claims/methods/workflow/hygiene sections).
-  - `requirements.txt` / `pyproject.toml`: Python dependencies.
-  - `ffi/`: Rust `cdylib/staticlib` exposing HNSW search and basic graph analytics to Swift (`analytics/ffi/src/lib.rs`, headers in `analytics/ffi/include/`).
-- **Data**: all persistent artifacts live under `Output/` (papers, documents, chunks, compiled Markdown, graph, clusters, analytics parquet/JSON, DuckDB) to keep the app self-contained.
+The source repository is public under the MIT License. An official notarized download has not been published yet.
 
-## 4. Features
-- Mixed PDF + Markdown ingestion with citation anchors, checksums, unified document records, and compiler-backed summaries — `IngestView`, `PDFProcessor`, `MarkdownProcessor`, `AppModel`.
-- First-class compiled knowledge artifacts: per-document notes, topic briefs, entity pages, and typed graph export under `Output/compiled` and `Output/graph`.
-- Chunked embeddings for RAG and Q&A; fallback hashing embeddings if on-device model is unavailable — `AppModel.buildChunks`, `EmbeddingService`.
-- Multi-scale clustering and force-directed layout (“Knowledge Galaxy”) with lenses for time, methods, data regime, and personal interest — `AppModel.buildMultiScaleGalaxy`, `MapView`.
-- Claim graph construction, relation inference (supports/extends/contradicts), assumption stress tests, and blueprint generation for methods — `ClaimGraph.swift`, `IngestView` cards.
-- Reading planner: recommendations, blind spots, adaptive curriculum, flashcards, daily quiz, and knowledge snapshots — `AppModel.recommendedNextPapers`, `adaptiveCurriculum`, `dailyQuizCards`.
-- Corpus-level synthesis: generate an executive “corpus briefing” from the current topic hierarchy (cached to `Output/reports/`) — `AppModel.generateCorpusBriefing`, `LLMActors.CorpusBriefingActor`.
-- Topic dossiers: generate a structured briefing for any selected cluster (cached to `Output/reports/`) — `AppModel.loadOrGenerateTopicDossier`, `LLMActors.TopicDossierActor`.
-- Analytics dashboard fed by Python outputs: topic trends, novelty/consensus, drift, factors, influence + newer trust/stability/lifecycle/bridge/citation/workflow signals — `AnalyticsView`, `analytics/rebuild_analytics.py`.
-- Optional Rust acceleration: HNSW ANN + graph metrics via `analytics/ffi` (linked into the Swift target).
-- Event logging to `Output/analytics/user_events.jsonl` for later aggregation (questions asked, answers ready, papers opened).
+- Community macOS builds are credential-free, ad-hoc signed, sandboxed, and use a distinct name and bundle identifier.
+- Official macOS builds use the same self-contained runtime, then require an installed Apple Developer ID Application certificate and an explicit notarization submission.
+- The direct-download artifact is currently scoped to Apple Silicon and macOS 26 or later.
+- The iPadOS target remains available for development, but is not part of the direct-download release.
 
-## 5. Getting Started
-- **Prerequisites**
-- Swift toolchain 6.0+, Xcode 16+ recommended; macOS 26 (or iOS/iPadOS 26) with on-device FoundationModels + NLContextualEmbedding support.
-  - Rust toolchain (stable) for `analytics/ffi` builds.
-  - Python 3.10+ with `pip` or `uv`; dependencies in `analytics/requirements.txt`.
-  - Apple Silicon strongly recommended for on-device models.
-- **Installation**
-  ```bash
-  git clone <repo-url> LiteratureAtlas
-  cd LiteratureAtlas
-  # Build Rust FFI used by the Swift target (produces libatlas_ffi.{dylib,a} in analytics/ffi/target/release)
-  cargo build --manifest-path analytics/ffi/Cargo.toml --release
-  # Python env for analytics
-  python -m venv .venv && source .venv/bin/activate
-  pip install -r analytics/requirements.txt
-  # Swift dependencies are bundled; build the app
-  swift build
-  ```
-- **Configuration**
-  - Data is written to `Output/` beside the repo; folders (`papers`, `documents`, `chunks`, `compiled`, `graph`, `clusters`, `analytics`, `reports`, `obsidian/papers`) are created automatically.
-  - Prompt templates live in `Prompts/` (override path via `LITERATURE_ATLAS_PROMPTS_DIR`); edit them to iterate on prompts without touching Swift code.
-  - Compiler backend selection:
-    - current production mode is on-device compilation only
-    - `LITERATURE_ATLAS_COMPILER_PROVIDER=openai` is ignored and falls back to on-device compilation because a supported standalone OAuth/Codex auth flow is not available here
-  - On macOS, the Analytics screen can install Python deps and run the rebuild; it prefers a repo-local `.venv` when present.
-  - App-side analytics rebuild/recompute actions also run output + topic health checks and surface the latest health-check status/log in the Analytics backend card.
-  - Override the Python interpreter used by the app via `LITERATURE_ATLAS_PYTHON` (e.g. `.venv/bin/python3`).
-  - Analytics script flags: `--base /path/to/repo`, `--db <path>`, `--counterfactual-cutoffs 2010 2015 2020` (see `analytics/rebuild_analytics.py`).
-  - The Swift target links against `analytics/ffi/target/release`; ensure the library exists before running `swift run`/`swift build`.
-  - Optional user events: the app appends newline-delimited JSON to `Output/analytics/user_events.jsonl`.
+See [open-source status](docs/open-source/OPEN_SOURCE_STATUS.md) and [release blockers](docs/open-source/BLOCKERS.md) before redistributing a build as official.
 
-## 6. Running the Project
-- **Development (macOS)**
-  ```bash
-  # With FFI already built
-  swift run LiteratureAtlas
-  ```
-  - Launches the SwiftUI app; use “Select Folder of Documents” in the Ingest tab to process PDFs and Markdown notes.
-- **iPadOS**
-- Open the package in Xcode 16+, select an iOS/iPadOS 26+ device/simulator with Apple Intelligence support, and run the `LiteratureAtlas` target. Ensure `analytics/ffi` is built for the target architecture.
-- **Analytics pipeline (optional but recommended)**
-  ```bash
-  source .venv/bin/activate  # if using venv
-  python analytics/rebuild_analytics.py            # rebuild DuckDB + analytics.json from Output/
-  python analytics/rebuild_analytics.py --base ..  # if running from a subdir
-  ```
-- **Production / release build**
-  ```bash
-  swift build -c release
-  # Bundle libatlas_ffi.dylib next to the executable or in a Frameworks folder if redistributing.
-  ```
-- **CLI usage quick reference**
-  - Rebuild analytics: `python analytics/rebuild_analytics.py [--base PATH] [--counterfactual-cutoffs ...]`
-  - Topic reliability audit: `.venv/bin/python scripts/topic_focus_audit.py --base .`
-  - 10-paper integrated smoke run: `scripts/run_example_smoke.sh --count 10`
+## What it does
 
-## 7. Testing & QA
-- Swift tests (macOS 26+/Swift 6 required):
-  ```bash
-  swift test
-  ```
-  - Covers ingestion upsert logic, clustering assignments, PDF year inference, claim extraction/relations/stress tests, vector index, galaxy math, analytics store, and temporal analytics (`Tests/LiteratureAtlasTests/*`).
-- Python analytics checks:
-  - End-to-end rebuild: `python analytics/rebuild_analytics.py`
-  - Unit tests: `python -m unittest discover -s analytics/tests`
-  - Topic reliability gate: `.venv/bin/python scripts/topic_focus_audit.py --base .` (non-zero exit means no reliable/searchable topic slice passed thresholds)
-- Full sample ingest+validate smoke run:
-  - `scripts/run_example_smoke.sh --count 10`
-  - Samples random PDFs from `examples/`, ingests them via an opt-in test path, and runs analytics + artifact/topic audits on an isolated temp output root.
-- The Rust FFI crate can be checked with `cargo test --manifest-path analytics/ffi/Cargo.toml` (none defined) or `cargo fmt --check` if desired.
+- Ingests PDF and Markdown documents selected by the user.
+- Builds local summaries, sections, citation anchors, embeddings, claims, and method structures.
+- Creates a multi-scale Knowledge Universe for corpus exploration.
+- Supports evidence-backed local Q&A, reading plans, flashcards, topic dossiers, and corpus briefings.
+- Exports Markdown and graph artifacts for downstream use.
+- Offers an optional contributor-only Python analytics pipeline and Rust acceleration library.
 
-## 8. Module-Level Documentation (Compact)
-- `AppModel` — orchestrates ingestion, embeddings, clustering, RAG Q&A, analytics reloads, recommendations, flashcards, and event logging.
-- `Services/`
-  - `PDFProcessor` + `MarkdownProcessor` (document extraction + citation anchors), `DocumentCompilerProvider` (compiler seam, currently local-only), `CompiledKnowledgeExporter` (document/topic/entity markdown), `DocumentGraphExporter` (typed graph snapshot), `EmbeddingService` (NLContextualEmbedding + KMeans), `VectorIndex` (cosine search), `LLMActors` (Q&A and synthesis actors), `ClaimGraph` (claims, relations, stress tests), `TemporalAnalytics` (novelty, drift, simulations), `AnalyticsStore` (decode `analytics.json`), `AtlasFFI` (Rust HNSW bindings).
-- `Views/`
-  - `IngestView` (ingestion/logs/planner/claims), `MapView` (galaxy with lenses, zoom, bridging), `QuestionView` (RAG Q&A + evidence), `AnalyticsView` (trends, drift, factor exposures, counterfactuals), `PaperDetailView` (notes/tags/status).
-- `analytics/rebuild_analytics.py` — DuckDB load + novelty/centrality/drift/factors/recs export; writes Parquet snapshots and `analytics.json`.
-- `analytics/ffi` — HNSW ANN and graph utilities exposed to Swift via `include/atlas_ffi.h`.
-- `examples/` — sample PDFs for local testing; `Output/` holds generated artifacts and sample precomputed data.
+## Privacy boundary
 
-## 9. Data & Storage
-- `Output/papers/*.paper.json` — per-paper metadata, summaries, embeddings, claims, method pipeline, timestamps.
-- `Output/documents/*.document.json` — unified per-document records for PDFs and Markdown sources.
-- `Output/obsidian/papers/*.md` — Obsidian-friendly per-paper notes (auto-managed block + a preserved `## Notes` section).
-- `Output/chunks/chunks.json` — chunk-level text + embeddings for RAG.
-- `Output/compiled/documents/*.md`, `Output/compiled/topics/*.md`, `Output/compiled/entities/*.md` — compiled knowledge-base artifacts generated from the current corpus.
-- `Output/graph/corpus_graph.json` — typed document/topic/entity/compiled-note graph for visualization and downstream tooling.
-- `Output/clusters/*.json` — cached cluster layouts/snapshots.
-- `Output/atlas.duckdb` — DuckDB database built by analytics script; Parquet snapshots in `Output/analytics/*.parquet`.
-- `Output/analytics/analytics.json` — compact analytics payload the app reloads (baseline metrics plus quality/stability/lifecycle/bridges/citations/claims/methods/workflow/hygiene sections).
-- `Output/analytics/user_events.jsonl` — optional event log appended by the app (qa_question, qa_ready, paper_opened, rec_feedback).
-- `Output/reports/corpus_briefing_<version>.md` — cached corpus-level executive briefing generated on-device from the current topic hierarchy.
-- `Output/reports/topic_<clusterID>_dossier_<version>.md` — cached per-topic dossier generated on-device from a cluster + representative papers.
-- All paths are local; no remote storage.
+Distributed app builds are native and local-only:
 
-## 10. Deployment & Environments
-- No Docker/Helm manifests provided; distribute as a SwiftPM/Xcode app. Ensure `libatlas_ffi` ships with the binary (or adjust `Package.swift` linker flags to your install path).
-- macOS build links `atlas_ffi` from `analytics/ffi/target/release` (see `Package.swift`); rebuild the Rust lib per architecture before shipping.
-- iOS builds default to the Swift fallback (no FFI). To enable FFI on iOS, add iOS linker settings and define `ATLAS_FFI_LINKED` for iOS in `Package.swift` after building a static library.
+- mutable data is stored under `Application Support/LiteratureAtlas/Output`;
+- prompt templates are bundled inside the app;
+- repository Python execution and dependency installation are compiled out;
+- environment API-key access and the dormant remote compiler provider are compiled out;
+- repository-relative Rust dynamic loading is compiled out and the Swift fallback is used;
+- the macOS app is sandboxed with read-only access to user-selected files;
+- raw question text is not duplicated into local analytics events, and document paths are private in unified logs.
 
-## 11. Security & Permissions
-- All processing is offline: PDFs and Markdown sources stay local, compilation/summaries use on-device models, and analytics run locally.
-- The app confines writes to the repo-relative `Output/` directory and uses security-scoped resource access when importing folders.
+SwiftPM contributor builds retain repository-local tooling and store generated files under `Output/`. See [the privacy data map](docs/release/1.0.0/PRIVACY_DATA_MAP.md) for the current data inventory.
 
-## 12. Roadmap / TODO
-- No explicit roadmap or TODO files are present in this repository; add issues or docs to track future work (e.g., alternative ANN backends, packaging automation).
+## Requirements
 
-## 13. Contributing
-- Suggested workflow: fork → create branch → build `analytics/ffi` → make changes → run `swift test` (and analytics script if relevant) → open PR.
-- Keep new data outputs inside `Output/` and avoid committing large binaries unless necessary.
+- macOS 26 or later
+- Xcode 26.6 or a compatible Swift 6 toolchain
+- XcodeGen 2.45.4 to regenerate the Xcode project
+- Rust stable for the optional FFI crate
+- Python 3.12 and uv for the optional analytics pipeline
 
-## 14. License
-- MIT License (see `LICENSE`).
+## Clone and test
+
+```bash
+git clone https://github.com/s1korrrr/LiteratureAtlas.git
+cd LiteratureAtlas
+
+swift test
+
+cargo fmt --manifest-path analytics/ffi/Cargo.toml --check
+cargo clippy --manifest-path analytics/ffi/Cargo.toml --all-targets --all-features --locked -- -D warnings
+cargo test --manifest-path analytics/ffi/Cargo.toml --locked
+
+uv sync --project analytics --extra dev --frozen
+analytics/.venv/bin/python -m ruff format --check analytics scripts
+analytics/.venv/bin/python -m ruff check analytics scripts
+analytics/.venv/bin/python -m pytest analytics/tests -v
+```
+
+The opt-in ingestion smoke test is skipped unless `LITERATURE_ATLAS_INGEST_SMOKE_INPUT_DIR` and its output variables are supplied. This repository intentionally does not redistribute third-party sample PDFs.
+
+## Run a contributor build
+
+```bash
+swift run LiteratureAtlas
+```
+
+Contributor builds can use the repository-local analytics tools:
+
+```bash
+uv run --project analytics python analytics/rebuild_analytics.py --base .
+```
+
+Select your own PDF or Markdown folder in the Ingest screen. Do not commit the generated `Output/` directory or source documents.
+
+## Build a community app
+
+The community build uses a non-official name and bundle identifier and needs no Apple account:
+
+```bash
+script/build_community.sh \
+  --product-name LiteratureAtlasCommunity \
+  --bundle-id org.example.LiteratureAtlasCommunity \
+  --version 1.0.0 \
+  --build 1 \
+  --output dist/community
+
+script/verify_distribution.sh \
+  --app dist/community/LiteratureAtlasCommunity.app \
+  --mode community
+
+script/create_dmg.sh \
+  --app dist/community/LiteratureAtlasCommunity.app \
+  --output dist/community/LiteratureAtlasCommunity-1.0.0.dmg
+```
+
+Replace `org.example` with a bundle namespace you control. Community builds must not imply that they are official or Apple-notarized. See [community build policy](docs/community-build/README.md) and [branding](BRANDING.md).
+
+## Prepare an official Developer ID build
+
+The build step is deliberately unsigned:
+
+```bash
+script/build_official.sh \
+  --product-name LiteratureAtlas \
+  --bundle-id "$OFFICIAL_BUNDLE_ID" \
+  --version "$VERSION" \
+  --build "$BUILD_NUMBER" \
+  --output dist/official
+```
+
+Signing and notarization are separate, owner-controlled steps:
+
+```bash
+script/sign_developer_id.sh \
+  --app dist/official/LiteratureAtlas.app \
+  --identity "$DEVELOPER_ID_APPLICATION"
+
+script/verify_distribution.sh \
+  --app dist/official/LiteratureAtlas.app \
+  --mode official \
+  --expected-bundle-id "$OFFICIAL_BUNDLE_ID" \
+  --expected-team-id "$DEVELOPER_TEAM_ID" \
+  --expected-version "$VERSION" \
+  --expected-build "$BUILD_NUMBER" \
+  --expected-architecture arm64 \
+  --expected-min-macos 26.0 \
+  --expected-source-revision "$(git rev-parse HEAD)"
+
+script/create_dmg.sh \
+  --app dist/official/LiteratureAtlas.app \
+  --output dist/official/LiteratureAtlas-1.0.0.dmg
+
+# External Apple upload. Run only with release-owner approval.
+script/notarize_dmg.sh \
+  --dmg dist/official/LiteratureAtlas-1.0.0.dmg \
+  --keychain-profile LiteratureAtlasNotary \
+  --expected-sha256 "$APPROVED_DMG_SHA256" \
+  --submit
+```
+
+The repository contains no signing certificate, private key, profile, Apple credentials, or notary profile. Follow [RELEASING.md](RELEASING.md) for the complete gate sequence.
+
+## Project structure
+
+- `Sources/LiteratureAtlas/`: Swift application, models, services, and views.
+- `Tests/LiteratureAtlasTests/`: Swift behavior and boundary tests.
+- `Resources/`: Info plists, entitlements, privacy manifests, and asset catalogs.
+- `Prompts/`: bundled local prompt templates.
+- `analytics/`: optional Python analytics and Rust FFI contributor tooling.
+- `Config/` and `project.yml`: deterministic Xcode build configuration.
+- `script/`: app build, signing, DMG, notarization, and verification tools.
+- `docs/open-source/`: publication, IP, security, supply-chain, and blocker evidence.
+
+`project.yml` is the Xcode project source of truth. Regenerate and verify it with:
+
+```bash
+xcodegen generate --spec project.yml
+git diff --exit-code -- LiteratureAtlas.xcodeproj
+```
+
+## Contributing and support
+
+Read [CONTRIBUTING.md](CONTRIBUTING.md) and the current [Code of Conduct status](CODE_OF_CONDUCT.md). The owner has not yet selected DCO versus CLA. General support boundaries are in [SUPPORT.md](SUPPORT.md). Do not place vulnerabilities, private documents, signing material, or personal data in public issues.
+
+## License and attribution
+
+Project-authored source is available under the [MIT License](LICENSE). Third-party components and Apple SDKs remain under their respective terms; see [THIRD_PARTY_NOTICES.md](THIRD_PARTY_NOTICES.md). The software license does not grant rights to imply endorsement or use project branding contrary to [TRADEMARKS.md](TRADEMARKS.md).

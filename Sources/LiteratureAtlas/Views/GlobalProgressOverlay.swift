@@ -34,13 +34,16 @@ struct GlobalProgressOverlay: View {
                         }
                         Spacer(minLength: 10)
                         Button {
-                            if model.isIngesting { model.cancelIngestion() }
+                            if model.isIngesting {
+                                model.cancelIngestion()
+                            } else if model.isClustering {
+                                model.cancelClustering()
+                            }
                         } label: {
                             Label("Stop", systemImage: "stop.fill")
                         }
                         .buttonStyle(.bordered)
                         .tint(.red)
-                        .disabled(!model.isIngesting)
                     }
                 }
                 .padding(.bottom, 16)
@@ -50,7 +53,7 @@ struct GlobalProgressOverlay: View {
         }
         .padding(.horizontal, 16)
         .ignoresSafeArea(edges: .bottom)
-        .allowsHitTesting(model.isIngesting)
+        .allowsHitTesting(model.isIngesting || model.isClustering)
     }
 
     private var progressValue: Double {

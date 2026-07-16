@@ -3,10 +3,10 @@ set -euo pipefail
 
 usage() {
   cat <<'EOF'
-Usage: scripts/run_example_smoke.sh [--count N] [--seed S] [--source DIR]
+Usage: scripts/run_example_smoke.sh --source DIR [--count N] [--seed S]
 
 Runs an end-to-end smoke flow on a random sample of PDFs:
-1) Select N random PDFs from source folder (default: examples/)
+1) Select N random PDFs from an explicitly supplied authorized source folder
 2) Run opt-in Swift ingestion smoke test against sampled folder
 3) Rebuild analytics on sampled output
 4) Build ANN edges
@@ -20,7 +20,7 @@ EOF
 
 COUNT=10
 SEED=""
-SOURCE_DIR="examples"
+SOURCE_DIR=""
 
 while [[ $# -gt 0 ]]; do
   case "$1" in
@@ -50,14 +50,23 @@ done
 
 SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 REPO_ROOT="$(cd "${SCRIPT_DIR}/.." && pwd)"
-PYTHON="${REPO_ROOT}/.venv/bin/python"
+PYTHON="${REPO_ROOT}/analytics/.venv/bin/python"
+
+if [[ -z "${SOURCE_DIR}" ]]; then
+  echo "--source DIR is required; supply a corpus you are authorized to use" >&2
+  exit 2
+fi
 
 if [[ ! -x "${PYTHON}" ]]; then
   echo "Missing ${PYTHON}. Create .venv and install analytics deps first." >&2
   exit 2
 fi
 
-SOURCE_PATH="${REPO_ROOT}/${SOURCE_DIR}"
+if [[ "${SOURCE_DIR}" = /* ]]; then
+  SOURCE_PATH="${SOURCE_DIR}"
+else
+  SOURCE_PATH="${REPO_ROOT}/${SOURCE_DIR}"
+fi
 if [[ ! -d "${SOURCE_PATH}" ]]; then
   echo "Source directory not found: ${SOURCE_PATH}" >&2
   exit 2

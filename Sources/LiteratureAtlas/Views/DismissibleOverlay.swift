@@ -21,7 +21,9 @@ struct DismissibleOverlay<Content: View>: View {
                 .shadow(color: .black.opacity(0.35), radius: 26, x: 0, y: 18)
         }
         .onAppear { isVisible = true }
+        #if os(macOS)
         .onExitCommand { onDismiss() }
+        #endif
         .animation(reduceMotion ? nil : .spring(response: 0.35, dampingFraction: 0.9), value: isVisible)
     }
 }

@@ -1,0 +1,126 @@
+{
+  "schema_version": 2,
+  "release": {
+    "version": "1.0.0",
+    "build": "1",
+    "channels": [
+      "mac-app-store",
+      "ipados-app-store"
+    ],
+    "shipping_targets": [
+      "LiteratureAtlas-macOS",
+      "LiteratureAtlas-iOS (iPad family only)"
+    ],
+    "excluded_targets": [
+      "iPhone 1.0.0"
+    ]
+  },
+  "source": {
+    "base_commit": "010769162d824192310bf9236ffe188ef9fba7c4",
+    "implementation_commit": "0d9911627e1e6ac040742b393dc57811513fa45c",
+    "ci_compatibility_commit": "eff288e11c8597b7b55a18247c2d3f00db2f40f2",
+    "branch": "feat/andrzej_literatureatlas_release_20260715",
+    "captured_at": "2026-07-15T14:16:57Z"
+  },
+  "security_scan": {
+    "mode": "branch_diff",
+    "changed_source_files_reviewed": 20,
+    "reportable_findings": 0,
+    "deferred_rows": 0,
+    "reviewed_through_commit": "0d9911627e1e6ac040742b393dc57811513fa45c",
+    "post_scan_review": "eff288e removes a no-op f32 cast; targeted Rust 1.97 format, strict Clippy, tests, audit, and authority-path review passed.",
+    "snapshot_digest": "codex-security-snapshot/v1:sha256:428594bedcaf6a1f2ebe279e8950442f1db9f2a0b0200988a891d073f684bda8",
+    "report_path": null,
+    "report_location_status": "ephemeral local path redacted; use snapshot digest and canonical sealed artifact names",
+    "limitation": "Diff-scoped scan; not an exhaustive repository-wide audit."
+  },
+  "evidence": [
+    {
+      "path": "docs/release/1.0.0/APP_REVIEW_NOTES.md",
+      "sha256": "cd93edd6dd06b09b7db38215fd5dd144eb343b7d99d6394094fe4dc01691b96b",
+      "scope": ["review-notes-draft"],
+      "sanitized": true
+    },
+    {
+      "path": "docs/release/1.0.0/APP_STORE_CHECKLIST.md",
+      "sha256": "b4708f76bed9117e564c4274eed93afb0e0b1f61f123dcf7ac40cc05cab5b38a",
+      "scope": ["release-gates", "owner-actions"],
+      "sanitized": true
+    },
+    {
+      "path": "docs/release/1.0.0/BLOCKERS.md",
+      "sha256": "1d4f512707525a7f12c7e90ebc198c42a147047ad04992870bd3ad95bf1f6701",
+      "scope": ["blockers", "owners", "unblock-evidence"],
+      "sanitized": true
+    },
+    {
+      "path": "docs/release/1.0.0/PRIVACY_DATA_MAP.md",
+      "sha256": "1e00a567c7397ae838ed768bf5be19453fb0ac2d6582c53f8e3fc90c08b277fd",
+      "scope": ["privacy", "data-flow", "owner-attestations"],
+      "sanitized": true
+    },
+    {
+      "path": "docs/release/1.0.0/RELEASE_NOTES.md",
+      "sha256": "5105df829c25ba18e4a98c26db4556436eb9989e10acef024b08fad846659ed2",
+      "scope": ["release-notes-draft"],
+      "sanitized": true
+    },
+    {
+      "path": "docs/release/1.0.0/RELEASE_STATUS.md",
+      "sha256": "7c2263608d44b81761fc200389f9f01a5787b5786abff0401194ae8fa9fe76fa",
+      "scope": ["verdict", "readiness", "target-scope"],
+      "sanitized": true
+    },
+    {
+      "path": "docs/release/1.0.0/SECURITY_STATUS.md",
+      "sha256": "4386f6ec566dc0a8e56a3ab033261d4973a787119cfb530a2390624af0de57d9",
+      "scope": ["security", "dependencies", "runtime-diagnostics"],
+      "sanitized": true
+    },
+    {
+      "path": "docs/release/1.0.0/TEST_EVIDENCE.md",
+      "sha256": "e6d72ba95d19ea1f193440d87a329db41a6496341dca39b41a8eb48c16080201",
+      "scope": ["toolchain", "tests", "runtime", "archives", "signing"],
+      "sanitized": true
+    },
+    {
+      "path": "docs/release/1.0.0/evidence/screenshots/ipados-26.5-universe-full.png",
+      "sha256": "969c97f73c32d6cb3d056ae714252c743ca427b2e92c308642f0f17bb808c89f",
+      "scope": ["ipados-26.5-runtime", "engineering-screenshot"],
+      "sanitized": true
+    },
+    {
+      "path": "docs/release/1.0.0/evidence/screenshots/ipados-26.5-universe.jpg",
+      "sha256": "127aabaf52d1705c785a81d6915b3dd9b70481a42e64939e5a94698906ed145e",
+      "scope": ["ipados-26.5-runtime", "preview"],
+      "sanitized": true
+    },
+    {
+      "path": "docs/release/1.0.0/evidence/screenshots/ipados-27-beta-model-unavailable-full.png",
+      "sha256": "fe9db4cc978e1ad4bbbd6f5e4a39062cde0fbaf311d41138ceeeab8b49f26aa1",
+      "scope": ["ipados-27-beta-compatibility", "engineering-screenshot"],
+      "sanitized": true
+    },
+    {
+      "path": "docs/release/1.0.0/evidence/screenshots/ipados-27-beta-model-unavailable.jpg",
+      "sha256": "8c6aa9e3d986128701aabdbefd226fbcd6913f52a183370b63f013ae68739eef",
+      "scope": ["ipados-27-beta-compatibility", "preview"],
+      "sanitized": true
+    },
+    {
+      "path": "docs/release/1.0.0/evidence/screenshots/macos-27-beta.png",
+      "sha256": "51889a425d2ccc08da8ebc8e03938fa2b8ee06d40e8f460e9f1dbaa71220959a",
+      "scope": ["macos-27-beta-compatibility", "engineering-screenshot"],
+      "sanitized": true
+    }
+  ],
+  "excluded_artifacts": [
+    "archives",
+    "credentials",
+    "certificate-fingerprints",
+    "provisioning-profile-payloads",
+    "device-identifiers",
+    "sensitive-logs"
+  ],
+  "verdict": "BLOCKED"
+}

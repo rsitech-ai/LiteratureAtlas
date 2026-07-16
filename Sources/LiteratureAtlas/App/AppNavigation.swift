@@ -38,5 +38,13 @@ final class AppNavigation: ObservableObject {
     }
 
     @Published var selectedTab: Tab = .map
+    @Published var splitViewVisibility: NavigationSplitViewVisibility = .automatic
     @Published var requestedStrategyProjectID: UUID? = nil
+
+    func select(_ tab: Tab, collapseSidebar: Bool) {
+        selectedTab = tab
+        if collapseSidebar {
+            splitViewVisibility = .detailOnly
+        }
+    }
 }
