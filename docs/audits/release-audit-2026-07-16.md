@@ -114,6 +114,10 @@ is stored outside exported paper JSON.
   iOS Release builds. Both redirected Xcode diagnostic transcripts were empty.
 - Release validator: every gate passed except the explicitly named
   `app_icon_artwork` owner blocker.
+- Hygiene: actionlint and offline pedantic zizmor reported no workflow finding;
+  REUSE 3.3 and CFF validation passed; Python/Rust advisory checks found no
+  vulnerability; exact-tree/history signature matching and GitHub secret
+  scanning found zero credential alert.
 
 ## Residual and external blockers
 

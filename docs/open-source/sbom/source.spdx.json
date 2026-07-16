@@ -1,13 +1,13 @@
 {
   "SPDXID": "SPDXRef-DOCUMENT",
   "creationInfo": {
-    "created": "2026-07-16T12:39:09+02:00",
+    "created": "2026-07-16T12:54:35+02:00",
     "creators": [
       "Tool: LiteratureAtlas generate_spdx_sbom.py"
     ]
   },
   "dataLicense": "CC0-1.0",
-  "documentNamespace": "https://github.com/s1korrrr/LiteratureAtlas/sbom/source/tracked-source-sha256-0b6d842f58fabd7eef200513cde4f7ba45cc16dd544ef743bacb4abb0fea0ed9",
+  "documentNamespace": "https://github.com/s1korrrr/LiteratureAtlas/sbom/source/tracked-source-sha256-ee2113882072fe10283a3973cc20e762f2ddf274fa0840996765ba27c796759f",
   "files": [
     {
       "SPDXID": "SPDXRef-File-cd49adffccd28c2b30a7",
@@ -2774,7 +2774,7 @@
       "checksums": [
         {
           "algorithm": "SHA256",
-          "checksumValue": "a64b2b8bb800de3e14e7a2ef8eef64d5d220cb46e4caab946c81cf5090c05fcc"
+          "checksumValue": "7c4aa685906ec08ae82a46ee506a5c3c4079848a7a9fb8a85c308f5343642f2f"
         }
       ],
       "copyrightText": "NOASSERTION",
@@ -2894,7 +2894,7 @@
       "checksums": [
         {
           "algorithm": "SHA256",
-          "checksumValue": "b4b09b62000fd49bae20b5f75ea9e04bdd2fe08b33ecf03d040037b144080221"
+          "checksumValue": "5413d0444b6e6a4497e3be195081c220c7bdcf473b8d798af2b8a2971fb6d43c"
         }
       ],
       "copyrightText": "NOASSERTION",
@@ -2954,7 +2954,7 @@
       "checksums": [
         {
           "algorithm": "SHA256",
-          "checksumValue": "554e26af7e194119c0a6855693f04936620e605b2a133621ac7f2d0c34aed381"
+          "checksumValue": "6018ca2d904d87191eef0f405ed4eafe3c5eed48f49c48fa70db728a931f69bd"
         }
       ],
       "copyrightText": "NOASSERTION",
@@ -3695,7 +3695,7 @@
       "licenseConcluded": "MIT",
       "licenseDeclared": "MIT",
       "name": "LiteratureAtlas source",
-      "versionInfo": "tracked-source-sha256-0b6d842f58fabd7eef200513cde4f7ba45cc16dd544ef743bacb4abb0fea0ed9"
+      "versionInfo": "tracked-source-sha256-ee2113882072fe10283a3973cc20e762f2ddf274fa0840996765ba27c796759f"
     }
   ],
   "relationships": [

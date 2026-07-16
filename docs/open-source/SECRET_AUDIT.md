@@ -20,6 +20,8 @@ binaries are scanned for checkout-only execution/key markers. Paths/errors use
 private unified-log privacy and raw question text is not duplicated to local
 events.
 
-GitHub secret scanning and push protection are enabled. A release still needs a
-fresh exact-commit history scan and exact-artifact scan with recorded tool
-versions. Do not store signing or notarization credentials in this repository.
+The post-evidence exact-commit rerun found zero credential signatures in the
+current tree or reachable revisions and zero open GitHub secret-scanning alerts.
+GitHub secret scanning and push protection are enabled. A future official
+release must separately scan the exact signed/stapled artifact. Do not store
+signing or notarization credentials in this repository.
