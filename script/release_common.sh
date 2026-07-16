@@ -105,19 +105,24 @@ release_build_presign_app() {
     build_root=$(mktemp -d "${TMPDIR:-/tmp}/literatureatlas-build.XXXXXX")
     trap 'rm -rf "$build_root"' EXIT
 
+    effective_xcconfig="$build_root/ReleaseOverrides.xcconfig"
+    cat >"$effective_xcconfig" <<EOF
+#include "$RELEASE_ROOT/Config/DirectDistribution.xcconfig"
+PRODUCT_NAME = $product_name
+PRODUCT_BUNDLE_IDENTIFIER = $bundle_id
+INFOPLIST_KEY_CFBundleDisplayName = $product_name
+LITERATURE_ATLAS_SOURCE_REVISION = $source_revision
+MARKETING_VERSION = $version
+CURRENT_PROJECT_VERSION = $build_number
+EOF
+
     xcodebuild \
         -project "$RELEASE_ROOT/LiteratureAtlas.xcodeproj" \
         -scheme LiteratureAtlas-macOS \
         -configuration Release \
-        -xcconfig "$RELEASE_ROOT/Config/DirectDistribution.xcconfig" \
+        -xcconfig "$effective_xcconfig" \
         -destination 'generic/platform=macOS' \
         -derivedDataPath "$build_root/DerivedData" \
-        PRODUCT_NAME="$product_name" \
-        PRODUCT_BUNDLE_IDENTIFIER="$bundle_id" \
-        INFOPLIST_KEY_CFBundleDisplayName="$product_name" \
-        LITERATURE_ATLAS_SOURCE_REVISION="$source_revision" \
-        MARKETING_VERSION="$version" \
-        CURRENT_PROJECT_VERSION="$build_number" \
         ARCHS=arm64 ONLY_ACTIVE_ARCH=YES \
         CODE_SIGNING_ALLOWED=NO \
         build >&2
