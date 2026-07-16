@@ -77,6 +77,10 @@ final class SourceAccessStore {
 
     func rememberFolder(_ folderURL: URL) throws {
         let normalizedURL = folderURL.standardizedFileURL
+        guard provider.startAccessing(normalizedURL) else {
+            throw SourceAccessStoreError.scopeDenied(normalizedURL)
+        }
+        defer { provider.stopAccessing(normalizedURL) }
         let bookmark = try provider.makeBookmark(for: normalizedURL)
         let record = Record(selectedPath: normalizedURL.path, bookmark: bookmark)
         if let index = records.firstIndex(where: { $0.selectedPath == record.selectedPath }) {

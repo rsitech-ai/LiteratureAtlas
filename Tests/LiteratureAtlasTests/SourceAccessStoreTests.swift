@@ -5,6 +5,7 @@ import Testing
 #if os(macOS)
 private final class FakeSecurityScopedBookmarkProvider: SecurityScopedBookmarkProviding {
     var stalePaths: Set<String> = []
+    var allowsAccess = true
     private(set) var bookmarkCreationCount = 0
     private(set) var startCount = 0
     private(set) var stopCount = 0
@@ -26,7 +27,7 @@ private final class FakeSecurityScopedBookmarkProvider: SecurityScopedBookmarkPr
 
     func startAccessing(_ url: URL) -> Bool {
         startCount += 1
-        return true
+        return allowsAccess
     }
 
     func stopAccessing(_ url: URL) {
@@ -54,8 +55,8 @@ struct SourceAccessStoreTests {
         }
 
         #expect(openedPath == sourceURL.standardizedFileURL.path)
-        #expect(provider.startCount == 1)
-        #expect(provider.stopCount == 1)
+        #expect(provider.startCount == 2)
+        #expect(provider.stopCount == 2)
     }
 
     @Test("stale bookmarks are refreshed before access")
@@ -73,8 +74,29 @@ struct SourceAccessStoreTests {
         _ = try store.withAccess(to: sourceURL) { $0 }
 
         #expect(provider.bookmarkCreationCount == 2)
-        #expect(provider.startCount == 1)
-        #expect(provider.stopCount == 1)
+        #expect(provider.startCount == 2)
+        #expect(provider.stopCount == 2)
+    }
+
+    @Test("bookmark creation requires and balances selected-folder scope")
+    func bookmarkCreationRequiresScope() throws {
+        let temporaryRoot = FileManager.default.temporaryDirectory
+            .appendingPathComponent(UUID().uuidString, isDirectory: true)
+        let provider = FakeSecurityScopedBookmarkProvider()
+        provider.allowsAccess = false
+        let store = SourceAccessStore(
+            storageURL: temporaryRoot.appendingPathComponent("source-access.json"),
+            provider: provider
+        )
+
+        do {
+            try store.rememberFolder(temporaryRoot.appendingPathComponent("Library", isDirectory: true))
+            Issue.record("rememberFolder should fail when the selected folder scope cannot be activated")
+        } catch SourceAccessStoreError.scopeDenied {
+            #expect(provider.bookmarkCreationCount == 0)
+            #expect(provider.startCount == 1)
+            #expect(provider.stopCount == 0)
+        }
     }
 }
 #endif
