@@ -121,9 +121,11 @@ is stored outside exported paper JSON.
   vulnerability; exact-tree/history signature matching and GitHub secret
   scanning found zero credential alert.
 - Hosted PR: GitHub's dependency-review action reported that the repository
-  dependency graph is disabled. The workflow now preflights that owner setting,
-  warns and skips only when unavailable, and still fails on findings whenever
-  the graph is enabled; Cargo/Python lockfile audits remain mandatory.
+  dependency graph is disabled. The workflow now requires a successful
+  repository API preflight, warns and skips only for an unavailable graph on
+  that accessible repository, fails closed on permission/access/unexpected
+  statuses, and still fails on findings whenever the graph is enabled;
+  Cargo/Python lockfile audits remain mandatory.
 
 ## Residual and external blockers
 
