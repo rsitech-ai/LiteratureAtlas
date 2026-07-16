@@ -89,6 +89,22 @@ assert_stdout_contains "community dry run overrides the display name" 'INFOPLIST
 expect_failure "community build rejects trailing-dot bundle identifier" \
     "$ROOT/script/build_community.sh" --product-name Safe --bundle-id 'org.example.' --version 1.0.0 --build 1 --output "$TMP/out" --dry-run
 
+display_name=$(/usr/libexec/PlistBuddy -c 'Print :CFBundleDisplayName' "$ROOT/Resources/macOS/Info.plist")
+if [ "$display_name" = '$(PRODUCT_NAME)' ]; then
+    pass "macOS display name follows the selected product name"
+else
+    fail "macOS display name follows the selected product name"
+fi
+
+if grep -F 'effective_xcconfig=' "$ROOT/script/release_common.sh" >/dev/null \
+    && grep -F 'LITERATURE_ATLAS_SOURCE_REVISION = $source_revision' "$ROOT/script/release_common.sh" >/dev/null \
+    && grep -F 'MARKETING_VERSION = $version' "$ROOT/script/release_common.sh" >/dev/null \
+    && grep -F 'CURRENT_PROJECT_VERSION = $build_number' "$ROOT/script/release_common.sh" >/dev/null; then
+    pass "release builds bind identity and provenance in the effective xcconfig"
+else
+    fail "release builds bind identity and provenance in the effective xcconfig"
+fi
+
 mkdir -p "$TMP/Fake.app/Contents/MacOS"
 expect_failure "official signer rejects non-Developer-ID identity" \
     "$ROOT/script/sign_developer_id.sh" --app "$TMP/Fake.app" --identity 'Apple Development: Example'
