@@ -79,6 +79,10 @@ done
 expect_failure "community build rejects missing arguments" "$ROOT/script/build_community.sh"
 expect_failure "community build rejects unsafe product name" \
     "$ROOT/script/build_community.sh" --product-name '../Bad' --bundle-id org.example.Bad --version 1.0.0 --build 1 --output "$TMP/out" --dry-run
+expect_failure "community build rejects xcconfig newline injection" \
+    "$ROOT/script/build_community.sh" --product-name $'Safe\nOTHER_SETTING = injected' --bundle-id org.example.Safe --version 1.0.0 --build 1 --output "$TMP/out" --dry-run
+expect_failure "community build rejects trailing product whitespace" \
+    "$ROOT/script/build_community.sh" --product-name 'Safe ' --bundle-id org.example.Safe --version 1.0.0 --build 1 --output "$TMP/out" --dry-run
 expect_failure "community build rejects unsafe bundle identifier" \
     "$ROOT/script/build_community.sh" --product-name Safe --bundle-id 'bad bundle' --version 1.0.0 --build 1 --output "$TMP/out" --dry-run
 expect_failure "community build refuses filesystem root output" \

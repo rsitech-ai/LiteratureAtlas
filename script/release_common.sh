@@ -11,27 +11,39 @@ release_require_command() {
     command -v "$1" >/dev/null 2>&1 || release_die "required command not found: $1"
 }
 
+release_reject_control_characters() {
+    value=$1
+    label=$2
+    case "$value" in
+        *$'\n'*|*$'\r'*|*$'\t'*) release_die "$label contains a control character" ;;
+    esac
+}
+
 release_validate_product_name() {
     value=$1
+    release_reject_control_characters "$value" "product name"
     case "$value" in
         ""|.|..|*/*|*\\*) release_die "unsafe product name: $value" ;;
     esac
-    printf '%s' "$value" | LC_ALL=C grep -Eq '^[A-Za-z0-9][A-Za-z0-9._ -]*$' \
+    printf '%s' "$value" | LC_ALL=C grep -Eq '^[A-Za-z0-9]([A-Za-z0-9._ -]*[A-Za-z0-9._-])?$' \
         || release_die "unsafe product name: $value"
 }
 
 release_validate_bundle_id() {
     value=$1
+    release_reject_control_characters "$value" "bundle identifier"
     printf '%s' "$value" | LC_ALL=C grep -Eq '^[A-Za-z0-9][A-Za-z0-9-]*(\.[A-Za-z0-9][A-Za-z0-9-]*)+$' \
         || release_die "unsafe bundle identifier: $value"
 }
 
 release_validate_version() {
+    release_reject_control_characters "$1" "version"
     printf '%s' "$1" | LC_ALL=C grep -Eq '^[0-9]+(\.[0-9]+){1,3}$' \
         || release_die "invalid version: $1"
 }
 
 release_validate_build_number() {
+    release_reject_control_characters "$1" "build number"
     printf '%s' "$1" | LC_ALL=C grep -Eq '^[1-9][0-9]*$' \
         || release_die "invalid build number: $1"
 }
