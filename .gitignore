@@ -12,6 +12,20 @@ Output/
 .venv/
 __pycache__/
 *.pyc
+.env
+.env.*
+!.env.example
+
+# Signing and release credentials
+*.p8
+*.p12
+*.pfx
+*.pem
+*.key
+*.mobileprovision
+*.provisionprofile
+notarytool-credentials*
+sparkle_private_key*
 
 # Rust
 analytics/ffi/target/

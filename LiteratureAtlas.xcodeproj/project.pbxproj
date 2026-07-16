@@ -1,0 +1,847 @@
+// !$*UTF8*$!
+{
+	archiveVersion = 1;
+	classes = {
+	};
+	objectVersion = 77;
+	objects = {
+
+/* Begin PBXBuildFile section */
+		02B53BE166385FDCBB7BD789 /* LLMActors.swift in Sources */ = {isa = PBXBuildFile; fileRef = CC9B5F068983B65FF660137A /* LLMActors.swift */; };
+		04097BEC2994031FDF5E32CE /* QuestionView.swift in Sources */ = {isa = PBXBuildFile; fileRef = B199246AC2384D34F130EB2C /* QuestionView.swift */; };
+		0513669D76F999E0C84DFD39 /* CompiledKnowledgeExporter.swift in Sources */ = {isa = PBXBuildFile; fileRef = 2B1099B68CACA96F835A2E33 /* CompiledKnowledgeExporter.swift */; };
+		0F365C10D1C59874BECD279E /* EmbeddingService.swift in Sources */ = {isa = PBXBuildFile; fileRef = F6A43D216B8E96BE2BB5952A /* EmbeddingService.swift */; };
+		100C0C60186BEFD423600617 /* StrategyProjectsView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 437060059F45CDDB4A2E5F8D /* StrategyProjectsView.swift */; };
+		133483200675449C0ABE332D /* Prompts in Resources */ = {isa = PBXBuildFile; fileRef = E6748CAAF74ACF9A67DC9BD5 /* Prompts */; };
+		16A449B95858E47BBF9BD6B7 /* SupportModels.swift in Sources */ = {isa = PBXBuildFile; fileRef = A7F66D539158D03CEFA72FFA /* SupportModels.swift */; };
+		190644244DFA3E1C699B5ECB /* DisplayText.swift in Sources */ = {isa = PBXBuildFile; fileRef = 4F4E54F305A1CB466178FCE7 /* DisplayText.swift */; };
+		1AFBBF600668BF9AA3245FD6 /* ChartZoomControls.swift in Sources */ = {isa = PBXBuildFile; fileRef = 4F1FB7693723ABC9169D1083 /* ChartZoomControls.swift */; };
+		1CC02FAA761039F3B44D0B46 /* ObsidianVaultAssetsExporter.swift in Sources */ = {isa = PBXBuildFile; fileRef = AFCF497C4AE1249D42426602 /* ObsidianVaultAssetsExporter.swift */; };
+		1D37D0FBE040440D1BA3453D /* TopicGlossaryView.swift in Sources */ = {isa = PBXBuildFile; fileRef = FE0E51E91D91AA18C6E9685E /* TopicGlossaryView.swift */; };
+		1E5C8D455DF6AB7AA3B0E423 /* DocumentModels.swift in Sources */ = {isa = PBXBuildFile; fileRef = 89ED9179EB8C75BB9341C28D /* DocumentModels.swift */; };
+		21412963ECEEC6F0590C375C /* DocumentGraphExporter.swift in Sources */ = {isa = PBXBuildFile; fileRef = DC6E54E34A2D7995F92D10A3 /* DocumentGraphExporter.swift */; };
+		24C41FE1D5B5A0913907BBC0 /* StrategyProject.swift in Sources */ = {isa = PBXBuildFile; fileRef = 3A8466C4C1592805D8367FF3 /* StrategyProject.swift */; };
+		26E1F5FBAD9B885CE3AEFC95 /* MapView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 9AB6708DAA32634F12ABC47A /* MapView.swift */; };
+		277D74D0CA65B61E7057C503 /* RootView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 130E6EF7766400C1321E175C /* RootView.swift */; };
+		2AD358BE1ED14DA425C938C0 /* AtlasFFI.swift in Sources */ = {isa = PBXBuildFile; fileRef = 23B252E730C0C90C5992A68E /* AtlasFFI.swift */; };
+		2DDC9082F93C70E2A3734AD0 /* PromptStore.swift in Sources */ = {isa = PBXBuildFile; fileRef = 525D4964568E4FE9339E01CB /* PromptStore.swift */; };
+		2E3A9C406D0445333CD31762 /* PDFProcessor.swift in Sources */ = {isa = PBXBuildFile; fileRef = 89C860D7692B874A9A3FF2AF /* PDFProcessor.swift */; };
+		2F8F3ED9729447B5A8C4DBAB /* GalaxyTheme.swift in Sources */ = {isa = PBXBuildFile; fileRef = F9949DEC6E64354065EB83D5 /* GalaxyTheme.swift */; };
+		302C3427319BABE2E1754412 /* StrategyProjectRow.swift in Sources */ = {isa = PBXBuildFile; fileRef = 37101F6080097C569FD315A0 /* StrategyProjectRow.swift */; };
+		342F874B3AD271C2EF47F718 /* VectorIndex.swift in Sources */ = {isa = PBXBuildFile; fileRef = DD176077C6D1FA6C080DC009 /* VectorIndex.swift */; };
+		387F966E409D556465220770 /* PaperMarkdownExporter.swift in Sources */ = {isa = PBXBuildFile; fileRef = 1F8242342A6DA43CA4FC24CD /* PaperMarkdownExporter.swift */; };
+		39747DA128C5C003291D9401 /* StrategyProjectRow.swift in Sources */ = {isa = PBXBuildFile; fileRef = 37101F6080097C569FD315A0 /* StrategyProjectRow.swift */; };
+		3A01034850477070496D8E43 /* StrategyProjectsView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 437060059F45CDDB4A2E5F8D /* StrategyProjectsView.swift */; };
+		3A986CC1D689B358F6C7388B /* LiteratureAtlasApp.swift in Sources */ = {isa = PBXBuildFile; fileRef = EBB388B5CDA77FA42DDE4073 /* LiteratureAtlasApp.swift */; };
+		3DC00CB43DC22770B6F70A97 /* AtlasMarkdownExporter.swift in Sources */ = {isa = PBXBuildFile; fileRef = 0D8FFEA54E79BCCEA9D5DD09 /* AtlasMarkdownExporter.swift */; };
+		3F4AD0EBE4D93E36AF2876EA /* GlobalProgressOverlay.swift in Sources */ = {isa = PBXBuildFile; fileRef = EF9A6FA1D3E5AE5A089C5AE8 /* GlobalProgressOverlay.swift */; };
+		40BFFBFC446BD6F950867516 /* TemporalAnalytics.swift in Sources */ = {isa = PBXBuildFile; fileRef = AFCB67E4221F8C07ADF49573 /* TemporalAnalytics.swift */; };
+		429385DFE9E8DEA7F9ED6C7F /* DocumentCompilerProvider.swift in Sources */ = {isa = PBXBuildFile; fileRef = 12AB35B009E853289E3D8663 /* DocumentCompilerProvider.swift */; };
+		42DF0503771053561C5867C5 /* InteractiveLogPanel.swift in Sources */ = {isa = PBXBuildFile; fileRef = 832734719A3ACCBB2BB53204 /* InteractiveLogPanel.swift */; };
+		438653394F8CA8D174AED25E /* AppModel.swift in Sources */ = {isa = PBXBuildFile; fileRef = 7810D3D12B7D36FA8483699B /* AppModel.swift */; };
+		447A7BA97B1371DE27AB3043 /* ReadingPlannerCard.swift in Sources */ = {isa = PBXBuildFile; fileRef = BA0968FCE8EDAB29BB3061F2 /* ReadingPlannerCard.swift */; };
+		44D0587792125F08E2F67894 /* StrategyProjectDetailView.swift in Sources */ = {isa = PBXBuildFile; fileRef = B2D534DE5AA33B484B087F4D /* StrategyProjectDetailView.swift */; };
+		4725D7F2FCD13625E9811653 /* InteractiveLogPanel.swift in Sources */ = {isa = PBXBuildFile; fileRef = 832734719A3ACCBB2BB53204 /* InteractiveLogPanel.swift */; };
+		48FC515D913EEEFFD1217576 /* PointerTrackingView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 1C8CA7B2C1615668095F045C /* PointerTrackingView.swift */; };
+		4923B8AB5A91C5C9E5E95E24 /* ObsidianVaultAssetsExporter.swift in Sources */ = {isa = PBXBuildFile; fileRef = AFCF497C4AE1249D42426602 /* ObsidianVaultAssetsExporter.swift */; };
+		53CFA293D15611EB10A419AC /* PrivacyInfo.xcprivacy in Resources */ = {isa = PBXBuildFile; fileRef = 923475EEA8C04A7C4B514CE4 /* PrivacyInfo.xcprivacy */; };
+		53FF2DD5AB527445B03F04E4 /* LLMText.swift in Sources */ = {isa = PBXBuildFile; fileRef = 9FCF97A407F909777DCD29D5 /* LLMText.swift */; };
+		5798D80E882682A0D7EF023D /* RootView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 130E6EF7766400C1321E175C /* RootView.swift */; };
+		59A12C5595E0EC8FC80C492C /* AppPaths.swift in Sources */ = {isa = PBXBuildFile; fileRef = D88EF04A27314D4FA1DF6E11 /* AppPaths.swift */; };
+		5B298B279CFBEE4F37BE3C76 /* GalaxyTheme.swift in Sources */ = {isa = PBXBuildFile; fileRef = F9949DEC6E64354065EB83D5 /* GalaxyTheme.swift */; };
+		5BAEE39D0B2F0EAEDB18CEA8 /* TradingLens.swift in Sources */ = {isa = PBXBuildFile; fileRef = 7CEB666A9D08617DE1B8EF3A /* TradingLens.swift */; };
+		5CC684984CC8844D5101618C /* ReadingPlannerCard.swift in Sources */ = {isa = PBXBuildFile; fileRef = BA0968FCE8EDAB29BB3061F2 /* ReadingPlannerCard.swift */; };
+		5FE4C4C5FD57BEECD8A7AC35 /* AppNavigation.swift in Sources */ = {isa = PBXBuildFile; fileRef = 3394B31F8909A77F7080B423 /* AppNavigation.swift */; };
+		602C161734B25A1C7F6220F6 /* AnalyticsStore.swift in Sources */ = {isa = PBXBuildFile; fileRef = CDE81572CFA454BF6788965B /* AnalyticsStore.swift */; };
+		612B70E9688CE3CDB314D78E /* SourceAccessStore.swift in Sources */ = {isa = PBXBuildFile; fileRef = 14732DE268069B7594A612FE /* SourceAccessStore.swift */; };
+		614A3F088391A3757D682DC9 /* StrategyProjectDetailView.swift in Sources */ = {isa = PBXBuildFile; fileRef = B2D534DE5AA33B484B087F4D /* StrategyProjectDetailView.swift */; };
+		6373B3657DB7A52DB856019E /* PointerTrackingView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 1C8CA7B2C1615668095F045C /* PointerTrackingView.swift */; };
+		65ACE1D27DE6781B884700A3 /* PromptStore.swift in Sources */ = {isa = PBXBuildFile; fileRef = 525D4964568E4FE9339E01CB /* PromptStore.swift */; };
+		67CE3994C6B6078B9D3A0D9A /* ChartZoomPan.swift in Sources */ = {isa = PBXBuildFile; fileRef = 0D91328F010755F76E6F5DE8 /* ChartZoomPan.swift */; };
+		687494B84F3979F463B45679 /* ViewMeasurements.swift in Sources */ = {isa = PBXBuildFile; fileRef = 5C8DB7A5122C120FD3BEE3B7 /* ViewMeasurements.swift */; };
+		6A6F15DA1A782AC9718C3301 /* PaperMarkdownExporter.swift in Sources */ = {isa = PBXBuildFile; fileRef = 1F8242342A6DA43CA4FC24CD /* PaperMarkdownExporter.swift */; };
+		6B21005E361BAF427F072449 /* EmbeddingService.swift in Sources */ = {isa = PBXBuildFile; fileRef = F6A43D216B8E96BE2BB5952A /* EmbeddingService.swift */; };
+		6C197836191C311B492F8B38 /* TradingScoreStrip.swift in Sources */ = {isa = PBXBuildFile; fileRef = CD3994431B07E6E6DF55000B /* TradingScoreStrip.swift */; };
+		70458E6EA7D89AA5DF8A25E2 /* TradingLensView.swift in Sources */ = {isa = PBXBuildFile; fileRef = AA0A5701B6B5FCA4BC93D27B /* TradingLensView.swift */; };
+		749405472059777C73C8D7A1 /* DocumentGraphExporter.swift in Sources */ = {isa = PBXBuildFile; fileRef = DC6E54E34A2D7995F92D10A3 /* DocumentGraphExporter.swift */; };
+		76753000B495EC5AEC852160 /* LiteratureAtlasApp.swift in Sources */ = {isa = PBXBuildFile; fileRef = EBB388B5CDA77FA42DDE4073 /* LiteratureAtlasApp.swift */; };
+		7BD6255E6819B2A850461B2D /* MarkdownProcessor.swift in Sources */ = {isa = PBXBuildFile; fileRef = 7169EDED09B3817FA40D5E92 /* MarkdownProcessor.swift */; };
+		7C947688E9C293EE051D0688 /* ClaimGraph.swift in Sources */ = {isa = PBXBuildFile; fileRef = 0D91178534C86A5757163236 /* ClaimGraph.swift */; };
+		7CC6A3444AEEAF3826FC3530 /* CompiledKnowledgePaths.swift in Sources */ = {isa = PBXBuildFile; fileRef = 7169A7677F111161483627F0 /* CompiledKnowledgePaths.swift */; };
+		7F9FF20F7C6BB800D73C0B04 /* AppNavigation.swift in Sources */ = {isa = PBXBuildFile; fileRef = 3394B31F8909A77F7080B423 /* AppNavigation.swift */; };
+		7FEA2F1DCA8982A281B1B486 /* AnalyticsView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 2A5F792C1B8241779156B834 /* AnalyticsView.swift */; };
+		80AAE9BC22249845233DD05C /* GlobalProgressOverlay.swift in Sources */ = {isa = PBXBuildFile; fileRef = EF9A6FA1D3E5AE5A089C5AE8 /* GlobalProgressOverlay.swift */; };
+		8106AB9BEDB663153726CB72 /* CompiledKnowledgePaths.swift in Sources */ = {isa = PBXBuildFile; fileRef = 7169A7677F111161483627F0 /* CompiledKnowledgePaths.swift */; };
+		81481A6FF4A217DC6BA07C8A /* AnalyticsView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 2A5F792C1B8241779156B834 /* AnalyticsView.swift */; };
+		81E0EF16100B38DB0DABB844 /* ClusterMarkdownExporter.swift in Sources */ = {isa = PBXBuildFile; fileRef = BA0DC14974ABB82DC11AB4C1 /* ClusterMarkdownExporter.swift */; };
+		8714087021C570CA88A4FA3D /* Prompts in Resources */ = {isa = PBXBuildFile; fileRef = E6748CAAF74ACF9A67DC9BD5 /* Prompts */; };
+		883FFBF5051556EE90D9DC86 /* DismissibleOverlay.swift in Sources */ = {isa = PBXBuildFile; fileRef = B666ED4723F081BECC620E91 /* DismissibleOverlay.swift */; };
+		88CA61A83CF9DFA0AE3BDBB9 /* TradingLensCharts.swift in Sources */ = {isa = PBXBuildFile; fileRef = 0E727CBC49B1462754C6DF20 /* TradingLensCharts.swift */; };
+		8C116A266FCCC892710E1677 /* TemporalAnalytics.swift in Sources */ = {isa = PBXBuildFile; fileRef = AFCB67E4221F8C07ADF49573 /* TemporalAnalytics.swift */; };
+		8DF4C332913C8F2E872E1CCC /* MarkdownProcessor.swift in Sources */ = {isa = PBXBuildFile; fileRef = 7169EDED09B3817FA40D5E92 /* MarkdownProcessor.swift */; };
+		901C46CA684D5D8BAED8056D /* PDFProcessor.swift in Sources */ = {isa = PBXBuildFile; fileRef = 89C860D7692B874A9A3FF2AF /* PDFProcessor.swift */; };
+		9190B7E9B3091F4BF228E537 /* SourceAccessStore.swift in Sources */ = {isa = PBXBuildFile; fileRef = 14732DE268069B7594A612FE /* SourceAccessStore.swift */; };
+		9216DFC79AAFCE57301053BA /* QuestionView.swift in Sources */ = {isa = PBXBuildFile; fileRef = B199246AC2384D34F130EB2C /* QuestionView.swift */; };
+		92EBF4D3C2B014FE226B9A10 /* PaperActionRow.swift in Sources */ = {isa = PBXBuildFile; fileRef = FC8D7645F7F004A81A799BBA /* PaperActionRow.swift */; };
+		9307CD87CC62AE21EB4BFE75 /* StrategyMarkdownExporter.swift in Sources */ = {isa = PBXBuildFile; fileRef = 39540723B087E3D33CA042E6 /* StrategyMarkdownExporter.swift */; };
+		95C07A4300BCAFDD65A2D1EF /* TradingLensCharts.swift in Sources */ = {isa = PBXBuildFile; fileRef = 0E727CBC49B1462754C6DF20 /* TradingLensCharts.swift */; };
+		96C113CF175F64590E96AB1F /* IngestView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 5D02B43965CD4B42BAF52432 /* IngestView.swift */; };
+		98AE4B19901A3B78A1AEF7D9 /* AnalyticsStore.swift in Sources */ = {isa = PBXBuildFile; fileRef = CDE81572CFA454BF6788965B /* AnalyticsStore.swift */; };
+		9D35474E413E293DB13EEC3D /* LLMActors.swift in Sources */ = {isa = PBXBuildFile; fileRef = CC9B5F068983B65FF660137A /* LLMActors.swift */; };
+		9EC4A3429BB929A50EA6587B /* GlassCard.swift in Sources */ = {isa = PBXBuildFile; fileRef = 58C985E837D463F24DE8BF61 /* GlassCard.swift */; };
+		9F27CA143E533EC4BDFD7470 /* ChartZoomPan.swift in Sources */ = {isa = PBXBuildFile; fileRef = 0D91328F010755F76E6F5DE8 /* ChartZoomPan.swift */; };
+		A2F07D521DCEF219476590DC /* LLMText.swift in Sources */ = {isa = PBXBuildFile; fileRef = 9FCF97A407F909777DCD29D5 /* LLMText.swift */; };
+		A3C01459045424109812E293 /* AtlasFFI.swift in Sources */ = {isa = PBXBuildFile; fileRef = 23B252E730C0C90C5992A68E /* AtlasFFI.swift */; };
+		A4456B43053CEBDB2C3EDFBD /* ChartZoomControls.swift in Sources */ = {isa = PBXBuildFile; fileRef = 4F1FB7693723ABC9169D1083 /* ChartZoomControls.swift */; };
+		A44EE1E8FE4B1C544FB21EF4 /* ChartPlotGeometry.swift in Sources */ = {isa = PBXBuildFile; fileRef = EA371A708136027E5D45BB7B /* ChartPlotGeometry.swift */; };
+		A77C25F7B6017E488D1D984A /* DocumentModels.swift in Sources */ = {isa = PBXBuildFile; fileRef = 89ED9179EB8C75BB9341C28D /* DocumentModels.swift */; };
+		A9233859C32DBC8905A9EB66 /* QuantKnowledgeGraph.swift in Sources */ = {isa = PBXBuildFile; fileRef = E3438DE7E76B315162D5D148 /* QuantKnowledgeGraph.swift */; };
+		A9A258295F9E3786A9BA03D3 /* TradingLens.swift in Sources */ = {isa = PBXBuildFile; fileRef = 7CEB666A9D08617DE1B8EF3A /* TradingLens.swift */; };
+		AA40BD4B8B85D901551C3676 /* DisplayText.swift in Sources */ = {isa = PBXBuildFile; fileRef = 4F4E54F305A1CB466178FCE7 /* DisplayText.swift */; };
+		AB60FF85EC573C85EE3314F0 /* AtlasMarkdownExporter.swift in Sources */ = {isa = PBXBuildFile; fileRef = 0D8FFEA54E79BCCEA9D5DD09 /* AtlasMarkdownExporter.swift */; };
+		AE3ABE3D59DC372156B91BE0 /* TradingScoreStrip.swift in Sources */ = {isa = PBXBuildFile; fileRef = CD3994431B07E6E6DF55000B /* TradingScoreStrip.swift */; };
+		B2EF41122B4D55D7C9C793C7 /* ObsidianIDs.swift in Sources */ = {isa = PBXBuildFile; fileRef = B55519B3B08173C5DBAD4460 /* ObsidianIDs.swift */; };
+		BBC48FAF22FCF16208D530ED /* ClaimGraph.swift in Sources */ = {isa = PBXBuildFile; fileRef = 0D91178534C86A5757163236 /* ClaimGraph.swift */; };
+		BC25946778783418B3E2D5D7 /* Assets.xcassets in Resources */ = {isa = PBXBuildFile; fileRef = 4DE65932F17D8014EC3A3627 /* Assets.xcassets */; };
+		BFEE3B06CCEE945A96BED931 /* PaperDetailView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 194872D3A543C2BB6992F389 /* PaperDetailView.swift */; };
+		C0CB714A562BA1B6B674C955 /* PaperActionRow.swift in Sources */ = {isa = PBXBuildFile; fileRef = FC8D7645F7F004A81A799BBA /* PaperActionRow.swift */; };
+		C3370AB27B0F27B0B7766439 /* Paper.swift in Sources */ = {isa = PBXBuildFile; fileRef = 8778EA836F0659EDD40B1997 /* Paper.swift */; };
+		C53C121436FB7EAFF9120F45 /* ModelJSON.swift in Sources */ = {isa = PBXBuildFile; fileRef = 89E50C2AB67E7066BFBB04B8 /* ModelJSON.swift */; };
+		C7296451239200E5856BF133 /* ViewMeasurements.swift in Sources */ = {isa = PBXBuildFile; fileRef = 5C8DB7A5122C120FD3BEE3B7 /* ViewMeasurements.swift */; };
+		CC9E6FF86D03089F0FA2DC68 /* IngestView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 5D02B43965CD4B42BAF52432 /* IngestView.swift */; };
+		D458E1973D89C0859299E689 /* DismissibleOverlay.swift in Sources */ = {isa = PBXBuildFile; fileRef = B666ED4723F081BECC620E91 /* DismissibleOverlay.swift */; };
+		D4AF0FC297BE25F3DE01B6DE /* GlassCard.swift in Sources */ = {isa = PBXBuildFile; fileRef = 58C985E837D463F24DE8BF61 /* GlassCard.swift */; };
+		DA0A068276B2E40A7258A7A2 /* AppModel.swift in Sources */ = {isa = PBXBuildFile; fileRef = 7810D3D12B7D36FA8483699B /* AppModel.swift */; };
+		DB453CEA30A4DF828F2D0853 /* PrivacyInfo.xcprivacy in Resources */ = {isa = PBXBuildFile; fileRef = 8D3A6EC5E45799029769F677 /* PrivacyInfo.xcprivacy */; };
+		E0D27ACD5E73697B93D287C0 /* CompiledKnowledgeExporter.swift in Sources */ = {isa = PBXBuildFile; fileRef = 2B1099B68CACA96F835A2E33 /* CompiledKnowledgeExporter.swift */; };
+		E506B528469DABA1C857C4FD /* TopicGlossaryView.swift in Sources */ = {isa = PBXBuildFile; fileRef = FE0E51E91D91AA18C6E9685E /* TopicGlossaryView.swift */; };
+		E61F4E8A3116D4BCE7A58A69 /* DocumentCompilerProvider.swift in Sources */ = {isa = PBXBuildFile; fileRef = 12AB35B009E853289E3D8663 /* DocumentCompilerProvider.swift */; };
+		E6922B7BAC6A8F242F3F8385 /* SupportModels.swift in Sources */ = {isa = PBXBuildFile; fileRef = A7F66D539158D03CEFA72FFA /* SupportModels.swift */; };
+		E926AEEED6B41DB048DF8A4E /* MapView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 9AB6708DAA32634F12ABC47A /* MapView.swift */; };
+		E9EA11BC5BD5C135F535703E /* ObsidianIDs.swift in Sources */ = {isa = PBXBuildFile; fileRef = B55519B3B08173C5DBAD4460 /* ObsidianIDs.swift */; };
+		EAB1E1FCD2CC2C380F790945 /* Assets.xcassets in Resources */ = {isa = PBXBuildFile; fileRef = 4DE65932F17D8014EC3A3627 /* Assets.xcassets */; };
+		EB76140E770AA9168F41A27B /* ChartPlotGeometry.swift in Sources */ = {isa = PBXBuildFile; fileRef = EA371A708136027E5D45BB7B /* ChartPlotGeometry.swift */; };
+		EBD68C9D8BD488A6D6D5AF85 /* ClusterMarkdownExporter.swift in Sources */ = {isa = PBXBuildFile; fileRef = BA0DC14974ABB82DC11AB4C1 /* ClusterMarkdownExporter.swift */; };
+		EC67FC2BF8BEF9BF3D2AEF26 /* QuantKnowledgeGraph.swift in Sources */ = {isa = PBXBuildFile; fileRef = E3438DE7E76B315162D5D148 /* QuantKnowledgeGraph.swift */; };
+		EC964ED73208AE5BE0612E13 /* VectorIndex.swift in Sources */ = {isa = PBXBuildFile; fileRef = DD176077C6D1FA6C080DC009 /* VectorIndex.swift */; };
+		EF07A8CBC38DEB820CAF7C0B /* AppPaths.swift in Sources */ = {isa = PBXBuildFile; fileRef = D88EF04A27314D4FA1DF6E11 /* AppPaths.swift */; };
+		F0C83D5CB2F1F9B8C08B025D /* StrategyProject.swift in Sources */ = {isa = PBXBuildFile; fileRef = 3A8466C4C1592805D8367FF3 /* StrategyProject.swift */; };
+		F199695B960605F1DAD6551A /* ModelJSON.swift in Sources */ = {isa = PBXBuildFile; fileRef = 89E50C2AB67E7066BFBB04B8 /* ModelJSON.swift */; };
+		FAC26A792FF2A9ED3D6EA2BF /* PaperDetailView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 194872D3A543C2BB6992F389 /* PaperDetailView.swift */; };
+		FB76620531C3B4F6079A44EA /* TradingLensView.swift in Sources */ = {isa = PBXBuildFile; fileRef = AA0A5701B6B5FCA4BC93D27B /* TradingLensView.swift */; };
+		FCEDC368F305148084BB8BFF /* StrategyMarkdownExporter.swift in Sources */ = {isa = PBXBuildFile; fileRef = 39540723B087E3D33CA042E6 /* StrategyMarkdownExporter.swift */; };
+		FE733297724D03FC738D2FCD /* Paper.swift in Sources */ = {isa = PBXBuildFile; fileRef = 8778EA836F0659EDD40B1997 /* Paper.swift */; };
+/* End PBXBuildFile section */
+
+/* Begin PBXFileReference section */
+		0667579A4811B3C259139041 /* Debug.xcconfig */ = {isa = PBXFileReference; lastKnownFileType = text.xcconfig; path = Debug.xcconfig; sourceTree = "<group>"; };
+		0D8FFEA54E79BCCEA9D5DD09 /* AtlasMarkdownExporter.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = AtlasMarkdownExporter.swift; sourceTree = "<group>"; };
+		0D91178534C86A5757163236 /* ClaimGraph.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ClaimGraph.swift; sourceTree = "<group>"; };
+		0D91328F010755F76E6F5DE8 /* ChartZoomPan.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ChartZoomPan.swift; sourceTree = "<group>"; };
+		0E727CBC49B1462754C6DF20 /* TradingLensCharts.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = TradingLensCharts.swift; sourceTree = "<group>"; };
+		12AB35B009E853289E3D8663 /* DocumentCompilerProvider.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = DocumentCompilerProvider.swift; sourceTree = "<group>"; };
+		130E6EF7766400C1321E175C /* RootView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = RootView.swift; sourceTree = "<group>"; };
+		14732DE268069B7594A612FE /* SourceAccessStore.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = SourceAccessStore.swift; sourceTree = "<group>"; };
+		194872D3A543C2BB6992F389 /* PaperDetailView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = PaperDetailView.swift; sourceTree = "<group>"; };
+		1C8CA7B2C1615668095F045C /* PointerTrackingView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = PointerTrackingView.swift; sourceTree = "<group>"; };
+		1F8242342A6DA43CA4FC24CD /* PaperMarkdownExporter.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = PaperMarkdownExporter.swift; sourceTree = "<group>"; };
+		23B252E730C0C90C5992A68E /* AtlasFFI.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = AtlasFFI.swift; sourceTree = "<group>"; };
+		2A5F792C1B8241779156B834 /* AnalyticsView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = AnalyticsView.swift; sourceTree = "<group>"; };
+		2B1099B68CACA96F835A2E33 /* CompiledKnowledgeExporter.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = CompiledKnowledgeExporter.swift; sourceTree = "<group>"; };
+		3394B31F8909A77F7080B423 /* AppNavigation.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = AppNavigation.swift; sourceTree = "<group>"; };
+		37101F6080097C569FD315A0 /* StrategyProjectRow.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = StrategyProjectRow.swift; sourceTree = "<group>"; };
+		39540723B087E3D33CA042E6 /* StrategyMarkdownExporter.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = StrategyMarkdownExporter.swift; sourceTree = "<group>"; };
+		3A8466C4C1592805D8367FF3 /* StrategyProject.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = StrategyProject.swift; sourceTree = "<group>"; };
+		437060059F45CDDB4A2E5F8D /* StrategyProjectsView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = StrategyProjectsView.swift; sourceTree = "<group>"; };
+		4DE65932F17D8014EC3A3627 /* Assets.xcassets */ = {isa = PBXFileReference; lastKnownFileType = folder.assetcatalog; path = Assets.xcassets; sourceTree = "<group>"; };
+		4F1FB7693723ABC9169D1083 /* ChartZoomControls.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ChartZoomControls.swift; sourceTree = "<group>"; };
+		4F4E54F305A1CB466178FCE7 /* DisplayText.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = DisplayText.swift; sourceTree = "<group>"; };
+		525D4964568E4FE9339E01CB /* PromptStore.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = PromptStore.swift; sourceTree = "<group>"; };
+		58C985E837D463F24DE8BF61 /* GlassCard.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = GlassCard.swift; sourceTree = "<group>"; };
+		5C8DB7A5122C120FD3BEE3B7 /* ViewMeasurements.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ViewMeasurements.swift; sourceTree = "<group>"; };
+		5D02B43965CD4B42BAF52432 /* IngestView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = IngestView.swift; sourceTree = "<group>"; };
+		7169A7677F111161483627F0 /* CompiledKnowledgePaths.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = CompiledKnowledgePaths.swift; sourceTree = "<group>"; };
+		7169EDED09B3817FA40D5E92 /* MarkdownProcessor.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = MarkdownProcessor.swift; sourceTree = "<group>"; };
+		7810D3D12B7D36FA8483699B /* AppModel.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = AppModel.swift; sourceTree = "<group>"; };
+		7CEB666A9D08617DE1B8EF3A /* TradingLens.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = TradingLens.swift; sourceTree = "<group>"; };
+		832734719A3ACCBB2BB53204 /* InteractiveLogPanel.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = InteractiveLogPanel.swift; sourceTree = "<group>"; };
+		8778EA836F0659EDD40B1997 /* Paper.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = Paper.swift; sourceTree = "<group>"; };
+		89C860D7692B874A9A3FF2AF /* PDFProcessor.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = PDFProcessor.swift; sourceTree = "<group>"; };
+		89E50C2AB67E7066BFBB04B8 /* ModelJSON.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ModelJSON.swift; sourceTree = "<group>"; };
+		89ED9179EB8C75BB9341C28D /* DocumentModels.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = DocumentModels.swift; sourceTree = "<group>"; };
+		8D3A6EC5E45799029769F677 /* PrivacyInfo.xcprivacy */ = {isa = PBXFileReference; path = PrivacyInfo.xcprivacy; sourceTree = "<group>"; };
+		923475EEA8C04A7C4B514CE4 /* PrivacyInfo.xcprivacy */ = {isa = PBXFileReference; path = PrivacyInfo.xcprivacy; sourceTree = "<group>"; };
+		9AB6708DAA32634F12ABC47A /* MapView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = MapView.swift; sourceTree = "<group>"; };
+		9FCF97A407F909777DCD29D5 /* LLMText.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = LLMText.swift; sourceTree = "<group>"; };
+		A7F66D539158D03CEFA72FFA /* SupportModels.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = SupportModels.swift; sourceTree = "<group>"; };
+		AA0A5701B6B5FCA4BC93D27B /* TradingLensView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = TradingLensView.swift; sourceTree = "<group>"; };
+		AFCB67E4221F8C07ADF49573 /* TemporalAnalytics.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = TemporalAnalytics.swift; sourceTree = "<group>"; };
+		AFCF497C4AE1249D42426602 /* ObsidianVaultAssetsExporter.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ObsidianVaultAssetsExporter.swift; sourceTree = "<group>"; };
+		B199246AC2384D34F130EB2C /* QuestionView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = QuestionView.swift; sourceTree = "<group>"; };
+		B2D534DE5AA33B484B087F4D /* StrategyProjectDetailView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = StrategyProjectDetailView.swift; sourceTree = "<group>"; };
+		B55519B3B08173C5DBAD4460 /* ObsidianIDs.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ObsidianIDs.swift; sourceTree = "<group>"; };
+		B666ED4723F081BECC620E91 /* DismissibleOverlay.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = DismissibleOverlay.swift; sourceTree = "<group>"; };
+		B6D461E6E002CF978223F949 /* LiteratureAtlas.app */ = {isa = PBXFileReference; includeInIndex = 0; lastKnownFileType = wrapper.application; path = LiteratureAtlas.app; sourceTree = BUILT_PRODUCTS_DIR; };
+		BA0968FCE8EDAB29BB3061F2 /* ReadingPlannerCard.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ReadingPlannerCard.swift; sourceTree = "<group>"; };
+		BA0DC14974ABB82DC11AB4C1 /* ClusterMarkdownExporter.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ClusterMarkdownExporter.swift; sourceTree = "<group>"; };
+		CC9B5F068983B65FF660137A /* LLMActors.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = LLMActors.swift; sourceTree = "<group>"; };
+		CD3994431B07E6E6DF55000B /* TradingScoreStrip.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = TradingScoreStrip.swift; sourceTree = "<group>"; };
+		CDE81572CFA454BF6788965B /* AnalyticsStore.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = AnalyticsStore.swift; sourceTree = "<group>"; };
+		D88EF04A27314D4FA1DF6E11 /* AppPaths.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = AppPaths.swift; sourceTree = "<group>"; };
+		DC6E54E34A2D7995F92D10A3 /* DocumentGraphExporter.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = DocumentGraphExporter.swift; sourceTree = "<group>"; };
+		DD176077C6D1FA6C080DC009 /* VectorIndex.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = VectorIndex.swift; sourceTree = "<group>"; };
+		E3438DE7E76B315162D5D148 /* QuantKnowledgeGraph.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = QuantKnowledgeGraph.swift; sourceTree = "<group>"; };
+		E6748CAAF74ACF9A67DC9BD5 /* Prompts */ = {isa = PBXFileReference; lastKnownFileType = folder; path = Prompts; sourceTree = SOURCE_ROOT; };
+		E9FDDBB94AF080D3BD5A39FD /* Release.xcconfig */ = {isa = PBXFileReference; lastKnownFileType = text.xcconfig; path = Release.xcconfig; sourceTree = "<group>"; };
+		EA371A708136027E5D45BB7B /* ChartPlotGeometry.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ChartPlotGeometry.swift; sourceTree = "<group>"; };
+		EBB388B5CDA77FA42DDE4073 /* LiteratureAtlasApp.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = LiteratureAtlasApp.swift; sourceTree = "<group>"; };
+		EF9A6FA1D3E5AE5A089C5AE8 /* GlobalProgressOverlay.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = GlobalProgressOverlay.swift; sourceTree = "<group>"; };
+		F49B25652A3B9125B516E5C5 /* LiteratureAtlas.app */ = {isa = PBXFileReference; explicitFileType = wrapper.application; includeInIndex = 0; path = LiteratureAtlas.app; sourceTree = BUILT_PRODUCTS_DIR; };
+		F6A43D216B8E96BE2BB5952A /* EmbeddingService.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = EmbeddingService.swift; sourceTree = "<group>"; };
+		F9949DEC6E64354065EB83D5 /* GalaxyTheme.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = GalaxyTheme.swift; sourceTree = "<group>"; };
+		FC8D7645F7F004A81A799BBA /* PaperActionRow.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = PaperActionRow.swift; sourceTree = "<group>"; };
+		FE0E51E91D91AA18C6E9685E /* TopicGlossaryView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = TopicGlossaryView.swift; sourceTree = "<group>"; };
+/* End PBXFileReference section */
+
+/* Begin PBXGroup section */
+		1A04825D962FDD809129C4FE /* LiteratureAtlas */ = {
+			isa = PBXGroup;
+			children = (
+				7DBCD2977BDD01F48258252C /* App */,
+				2CDC155FE3737156E9D67374 /* Models */,
+				A4DA6A6D3108115845B8F0ED /* Services */,
+				E523F1158AFF7C0EA021BD2A /* Views */,
+			);
+			path = LiteratureAtlas;
+			sourceTree = "<group>";
+		};
+		2BDB958810874685D1F4DB34 /* Resources */ = {
+			isa = PBXGroup;
+			children = (
+				E70ED4DBBB3CC6D6E713F115 /* iOS */,
+				90DB80A68BDD54D86838967A /* macOS */,
+				562BBBC471DC9ABDC5DE2B4F /* Shared */,
+			);
+			path = Resources;
+			sourceTree = "<group>";
+		};
+		2CDC155FE3737156E9D67374 /* Models */ = {
+			isa = PBXGroup;
+			children = (
+				89ED9179EB8C75BB9341C28D /* DocumentModels.swift */,
+				8778EA836F0659EDD40B1997 /* Paper.swift */,
+				E3438DE7E76B315162D5D148 /* QuantKnowledgeGraph.swift */,
+				3A8466C4C1592805D8367FF3 /* StrategyProject.swift */,
+				A7F66D539158D03CEFA72FFA /* SupportModels.swift */,
+				7CEB666A9D08617DE1B8EF3A /* TradingLens.swift */,
+			);
+			path = Models;
+			sourceTree = "<group>";
+		};
+		562BBBC471DC9ABDC5DE2B4F /* Shared */ = {
+			isa = PBXGroup;
+			children = (
+				4DE65932F17D8014EC3A3627 /* Assets.xcassets */,
+			);
+			path = Shared;
+			sourceTree = "<group>";
+		};
+		65D8F34C3306F424388564B3 /* Config */ = {
+			isa = PBXGroup;
+			children = (
+				0667579A4811B3C259139041 /* Debug.xcconfig */,
+				E9FDDBB94AF080D3BD5A39FD /* Release.xcconfig */,
+			);
+			path = Config;
+			sourceTree = "<group>";
+		};
+		7DBCD2977BDD01F48258252C /* App */ = {
+			isa = PBXGroup;
+			children = (
+				7810D3D12B7D36FA8483699B /* AppModel.swift */,
+				3394B31F8909A77F7080B423 /* AppNavigation.swift */,
+				EBB388B5CDA77FA42DDE4073 /* LiteratureAtlasApp.swift */,
+			);
+			path = App;
+			sourceTree = "<group>";
+		};
+		821A37CAECAAD8A03A491059 = {
+			isa = PBXGroup;
+			children = (
+				E6748CAAF74ACF9A67DC9BD5 /* Prompts */,
+				65D8F34C3306F424388564B3 /* Config */,
+				2BDB958810874685D1F4DB34 /* Resources */,
+				E9BCB84F8C6AD6E954311D81 /* Sources */,
+				D97CB48879375BAE3B736975 /* Products */,
+			);
+			sourceTree = "<group>";
+		};
+		90DB80A68BDD54D86838967A /* macOS */ = {
+			isa = PBXGroup;
+			children = (
+				923475EEA8C04A7C4B514CE4 /* PrivacyInfo.xcprivacy */,
+			);
+			path = macOS;
+			sourceTree = "<group>";
+		};
+		A4DA6A6D3108115845B8F0ED /* Services */ = {
+			isa = PBXGroup;
+			children = (
+				CDE81572CFA454BF6788965B /* AnalyticsStore.swift */,
+				D88EF04A27314D4FA1DF6E11 /* AppPaths.swift */,
+				23B252E730C0C90C5992A68E /* AtlasFFI.swift */,
+				0D8FFEA54E79BCCEA9D5DD09 /* AtlasMarkdownExporter.swift */,
+				0D91178534C86A5757163236 /* ClaimGraph.swift */,
+				BA0DC14974ABB82DC11AB4C1 /* ClusterMarkdownExporter.swift */,
+				2B1099B68CACA96F835A2E33 /* CompiledKnowledgeExporter.swift */,
+				7169A7677F111161483627F0 /* CompiledKnowledgePaths.swift */,
+				4F4E54F305A1CB466178FCE7 /* DisplayText.swift */,
+				12AB35B009E853289E3D8663 /* DocumentCompilerProvider.swift */,
+				DC6E54E34A2D7995F92D10A3 /* DocumentGraphExporter.swift */,
+				F6A43D216B8E96BE2BB5952A /* EmbeddingService.swift */,
+				CC9B5F068983B65FF660137A /* LLMActors.swift */,
+				9FCF97A407F909777DCD29D5 /* LLMText.swift */,
+				7169EDED09B3817FA40D5E92 /* MarkdownProcessor.swift */,
+				89E50C2AB67E7066BFBB04B8 /* ModelJSON.swift */,
+				B55519B3B08173C5DBAD4460 /* ObsidianIDs.swift */,
+				AFCF497C4AE1249D42426602 /* ObsidianVaultAssetsExporter.swift */,
+				1F8242342A6DA43CA4FC24CD /* PaperMarkdownExporter.swift */,
+				89C860D7692B874A9A3FF2AF /* PDFProcessor.swift */,
+				525D4964568E4FE9339E01CB /* PromptStore.swift */,
+				14732DE268069B7594A612FE /* SourceAccessStore.swift */,
+				39540723B087E3D33CA042E6 /* StrategyMarkdownExporter.swift */,
+				AFCB67E4221F8C07ADF49573 /* TemporalAnalytics.swift */,
+				DD176077C6D1FA6C080DC009 /* VectorIndex.swift */,
+			);
+			path = Services;
+			sourceTree = "<group>";
+		};
+		D97CB48879375BAE3B736975 /* Products */ = {
+			isa = PBXGroup;
+			children = (
+				B6D461E6E002CF978223F949 /* LiteratureAtlas.app */,
+				F49B25652A3B9125B516E5C5 /* LiteratureAtlas.app */,
+			);
+			name = Products;
+			sourceTree = "<group>";
+		};
+		E523F1158AFF7C0EA021BD2A /* Views */ = {
+			isa = PBXGroup;
+			children = (
+				2A5F792C1B8241779156B834 /* AnalyticsView.swift */,
+				EA371A708136027E5D45BB7B /* ChartPlotGeometry.swift */,
+				4F1FB7693723ABC9169D1083 /* ChartZoomControls.swift */,
+				0D91328F010755F76E6F5DE8 /* ChartZoomPan.swift */,
+				B666ED4723F081BECC620E91 /* DismissibleOverlay.swift */,
+				F9949DEC6E64354065EB83D5 /* GalaxyTheme.swift */,
+				58C985E837D463F24DE8BF61 /* GlassCard.swift */,
+				EF9A6FA1D3E5AE5A089C5AE8 /* GlobalProgressOverlay.swift */,
+				5D02B43965CD4B42BAF52432 /* IngestView.swift */,
+				832734719A3ACCBB2BB53204 /* InteractiveLogPanel.swift */,
+				9AB6708DAA32634F12ABC47A /* MapView.swift */,
+				FC8D7645F7F004A81A799BBA /* PaperActionRow.swift */,
+				194872D3A543C2BB6992F389 /* PaperDetailView.swift */,
+				1C8CA7B2C1615668095F045C /* PointerTrackingView.swift */,
+				B199246AC2384D34F130EB2C /* QuestionView.swift */,
+				BA0968FCE8EDAB29BB3061F2 /* ReadingPlannerCard.swift */,
+				130E6EF7766400C1321E175C /* RootView.swift */,
+				B2D534DE5AA33B484B087F4D /* StrategyProjectDetailView.swift */,
+				37101F6080097C569FD315A0 /* StrategyProjectRow.swift */,
+				437060059F45CDDB4A2E5F8D /* StrategyProjectsView.swift */,
+				FE0E51E91D91AA18C6E9685E /* TopicGlossaryView.swift */,
+				0E727CBC49B1462754C6DF20 /* TradingLensCharts.swift */,
+				AA0A5701B6B5FCA4BC93D27B /* TradingLensView.swift */,
+				CD3994431B07E6E6DF55000B /* TradingScoreStrip.swift */,
+				5C8DB7A5122C120FD3BEE3B7 /* ViewMeasurements.swift */,
+			);
+			path = Views;
+			sourceTree = "<group>";
+		};
+		E70ED4DBBB3CC6D6E713F115 /* iOS */ = {
+			isa = PBXGroup;
+			children = (
+				8D3A6EC5E45799029769F677 /* PrivacyInfo.xcprivacy */,
+			);
+			path = iOS;
+			sourceTree = "<group>";
+		};
+		E9BCB84F8C6AD6E954311D81 /* Sources */ = {
+			isa = PBXGroup;
+			children = (
+				1A04825D962FDD809129C4FE /* LiteratureAtlas */,
+			);
+			path = Sources;
+			sourceTree = "<group>";
+		};
+/* End PBXGroup section */
+
+/* Begin PBXNativeTarget section */
+		0637EF57542515DE8B99F34E /* LiteratureAtlas-macOS */ = {
+			isa = PBXNativeTarget;
+			buildConfigurationList = E97F740184BF2720A58FCED0 /* Build configuration list for PBXNativeTarget "LiteratureAtlas-macOS" */;
+			buildPhases = (
+				105397FCCC8648472BE83C84 /* Sources */,
+				3E9CFD4D37FD501321516AD8 /* Resources */,
+			);
+			buildRules = (
+			);
+			dependencies = (
+			);
+			name = "LiteratureAtlas-macOS";
+			packageProductDependencies = (
+			);
+			productName = "LiteratureAtlas-macOS";
+			productReference = F49B25652A3B9125B516E5C5 /* LiteratureAtlas.app */;
+			productType = "com.apple.product-type.application";
+		};
+		F087F9AEF336F7ED4C35A93C /* LiteratureAtlas-iOS */ = {
+			isa = PBXNativeTarget;
+			buildConfigurationList = FB3A485FB2ADFF591D86A758 /* Build configuration list for PBXNativeTarget "LiteratureAtlas-iOS" */;
+			buildPhases = (
+				0897AC9F36801EC944FB4836 /* Sources */,
+				53E7FB485E5E90C28ED05A84 /* Resources */,
+			);
+			buildRules = (
+			);
+			dependencies = (
+			);
+			name = "LiteratureAtlas-iOS";
+			packageProductDependencies = (
+			);
+			productName = "LiteratureAtlas-iOS";
+			productReference = B6D461E6E002CF978223F949 /* LiteratureAtlas.app */;
+			productType = "com.apple.product-type.application";
+		};
+/* End PBXNativeTarget section */
+
+/* Begin PBXProject section */
+		BA23DC1D66C92EEF4F3F1ED0 /* Project object */ = {
+			isa = PBXProject;
+			attributes = {
+				BuildIndependentTargetsInParallel = YES;
+				LastUpgradeCheck = 1430;
+				TargetAttributes = {
+					0637EF57542515DE8B99F34E = {
+						ProvisioningStyle = Automatic;
+					};
+					F087F9AEF336F7ED4C35A93C = {
+						ProvisioningStyle = Automatic;
+					};
+				};
+			};
+			buildConfigurationList = A95DF4F89FF6DA7DE4CBA6A0 /* Build configuration list for PBXProject "LiteratureAtlas" */;
+			developmentRegion = en;
+			hasScannedForEncodings = 0;
+			knownRegions = (
+				Base,
+				en,
+			);
+			mainGroup = 821A37CAECAAD8A03A491059;
+			minimizedProjectReferenceProxies = 1;
+			preferredProjectObjectVersion = 77;
+			productRefGroup = D97CB48879375BAE3B736975 /* Products */;
+			projectDirPath = "";
+			projectRoot = "";
+			targets = (
+				F087F9AEF336F7ED4C35A93C /* LiteratureAtlas-iOS */,
+				0637EF57542515DE8B99F34E /* LiteratureAtlas-macOS */,
+			);
+		};
+/* End PBXProject section */
+
+/* Begin PBXResourcesBuildPhase section */
+		3E9CFD4D37FD501321516AD8 /* Resources */ = {
+			isa = PBXResourcesBuildPhase;
+			buildActionMask = 2147483647;
+			files = (
+				BC25946778783418B3E2D5D7 /* Assets.xcassets in Resources */,
+				53CFA293D15611EB10A419AC /* PrivacyInfo.xcprivacy in Resources */,
+				133483200675449C0ABE332D /* Prompts in Resources */,
+			);
+			runOnlyForDeploymentPostprocessing = 0;
+		};
+		53E7FB485E5E90C28ED05A84 /* Resources */ = {
+			isa = PBXResourcesBuildPhase;
+			buildActionMask = 2147483647;
+			files = (
+				EAB1E1FCD2CC2C380F790945 /* Assets.xcassets in Resources */,
+				DB453CEA30A4DF828F2D0853 /* PrivacyInfo.xcprivacy in Resources */,
+				8714087021C570CA88A4FA3D /* Prompts in Resources */,
+			);
+			runOnlyForDeploymentPostprocessing = 0;
+		};
+/* End PBXResourcesBuildPhase section */
+
+/* Begin PBXSourcesBuildPhase section */
+		0897AC9F36801EC944FB4836 /* Sources */ = {
+			isa = PBXSourcesBuildPhase;
+			buildActionMask = 2147483647;
+			files = (
+				602C161734B25A1C7F6220F6 /* AnalyticsStore.swift in Sources */,
+				7FEA2F1DCA8982A281B1B486 /* AnalyticsView.swift in Sources */,
+				DA0A068276B2E40A7258A7A2 /* AppModel.swift in Sources */,
+				5FE4C4C5FD57BEECD8A7AC35 /* AppNavigation.swift in Sources */,
+				59A12C5595E0EC8FC80C492C /* AppPaths.swift in Sources */,
+				A3C01459045424109812E293 /* AtlasFFI.swift in Sources */,
+				3DC00CB43DC22770B6F70A97 /* AtlasMarkdownExporter.swift in Sources */,
+				EB76140E770AA9168F41A27B /* ChartPlotGeometry.swift in Sources */,
+				1AFBBF600668BF9AA3245FD6 /* ChartZoomControls.swift in Sources */,
+				9F27CA143E533EC4BDFD7470 /* ChartZoomPan.swift in Sources */,
+				BBC48FAF22FCF16208D530ED /* ClaimGraph.swift in Sources */,
+				81E0EF16100B38DB0DABB844 /* ClusterMarkdownExporter.swift in Sources */,
+				0513669D76F999E0C84DFD39 /* CompiledKnowledgeExporter.swift in Sources */,
+				7CC6A3444AEEAF3826FC3530 /* CompiledKnowledgePaths.swift in Sources */,
+				D458E1973D89C0859299E689 /* DismissibleOverlay.swift in Sources */,
+				AA40BD4B8B85D901551C3676 /* DisplayText.swift in Sources */,
+				E61F4E8A3116D4BCE7A58A69 /* DocumentCompilerProvider.swift in Sources */,
+				21412963ECEEC6F0590C375C /* DocumentGraphExporter.swift in Sources */,
+				A77C25F7B6017E488D1D984A /* DocumentModels.swift in Sources */,
+				0F365C10D1C59874BECD279E /* EmbeddingService.swift in Sources */,
+				2F8F3ED9729447B5A8C4DBAB /* GalaxyTheme.swift in Sources */,
+				9EC4A3429BB929A50EA6587B /* GlassCard.swift in Sources */,
+				80AAE9BC22249845233DD05C /* GlobalProgressOverlay.swift in Sources */,
+				CC9E6FF86D03089F0FA2DC68 /* IngestView.swift in Sources */,
+				4725D7F2FCD13625E9811653 /* InteractiveLogPanel.swift in Sources */,
+				02B53BE166385FDCBB7BD789 /* LLMActors.swift in Sources */,
+				53FF2DD5AB527445B03F04E4 /* LLMText.swift in Sources */,
+				76753000B495EC5AEC852160 /* LiteratureAtlasApp.swift in Sources */,
+				26E1F5FBAD9B885CE3AEFC95 /* MapView.swift in Sources */,
+				8DF4C332913C8F2E872E1CCC /* MarkdownProcessor.swift in Sources */,
+				F199695B960605F1DAD6551A /* ModelJSON.swift in Sources */,
+				B2EF41122B4D55D7C9C793C7 /* ObsidianIDs.swift in Sources */,
+				4923B8AB5A91C5C9E5E95E24 /* ObsidianVaultAssetsExporter.swift in Sources */,
+				2E3A9C406D0445333CD31762 /* PDFProcessor.swift in Sources */,
+				C3370AB27B0F27B0B7766439 /* Paper.swift in Sources */,
+				92EBF4D3C2B014FE226B9A10 /* PaperActionRow.swift in Sources */,
+				FAC26A792FF2A9ED3D6EA2BF /* PaperDetailView.swift in Sources */,
+				387F966E409D556465220770 /* PaperMarkdownExporter.swift in Sources */,
+				6373B3657DB7A52DB856019E /* PointerTrackingView.swift in Sources */,
+				2DDC9082F93C70E2A3734AD0 /* PromptStore.swift in Sources */,
+				A9233859C32DBC8905A9EB66 /* QuantKnowledgeGraph.swift in Sources */,
+				04097BEC2994031FDF5E32CE /* QuestionView.swift in Sources */,
+				447A7BA97B1371DE27AB3043 /* ReadingPlannerCard.swift in Sources */,
+				277D74D0CA65B61E7057C503 /* RootView.swift in Sources */,
+				612B70E9688CE3CDB314D78E /* SourceAccessStore.swift in Sources */,
+				FCEDC368F305148084BB8BFF /* StrategyMarkdownExporter.swift in Sources */,
+				F0C83D5CB2F1F9B8C08B025D /* StrategyProject.swift in Sources */,
+				614A3F088391A3757D682DC9 /* StrategyProjectDetailView.swift in Sources */,
+				302C3427319BABE2E1754412 /* StrategyProjectRow.swift in Sources */,
+				100C0C60186BEFD423600617 /* StrategyProjectsView.swift in Sources */,
+				E6922B7BAC6A8F242F3F8385 /* SupportModels.swift in Sources */,
+				8C116A266FCCC892710E1677 /* TemporalAnalytics.swift in Sources */,
+				E506B528469DABA1C857C4FD /* TopicGlossaryView.swift in Sources */,
+				A9A258295F9E3786A9BA03D3 /* TradingLens.swift in Sources */,
+				88CA61A83CF9DFA0AE3BDBB9 /* TradingLensCharts.swift in Sources */,
+				FB76620531C3B4F6079A44EA /* TradingLensView.swift in Sources */,
+				AE3ABE3D59DC372156B91BE0 /* TradingScoreStrip.swift in Sources */,
+				EC964ED73208AE5BE0612E13 /* VectorIndex.swift in Sources */,
+				687494B84F3979F463B45679 /* ViewMeasurements.swift in Sources */,
+			);
+			runOnlyForDeploymentPostprocessing = 0;
+		};
+		105397FCCC8648472BE83C84 /* Sources */ = {
+			isa = PBXSourcesBuildPhase;
+			buildActionMask = 2147483647;
+			files = (
+				98AE4B19901A3B78A1AEF7D9 /* AnalyticsStore.swift in Sources */,
+				81481A6FF4A217DC6BA07C8A /* AnalyticsView.swift in Sources */,
+				438653394F8CA8D174AED25E /* AppModel.swift in Sources */,
+				7F9FF20F7C6BB800D73C0B04 /* AppNavigation.swift in Sources */,
+				EF07A8CBC38DEB820CAF7C0B /* AppPaths.swift in Sources */,
+				2AD358BE1ED14DA425C938C0 /* AtlasFFI.swift in Sources */,
+				AB60FF85EC573C85EE3314F0 /* AtlasMarkdownExporter.swift in Sources */,
+				A44EE1E8FE4B1C544FB21EF4 /* ChartPlotGeometry.swift in Sources */,
+				A4456B43053CEBDB2C3EDFBD /* ChartZoomControls.swift in Sources */,
+				67CE3994C6B6078B9D3A0D9A /* ChartZoomPan.swift in Sources */,
+				7C947688E9C293EE051D0688 /* ClaimGraph.swift in Sources */,
+				EBD68C9D8BD488A6D6D5AF85 /* ClusterMarkdownExporter.swift in Sources */,
+				E0D27ACD5E73697B93D287C0 /* CompiledKnowledgeExporter.swift in Sources */,
+				8106AB9BEDB663153726CB72 /* CompiledKnowledgePaths.swift in Sources */,
+				883FFBF5051556EE90D9DC86 /* DismissibleOverlay.swift in Sources */,
+				190644244DFA3E1C699B5ECB /* DisplayText.swift in Sources */,
+				429385DFE9E8DEA7F9ED6C7F /* DocumentCompilerProvider.swift in Sources */,
+				749405472059777C73C8D7A1 /* DocumentGraphExporter.swift in Sources */,
+				1E5C8D455DF6AB7AA3B0E423 /* DocumentModels.swift in Sources */,
+				6B21005E361BAF427F072449 /* EmbeddingService.swift in Sources */,
+				5B298B279CFBEE4F37BE3C76 /* GalaxyTheme.swift in Sources */,
+				D4AF0FC297BE25F3DE01B6DE /* GlassCard.swift in Sources */,
+				3F4AD0EBE4D93E36AF2876EA /* GlobalProgressOverlay.swift in Sources */,
+				96C113CF175F64590E96AB1F /* IngestView.swift in Sources */,
+				42DF0503771053561C5867C5 /* InteractiveLogPanel.swift in Sources */,
+				9D35474E413E293DB13EEC3D /* LLMActors.swift in Sources */,
+				A2F07D521DCEF219476590DC /* LLMText.swift in Sources */,
+				3A986CC1D689B358F6C7388B /* LiteratureAtlasApp.swift in Sources */,
+				E926AEEED6B41DB048DF8A4E /* MapView.swift in Sources */,
+				7BD6255E6819B2A850461B2D /* MarkdownProcessor.swift in Sources */,
+				C53C121436FB7EAFF9120F45 /* ModelJSON.swift in Sources */,
+				E9EA11BC5BD5C135F535703E /* ObsidianIDs.swift in Sources */,
+				1CC02FAA761039F3B44D0B46 /* ObsidianVaultAssetsExporter.swift in Sources */,
+				901C46CA684D5D8BAED8056D /* PDFProcessor.swift in Sources */,
+				FE733297724D03FC738D2FCD /* Paper.swift in Sources */,
+				C0CB714A562BA1B6B674C955 /* PaperActionRow.swift in Sources */,
+				BFEE3B06CCEE945A96BED931 /* PaperDetailView.swift in Sources */,
+				6A6F15DA1A782AC9718C3301 /* PaperMarkdownExporter.swift in Sources */,
+				48FC515D913EEEFFD1217576 /* PointerTrackingView.swift in Sources */,
+				65ACE1D27DE6781B884700A3 /* PromptStore.swift in Sources */,
+				EC67FC2BF8BEF9BF3D2AEF26 /* QuantKnowledgeGraph.swift in Sources */,
+				9216DFC79AAFCE57301053BA /* QuestionView.swift in Sources */,
+				5CC684984CC8844D5101618C /* ReadingPlannerCard.swift in Sources */,
+				5798D80E882682A0D7EF023D /* RootView.swift in Sources */,
+				9190B7E9B3091F4BF228E537 /* SourceAccessStore.swift in Sources */,
+				9307CD87CC62AE21EB4BFE75 /* StrategyMarkdownExporter.swift in Sources */,
+				24C41FE1D5B5A0913907BBC0 /* StrategyProject.swift in Sources */,
+				44D0587792125F08E2F67894 /* StrategyProjectDetailView.swift in Sources */,
+				39747DA128C5C003291D9401 /* StrategyProjectRow.swift in Sources */,
+				3A01034850477070496D8E43 /* StrategyProjectsView.swift in Sources */,
+				16A449B95858E47BBF9BD6B7 /* SupportModels.swift in Sources */,
+				40BFFBFC446BD6F950867516 /* TemporalAnalytics.swift in Sources */,
+				1D37D0FBE040440D1BA3453D /* TopicGlossaryView.swift in Sources */,
+				5BAEE39D0B2F0EAEDB18CEA8 /* TradingLens.swift in Sources */,
+				95C07A4300BCAFDD65A2D1EF /* TradingLensCharts.swift in Sources */,
+				70458E6EA7D89AA5DF8A25E2 /* TradingLensView.swift in Sources */,
+				6C197836191C311B492F8B38 /* TradingScoreStrip.swift in Sources */,
+				342F874B3AD271C2EF47F718 /* VectorIndex.swift in Sources */,
+				C7296451239200E5856BF133 /* ViewMeasurements.swift in Sources */,
+			);
+			runOnlyForDeploymentPostprocessing = 0;
+		};
+/* End PBXSourcesBuildPhase section */
+
+/* Begin XCBuildConfiguration section */
+		2BCAEEE248639C3B2A938546 /* Release */ = {
+			isa = XCBuildConfiguration;
+			buildSettings = {
+				ALWAYS_SEARCH_USER_PATHS = NO;
+				CLANG_ANALYZER_NONNULL = YES;
+				CLANG_ANALYZER_NUMBER_OBJECT_CONVERSION = YES_AGGRESSIVE;
+				CLANG_CXX_LANGUAGE_STANDARD = "gnu++14";
+				CLANG_CXX_LIBRARY = "libc++";
+				CLANG_ENABLE_MODULES = YES;
+				CLANG_ENABLE_OBJC_ARC = YES;
+				CLANG_ENABLE_OBJC_WEAK = YES;
+				CLANG_WARN_BLOCK_CAPTURE_AUTORELEASING = YES;
+				CLANG_WARN_BOOL_CONVERSION = YES;
+				CLANG_WARN_COMMA = YES;
+				CLANG_WARN_CONSTANT_CONVERSION = YES;
+				CLANG_WARN_DEPRECATED_OBJC_IMPLEMENTATIONS = YES;
+				CLANG_WARN_DIRECT_OBJC_ISA_USAGE = YES_ERROR;
+				CLANG_WARN_DOCUMENTATION_COMMENTS = YES;
+				CLANG_WARN_EMPTY_BODY = YES;
+				CLANG_WARN_ENUM_CONVERSION = YES;
+				CLANG_WARN_INFINITE_RECURSION = YES;
+				CLANG_WARN_INT_CONVERSION = YES;
+				CLANG_WARN_NON_LITERAL_NULL_CONVERSION = YES;
+				CLANG_WARN_OBJC_IMPLICIT_RETAIN_SELF = YES;
+				CLANG_WARN_OBJC_LITERAL_CONVERSION = YES;
+				CLANG_WARN_OBJC_ROOT_CLASS = YES_ERROR;
+				CLANG_WARN_QUOTED_INCLUDE_IN_FRAMEWORK_HEADER = YES;
+				CLANG_WARN_RANGE_LOOP_ANALYSIS = YES;
+				CLANG_WARN_STRICT_PROTOTYPES = YES;
+				CLANG_WARN_SUSPICIOUS_MOVE = YES;
+				CLANG_WARN_UNGUARDED_AVAILABILITY = YES_AGGRESSIVE;
+				CLANG_WARN_UNREACHABLE_CODE = YES;
+				CLANG_WARN__DUPLICATE_METHOD_MATCH = YES;
+				COPY_PHASE_STRIP = NO;
+				DEBUG_INFORMATION_FORMAT = "dwarf-with-dsym";
+				ENABLE_NS_ASSERTIONS = NO;
+				ENABLE_STRICT_OBJC_MSGSEND = YES;
+				GCC_C_LANGUAGE_STANDARD = gnu11;
+				GCC_NO_COMMON_BLOCKS = YES;
+				GCC_WARN_64_TO_32_BIT_CONVERSION = YES;
+				GCC_WARN_ABOUT_RETURN_TYPE = YES_ERROR;
+				GCC_WARN_UNDECLARED_SELECTOR = YES;
+				GCC_WARN_UNINITIALIZED_AUTOS = YES_AGGRESSIVE;
+				GCC_WARN_UNUSED_FUNCTION = YES;
+				GCC_WARN_UNUSED_VARIABLE = YES;
+				IPHONEOS_DEPLOYMENT_TARGET = 26.0;
+				MACOSX_DEPLOYMENT_TARGET = 26.0;
+				MTL_ENABLE_DEBUG_INFO = NO;
+				MTL_FAST_MATH = YES;
+				PRODUCT_NAME = "$(TARGET_NAME)";
+				SWIFT_COMPILATION_MODE = wholemodule;
+				SWIFT_OPTIMIZATION_LEVEL = "-O";
+				SWIFT_VERSION = 5.0;
+			};
+			name = Release;
+		};
+		3383769F38F78465C4900DE6 /* Release */ = {
+			isa = XCBuildConfiguration;
+			baseConfigurationReference = E9FDDBB94AF080D3BD5A39FD /* Release.xcconfig */;
+			buildSettings = {
+				ASSETCATALOG_COMPILER_APPICON_NAME = AppIcon;
+				CODE_SIGN_ENTITLEMENTS = Resources/macOS/LiteratureAtlas.entitlements;
+				COMBINE_HIDPI_IMAGES = YES;
+				ENABLE_APP_SANDBOX = YES;
+				ENABLE_HARDENED_RUNTIME = YES;
+				INFOPLIST_FILE = Resources/macOS/Info.plist;
+				LD_RUNPATH_SEARCH_PATHS = (
+					"$(inherited)",
+					"@executable_path/../Frameworks",
+				);
+				MACOSX_DEPLOYMENT_TARGET = 26.0;
+				PRODUCT_BUNDLE_IDENTIFIER = com.literatureatlas.app;
+				PRODUCT_NAME = LiteratureAtlas;
+				SDKROOT = macosx;
+			};
+			name = Release;
+		};
+		982782F1EFBB3436120EB98F /* Release */ = {
+			isa = XCBuildConfiguration;
+			baseConfigurationReference = E9FDDBB94AF080D3BD5A39FD /* Release.xcconfig */;
+			buildSettings = {
+				ASSETCATALOG_COMPILER_APPICON_NAME = AppIcon;
+				CODE_SIGN_ENTITLEMENTS = Resources/iOS/LiteratureAtlas.entitlements;
+				CODE_SIGN_IDENTITY = "iPhone Developer";
+				INFOPLIST_FILE = Resources/iOS/Info.plist;
+				IPHONEOS_DEPLOYMENT_TARGET = 26.0;
+				LD_RUNPATH_SEARCH_PATHS = (
+					"$(inherited)",
+					"@executable_path/Frameworks",
+				);
+				PRODUCT_BUNDLE_IDENTIFIER = com.literatureatlas.app.ios;
+				PRODUCT_NAME = LiteratureAtlas;
+				SDKROOT = iphoneos;
+				SUPPORTS_MACCATALYST = NO;
+				TARGETED_DEVICE_FAMILY = 2;
+			};
+			name = Release;
+		};
+		CBE16914E2BB60E3AEFCD010 /* Debug */ = {
+			isa = XCBuildConfiguration;
+			buildSettings = {
+				ALWAYS_SEARCH_USER_PATHS = NO;
+				CLANG_ANALYZER_NONNULL = YES;
+				CLANG_ANALYZER_NUMBER_OBJECT_CONVERSION = YES_AGGRESSIVE;
+				CLANG_CXX_LANGUAGE_STANDARD = "gnu++14";
+				CLANG_CXX_LIBRARY = "libc++";
+				CLANG_ENABLE_MODULES = YES;
+				CLANG_ENABLE_OBJC_ARC = YES;
+				CLANG_ENABLE_OBJC_WEAK = YES;
+				CLANG_WARN_BLOCK_CAPTURE_AUTORELEASING = YES;
+				CLANG_WARN_BOOL_CONVERSION = YES;
+				CLANG_WARN_COMMA = YES;
+				CLANG_WARN_CONSTANT_CONVERSION = YES;
+				CLANG_WARN_DEPRECATED_OBJC_IMPLEMENTATIONS = YES;
+				CLANG_WARN_DIRECT_OBJC_ISA_USAGE = YES_ERROR;
+				CLANG_WARN_DOCUMENTATION_COMMENTS = YES;
+				CLANG_WARN_EMPTY_BODY = YES;
+				CLANG_WARN_ENUM_CONVERSION = YES;
+				CLANG_WARN_INFINITE_RECURSION = YES;
+				CLANG_WARN_INT_CONVERSION = YES;
+				CLANG_WARN_NON_LITERAL_NULL_CONVERSION = YES;
+				CLANG_WARN_OBJC_IMPLICIT_RETAIN_SELF = YES;
+				CLANG_WARN_OBJC_LITERAL_CONVERSION = YES;
+				CLANG_WARN_OBJC_ROOT_CLASS = YES_ERROR;
+				CLANG_WARN_QUOTED_INCLUDE_IN_FRAMEWORK_HEADER = YES;
+				CLANG_WARN_RANGE_LOOP_ANALYSIS = YES;
+				CLANG_WARN_STRICT_PROTOTYPES = YES;
+				CLANG_WARN_SUSPICIOUS_MOVE = YES;
+				CLANG_WARN_UNGUARDED_AVAILABILITY = YES_AGGRESSIVE;
+				CLANG_WARN_UNREACHABLE_CODE = YES;
+				CLANG_WARN__DUPLICATE_METHOD_MATCH = YES;
+				COPY_PHASE_STRIP = NO;
+				DEBUG_INFORMATION_FORMAT = dwarf;
+				ENABLE_STRICT_OBJC_MSGSEND = YES;
+				ENABLE_TESTABILITY = YES;
+				GCC_C_LANGUAGE_STANDARD = gnu11;
+				GCC_DYNAMIC_NO_PIC = NO;
+				GCC_NO_COMMON_BLOCKS = YES;
+				GCC_OPTIMIZATION_LEVEL = 0;
+				GCC_PREPROCESSOR_DEFINITIONS = (
+					"$(inherited)",
+					"DEBUG=1",
+				);
+				GCC_WARN_64_TO_32_BIT_CONVERSION = YES;
+				GCC_WARN_ABOUT_RETURN_TYPE = YES_ERROR;
+				GCC_WARN_UNDECLARED_SELECTOR = YES;
+				GCC_WARN_UNINITIALIZED_AUTOS = YES_AGGRESSIVE;
+				GCC_WARN_UNUSED_FUNCTION = YES;
+				GCC_WARN_UNUSED_VARIABLE = YES;
+				IPHONEOS_DEPLOYMENT_TARGET = 26.0;
+				MACOSX_DEPLOYMENT_TARGET = 26.0;
+				MTL_ENABLE_DEBUG_INFO = INCLUDE_SOURCE;
+				MTL_FAST_MATH = YES;
+				ONLY_ACTIVE_ARCH = YES;
+				PRODUCT_NAME = "$(TARGET_NAME)";
+				SWIFT_ACTIVE_COMPILATION_CONDITIONS = DEBUG;
+				SWIFT_OPTIMIZATION_LEVEL = "-Onone";
+				SWIFT_VERSION = 5.0;
+			};
+			name = Debug;
+		};
+		E1F7F2A7293F257E969DE11F /* Debug */ = {
+			isa = XCBuildConfiguration;
+			baseConfigurationReference = 0667579A4811B3C259139041 /* Debug.xcconfig */;
+			buildSettings = {
+				ASSETCATALOG_COMPILER_APPICON_NAME = AppIcon;
+				CODE_SIGN_ENTITLEMENTS = Resources/iOS/LiteratureAtlas.entitlements;
+				CODE_SIGN_IDENTITY = "iPhone Developer";
+				INFOPLIST_FILE = Resources/iOS/Info.plist;
+				IPHONEOS_DEPLOYMENT_TARGET = 26.0;
+				LD_RUNPATH_SEARCH_PATHS = (
+					"$(inherited)",
+					"@executable_path/Frameworks",
+				);
+				PRODUCT_BUNDLE_IDENTIFIER = com.literatureatlas.app.ios;
+				PRODUCT_NAME = LiteratureAtlas;
+				SDKROOT = iphoneos;
+				SUPPORTS_MACCATALYST = NO;
+				TARGETED_DEVICE_FAMILY = 2;
+			};
+			name = Debug;
+		};
+		FF5966AEA8ED4CAD15DEE3EA /* Debug */ = {
+			isa = XCBuildConfiguration;
+			baseConfigurationReference = 0667579A4811B3C259139041 /* Debug.xcconfig */;
+			buildSettings = {
+				ASSETCATALOG_COMPILER_APPICON_NAME = AppIcon;
+				CODE_SIGN_ENTITLEMENTS = Resources/macOS/LiteratureAtlas.entitlements;
+				COMBINE_HIDPI_IMAGES = YES;
+				ENABLE_APP_SANDBOX = YES;
+				ENABLE_HARDENED_RUNTIME = YES;
+				INFOPLIST_FILE = Resources/macOS/Info.plist;
+				LD_RUNPATH_SEARCH_PATHS = (
+					"$(inherited)",
+					"@executable_path/../Frameworks",
+				);
+				MACOSX_DEPLOYMENT_TARGET = 26.0;
+				PRODUCT_BUNDLE_IDENTIFIER = com.literatureatlas.app;
+				PRODUCT_NAME = LiteratureAtlas;
+				SDKROOT = macosx;
+			};
+			name = Debug;
+		};
+/* End XCBuildConfiguration section */
+
+/* Begin XCConfigurationList section */
+		A95DF4F89FF6DA7DE4CBA6A0 /* Build configuration list for PBXProject "LiteratureAtlas" */ = {
+			isa = XCConfigurationList;
+			buildConfigurations = (
+				CBE16914E2BB60E3AEFCD010 /* Debug */,
+				2BCAEEE248639C3B2A938546 /* Release */,
+			);
+			defaultConfigurationIsVisible = 0;
+			defaultConfigurationName = Debug;
+		};
+		E97F740184BF2720A58FCED0 /* Build configuration list for PBXNativeTarget "LiteratureAtlas-macOS" */ = {
+			isa = XCConfigurationList;
+			buildConfigurations = (
+				FF5966AEA8ED4CAD15DEE3EA /* Debug */,
+				3383769F38F78465C4900DE6 /* Release */,
+			);
+			defaultConfigurationIsVisible = 0;
+			defaultConfigurationName = Debug;
+		};
+		FB3A485FB2ADFF591D86A758 /* Build configuration list for PBXNativeTarget "LiteratureAtlas-iOS" */ = {
+			isa = XCConfigurationList;
+			buildConfigurations = (
+				E1F7F2A7293F257E969DE11F /* Debug */,
+				982782F1EFBB3436120EB98F /* Release */,
+			);
+			defaultConfigurationIsVisible = 0;
+			defaultConfigurationName = Debug;
+		};
+/* End XCConfigurationList section */
+	};
+	rootObject = BA23DC1D66C92EEF4F3F1ED0 /* Project object */;
+}

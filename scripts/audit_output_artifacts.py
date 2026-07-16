@@ -56,23 +56,47 @@ def audit_paper_json() -> list[Finding]:
         takeaways = data.get("takeaways") or []
 
         if not isinstance(takeaways, list):
-            findings.append(Finding("paper_json.takeaways_type", path, f"Expected list, got {type(takeaways).__name__}"))
+            findings.append(
+                Finding(
+                    "paper_json.takeaways_type",
+                    path,
+                    f"Expected list, got {type(takeaways).__name__}",
+                )
+            )
             continue
 
         # Expected by prompt: 3–5 takeaways.
         if not (3 <= len(takeaways) <= 5):
-            findings.append(Finding("paper_json.takeaways_len", path, f"Expected 3–5, got {len(takeaways)}"))
+            findings.append(
+                Finding(
+                    "paper_json.takeaways_len",
+                    path,
+                    f"Expected 3–5, got {len(takeaways)}",
+                )
+            )
 
         # Placeholders reduce usefulness (prompts allow them, but takeaways should stay crisp).
         if any(isinstance(t, str) and _has_placeholder(t) for t in takeaways):
-            findings.append(Finding("paper_json.takeaways_placeholder", path, "Contains 'not specified'/'unknown'"))
+            findings.append(
+                Finding(
+                    "paper_json.takeaways_placeholder",
+                    path,
+                    "Contains 'not specified'/'unknown'",
+                )
+            )
 
         # Legacy bug: leading '**' stripped from '**Label**:' leaving 'Label**:'.
         for t in takeaways:
             if not isinstance(t, str):
                 continue
             if "**:" in t and not t.strip().startswith("**"):
-                findings.append(Finding("paper_json.takeaways_legacy_bold_bug", path, f"Suspect: {t.strip()[:90]}"))
+                findings.append(
+                    Finding(
+                        "paper_json.takeaways_legacy_bold_bug",
+                        path,
+                        f"Suspect: {t.strip()[:90]}",
+                    )
+                )
                 break
 
     return findings
@@ -82,7 +106,9 @@ def audit_paper_obsidian_linkage() -> list[Finding]:
     findings: list[Finding] = []
 
     paper_paths = sorted(glob.glob(os.path.join(OUTPUT_ROOT, "papers", "*.paper.json")))
-    note_paths = sorted(glob.glob(os.path.join(OUTPUT_ROOT, "obsidian", "papers", "*.md")))
+    note_paths = sorted(
+        glob.glob(os.path.join(OUTPUT_ROOT, "obsidian", "papers", "*.md"))
+    )
 
     note_ids: set[str] = set()
     note_id_re = re.compile(r"\[([0-9A-Fa-f-]{36})\]\.md$")
@@ -100,7 +126,13 @@ def audit_paper_obsidian_linkage() -> list[Finding]:
 
         paper_id = raw_id.strip().upper()
         if paper_id not in note_ids:
-            findings.append(Finding("paper_json.missing_obsidian_note", path, f"No Obsidian note with id [{paper_id}].md"))
+            findings.append(
+                Finding(
+                    "paper_json.missing_obsidian_note",
+                    path,
+                    f"No Obsidian note with id [{paper_id}].md",
+                )
+            )
 
     return findings
 
@@ -114,17 +146,35 @@ def audit_trading_lens_json() -> list[Finding]:
         if lens is None:
             continue
         if not isinstance(lens, dict):
-            findings.append(Finding("paper_json.trading_lens_type", path, f"Expected object, got {type(lens).__name__}"))
+            findings.append(
+                Finding(
+                    "paper_json.trading_lens_type",
+                    path,
+                    f"Expected object, got {type(lens).__name__}",
+                )
+            )
             continue
 
         # Prompt limits (soft sanity checks).
         alpha = lens.get("alpha_hypotheses")
         if isinstance(alpha, list) and len(alpha) > 3:
-            findings.append(Finding("trading_lens.alpha_hypotheses_len", path, f"Expected <=3, got {len(alpha)}"))
+            findings.append(
+                Finding(
+                    "trading_lens.alpha_hypotheses_len",
+                    path,
+                    f"Expected <=3, got {len(alpha)}",
+                )
+            )
 
         risk = lens.get("risk_flags")
         if isinstance(risk, list) and len(risk) > 4:
-            findings.append(Finding("trading_lens.risk_flags_len", path, f"Expected <=4, got {len(risk)}"))
+            findings.append(
+                Finding(
+                    "trading_lens.risk_flags_len",
+                    path,
+                    f"Expected <=4, got {len(risk)}",
+                )
+            )
 
         # Score ranges.
         scores = lens.get("scores")
@@ -132,10 +182,20 @@ def audit_trading_lens_json() -> list[Finding]:
             for k in ("novelty", "usability", "strategy_impact"):
                 v = scores.get(k)
                 if isinstance(v, (int, float)) and not (0 <= float(v) <= 10):
-                    findings.append(Finding("trading_lens.score_range", path, f"{k} out of range: {v}"))
+                    findings.append(
+                        Finding(
+                            "trading_lens.score_range", path, f"{k} out of range: {v}"
+                        )
+                    )
             v = scores.get("confidence")
             if isinstance(v, (int, float)) and not (0 <= float(v) <= 1):
-                findings.append(Finding("trading_lens.confidence_range", path, f"confidence out of range: {v}"))
+                findings.append(
+                    Finding(
+                        "trading_lens.confidence_range",
+                        path,
+                        f"confidence out of range: {v}",
+                    )
+                )
 
     return findings
 
@@ -145,10 +205,22 @@ def _obsidian_note_checks(path: str, required_version: int = 2) -> list[Finding]
     text = _read_text(path)
 
     if "<!-- atlas:begin -->" not in text or "<!-- atlas:end -->" not in text:
-        findings.append(Finding("obsidian.md.missing_markers", path, "Missing <!-- atlas:begin/end --> markers"))
+        findings.append(
+            Finding(
+                "obsidian.md.missing_markers",
+                path,
+                "Missing <!-- atlas:begin/end --> markers",
+            )
+        )
 
     if f"obsidian_format_version: {required_version}" not in text:
-        findings.append(Finding("obsidian.md.missing_format_version", path, f"Missing obsidian_format_version: {required_version}"))
+        findings.append(
+            Finding(
+                "obsidian.md.missing_format_version",
+                path,
+                f"Missing obsidian_format_version: {required_version}",
+            )
+        )
 
     return findings
 
@@ -157,14 +229,24 @@ def audit_obsidian_notes() -> list[Finding]:
     findings: list[Finding] = []
 
     # Papers
-    for path in sorted(glob.glob(os.path.join(OUTPUT_ROOT, "obsidian", "papers", "*.md"))):
+    for path in sorted(
+        glob.glob(os.path.join(OUTPUT_ROOT, "obsidian", "papers", "*.md"))
+    ):
         findings.extend(_obsidian_note_checks(path))
         text = _read_text(path)
         if "> [!info] Meta" not in text:
-            findings.append(Finding("obsidian.paper.missing_meta_callout", path, "Expected Meta callout block"))
+            findings.append(
+                Finding(
+                    "obsidian.paper.missing_meta_callout",
+                    path,
+                    "Expected Meta callout block",
+                )
+            )
 
     # Clusters
-    for path in sorted(glob.glob(os.path.join(OUTPUT_ROOT, "obsidian", "clusters", "*.md"))):
+    for path in sorted(
+        glob.glob(os.path.join(OUTPUT_ROOT, "obsidian", "clusters", "*.md"))
+    ):
         findings.extend(_obsidian_note_checks(path))
 
     # Atlas
@@ -172,19 +254,27 @@ def audit_obsidian_notes() -> list[Finding]:
     if os.path.exists(atlas_path):
         findings.extend(_obsidian_note_checks(atlas_path))
     else:
-        findings.append(Finding("obsidian.atlas.missing", atlas_path, "Atlas.md not found"))
+        findings.append(
+            Finding("obsidian.atlas.missing", atlas_path, "Atlas.md not found")
+        )
 
     # Setup note (optional but expected if exporter ran)
     setup_path = os.path.join(OUTPUT_ROOT, "obsidian", "Obsidian Setup.md")
     if os.path.exists(setup_path):
         findings.extend(_obsidian_note_checks(setup_path))
     else:
-        findings.append(Finding("obsidian.setup.missing", setup_path, "Obsidian Setup.md not found"))
+        findings.append(
+            Finding("obsidian.setup.missing", setup_path, "Obsidian Setup.md not found")
+        )
 
     # Snippet file (optional but expected if exporter ran)
-    snippet_path = os.path.join(OUTPUT_ROOT, "obsidian", ".obsidian", "snippets", "literature-atlas.css")
+    snippet_path = os.path.join(
+        OUTPUT_ROOT, "obsidian", ".obsidian", "snippets", "literature-atlas.css"
+    )
     if not os.path.exists(snippet_path):
-        findings.append(Finding("obsidian.snippet.missing", snippet_path, "CSS snippet not found"))
+        findings.append(
+            Finding("obsidian.snippet.missing", snippet_path, "CSS snippet not found")
+        )
 
     return findings
 

@@ -886,7 +886,7 @@ private struct TradingPaperRow: View {
             }
 
             Button {
-                PlatformOpen.open(url: paper.fileURL)
+                model.openSourceDocument(for: paper.id)
             } label: {
                 Image(systemName: "doc.richtext")
             }
@@ -1152,7 +1152,7 @@ private struct TradingSelectedPaperCard: View {
                 .buttonStyle(.borderedProminent)
 
                 Button {
-                    PlatformOpen.open(url: paper.fileURL)
+                    model.openSourceDocument(for: paper.id)
                 } label: {
                     Label("PDF", systemImage: "doc.richtext")
                 }

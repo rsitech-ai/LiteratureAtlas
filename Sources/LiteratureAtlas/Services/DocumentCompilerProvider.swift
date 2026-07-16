@@ -18,12 +18,14 @@ protocol DocumentCompilerProviding: Sendable {
 @available(macOS 26, iOS 26, *)
 enum DocumentCompilerProviderFactory {
     static func makeDefault() -> any DocumentCompilerProviding {
+        #if !DISTRIBUTED_APP_BUILD
         let env = ProcessInfo.processInfo.environment
         let preferred = env["LITERATURE_ATLAS_COMPILER_PROVIDER"]?.lowercased()
         if preferred == "openai" {
             Logger(subsystem: "LiteratureAtlas", category: "Compiler")
                 .warning("OpenAI API compiler requested, but standalone app OAuth/Codex auth is not supported here. Falling back to on-device compilation.")
         }
+        #endif
         return OnDeviceDocumentCompilerProvider()
     }
 }
@@ -50,6 +52,7 @@ actor OnDeviceDocumentCompilerProvider: DocumentCompilerProviding {
     }
 }
 
+#if !DISTRIBUTED_APP_BUILD
 @available(macOS 26, iOS 26, *)
 actor OpenAIDocumentCompilerProvider: DocumentCompilerProviding {
     private let fallback: any DocumentCompilerProviding
@@ -89,7 +92,7 @@ actor OpenAIDocumentCompilerProvider: DocumentCompilerProviding {
                 maxChunkCharsUsed: min(text.count, 18_000)
             )
         } catch {
-            logger.warning("OpenAI summarizeDocument failed, falling back to on-device compiler: \(error.localizedDescription, privacy: .public)")
+            logger.warning("OpenAI summarizeDocument failed, falling back to on-device compiler: \(error.localizedDescription, privacy: .private)")
             return try await fallback.summarizeDocument(title: title, text: text)
         }
     }
@@ -108,7 +111,7 @@ actor OpenAIDocumentCompilerProvider: DocumentCompilerProviding {
         do {
             return try await respond(instructions: instructions, input: input)
         } catch {
-            logger.warning("OpenAI summarizeSection failed, falling back to on-device compiler: \(error.localizedDescription, privacy: .public)")
+            logger.warning("OpenAI summarizeSection failed, falling back to on-device compiler: \(error.localizedDescription, privacy: .private)")
             return try await fallback.summarizeSection(title: title, sectionName: sectionName, text: text)
         }
     }
@@ -138,7 +141,7 @@ actor OpenAIDocumentCompilerProvider: DocumentCompilerProviding {
                 .filter { !$0.isEmpty }
             return Array(lines.prefix(5))
         } catch {
-            logger.warning("OpenAI generateTakeaways failed, falling back to on-device compiler: \(error.localizedDescription, privacy: .public)")
+            logger.warning("OpenAI generateTakeaways failed, falling back to on-device compiler: \(error.localizedDescription, privacy: .private)")
             return try await fallback.generateTakeaways(title: title, text: text)
         }
     }
@@ -232,3 +235,4 @@ private enum OpenAICompilerError: LocalizedError {
         }
     }
 }
+#endif

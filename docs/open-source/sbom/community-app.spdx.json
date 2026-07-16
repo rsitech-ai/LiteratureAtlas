@@ -1,0 +1,834 @@
+{
+  "SPDXID": "SPDXRef-DOCUMENT",
+  "creationInfo": {
+    "created": "2026-07-16T10:23:32Z",
+    "creators": [
+      "Tool: LiteratureAtlas generate_spdx_sbom.py"
+    ]
+  },
+  "dataLicense": "CC0-1.0",
+  "documentNamespace": "https://github.com/s1korrrr/LiteratureAtlas/sbom/artifact/47a53e91a1cf5f93da4dfeb67b47117d3c1d67411945cb25abb1da32bf0f75fb",
+  "files": [
+    {
+      "SPDXID": "SPDXRef-File-d79c266d8af9c63b03c1",
+      "checksums": [
+        {
+          "algorithm": "SHA256",
+          "checksumValue": "2c575bedb698deceac166e6d7af564085f7aa945a5a53daf2815d4247070e0bf"
+        }
+      ],
+      "copyrightText": "NOASSERTION",
+      "fileName": "Contents/Info.plist",
+      "licenseConcluded": "NOASSERTION",
+      "licenseInfoInFiles": [
+        "NOASSERTION"
+      ]
+    },
+    {
+      "SPDXID": "SPDXRef-File-e58ce684c7a1fe328653",
+      "checksums": [
+        {
+          "algorithm": "SHA256",
+          "checksumValue": "c0728f96737abf0068ffe0d1aadb26d4730f6b23829dbe5c4631e620418dbbfe"
+        }
+      ],
+      "copyrightText": "NOASSERTION",
+      "fileName": "Contents/MacOS/LiteratureAtlasCommunity",
+      "licenseConcluded": "NOASSERTION",
+      "licenseInfoInFiles": [
+        "NOASSERTION"
+      ]
+    },
+    {
+      "SPDXID": "SPDXRef-File-441a12e3e00648c62bed",
+      "checksums": [
+        {
+          "algorithm": "SHA256",
+          "checksumValue": "82502191c9484b04d685374f9879a0066069c49b8acae7a04b01d38d07e8eca0"
+        }
+      ],
+      "copyrightText": "NOASSERTION",
+      "fileName": "Contents/PkgInfo",
+      "licenseConcluded": "NOASSERTION",
+      "licenseInfoInFiles": [
+        "NOASSERTION"
+      ]
+    },
+    {
+      "SPDXID": "SPDXRef-File-803ace7a4a64d54ef033",
+      "checksums": [
+        {
+          "algorithm": "SHA256",
+          "checksumValue": "f2cf63a2f4ba91501168145f6e8162678388476e59e80cddef464f116561437c"
+        }
+      ],
+      "copyrightText": "NOASSERTION",
+      "fileName": "Contents/Resources/PrivacyInfo.xcprivacy",
+      "licenseConcluded": "NOASSERTION",
+      "licenseInfoInFiles": [
+        "NOASSERTION"
+      ]
+    },
+    {
+      "SPDXID": "SPDXRef-File-ed4dab69512cee1b0718",
+      "checksums": [
+        {
+          "algorithm": "SHA256",
+          "checksumValue": "a4d72a486000a02257818eb0b1be4ac45c6831fc4d864753c623240d693f461b"
+        }
+      ],
+      "copyrightText": "NOASSERTION",
+      "fileName": "Contents/Resources/Prompts/assumption_stress_test.prompt.md",
+      "licenseConcluded": "NOASSERTION",
+      "licenseInfoInFiles": [
+        "NOASSERTION"
+      ]
+    },
+    {
+      "SPDXID": "SPDXRef-File-aaf6ee9747c09aff63da",
+      "checksums": [
+        {
+          "algorithm": "SHA256",
+          "checksumValue": "bd926b3d872a4c0b02017dca78ac484996179a8d3929adf5379ddb66d1854176"
+        }
+      ],
+      "copyrightText": "NOASSERTION",
+      "fileName": "Contents/Resources/Prompts/claim_extractor.prompt.md",
+      "licenseConcluded": "NOASSERTION",
+      "licenseInfoInFiles": [
+        "NOASSERTION"
+      ]
+    },
+    {
+      "SPDXID": "SPDXRef-File-409770383dc54ee25570",
+      "checksums": [
+        {
+          "algorithm": "SHA256",
+          "checksumValue": "39d99fac1c1d725186bb55aadf71fed8b4a1635c00d1eb94f27afe9a645603a6"
+        }
+      ],
+      "copyrightText": "NOASSERTION",
+      "fileName": "Contents/Resources/Prompts/claim_relation.prompt.md",
+      "licenseConcluded": "NOASSERTION",
+      "licenseInfoInFiles": [
+        "NOASSERTION"
+      ]
+    },
+    {
+      "SPDXID": "SPDXRef-File-cb15716bf5f6042ab932",
+      "checksums": [
+        {
+          "algorithm": "SHA256",
+          "checksumValue": "753cbca1ecd9f567616b63926a2c096029fece843f32769832833388e9943cb4"
+        }
+      ],
+      "copyrightText": "NOASSERTION",
+      "fileName": "Contents/Resources/Prompts/cluster_summarizer.instructions.md",
+      "licenseConcluded": "NOASSERTION",
+      "licenseInfoInFiles": [
+        "NOASSERTION"
+      ]
+    },
+    {
+      "SPDXID": "SPDXRef-File-63b3450b11b3dd8ad5da",
+      "checksums": [
+        {
+          "algorithm": "SHA256",
+          "checksumValue": "4bd66145fc8a889551e878a40496c10ed5b6b55a8539707220cf5a1170d5475c"
+        }
+      ],
+      "copyrightText": "NOASSERTION",
+      "fileName": "Contents/Resources/Prompts/cluster_summarizer.prompt.md",
+      "licenseConcluded": "NOASSERTION",
+      "licenseInfoInFiles": [
+        "NOASSERTION"
+      ]
+    },
+    {
+      "SPDXID": "SPDXRef-File-86b5e2aabe3dfa4dd88e",
+      "checksums": [
+        {
+          "algorithm": "SHA256",
+          "checksumValue": "832ddfc4d69e7b20b593c8e85a0d45fa81a4c462e99ca03598b438b16bdaed87"
+        }
+      ],
+      "copyrightText": "NOASSERTION",
+      "fileName": "Contents/Resources/Prompts/corpus_briefing.instructions.md",
+      "licenseConcluded": "NOASSERTION",
+      "licenseInfoInFiles": [
+        "NOASSERTION"
+      ]
+    },
+    {
+      "SPDXID": "SPDXRef-File-9673d72067fcafff835c",
+      "checksums": [
+        {
+          "algorithm": "SHA256",
+          "checksumValue": "8a020836e1edb8d467088c2b6fc931325e8694aaf41fe6df004d136a080c37e7"
+        }
+      ],
+      "copyrightText": "NOASSERTION",
+      "fileName": "Contents/Resources/Prompts/corpus_briefing.prompt.md",
+      "licenseConcluded": "NOASSERTION",
+      "licenseInfoInFiles": [
+        "NOASSERTION"
+      ]
+    },
+    {
+      "SPDXID": "SPDXRef-File-1148056e01d7300c3a4a",
+      "checksums": [
+        {
+          "algorithm": "SHA256",
+          "checksumValue": "7196cfc75fa03e33a62edb7008a26d57b7d2e1b08c5e56f09097e51b7578a412"
+        }
+      ],
+      "copyrightText": "NOASSERTION",
+      "fileName": "Contents/Resources/Prompts/method_blueprint.prompt.md",
+      "licenseConcluded": "NOASSERTION",
+      "licenseInfoInFiles": [
+        "NOASSERTION"
+      ]
+    },
+    {
+      "SPDXID": "SPDXRef-File-aaa6b6a6764e9e1b2846",
+      "checksums": [
+        {
+          "algorithm": "SHA256",
+          "checksumValue": "44bc7a424ace15eee9509133c201b43ced3e47b9897443751f0be909be11b3d6"
+        }
+      ],
+      "copyrightText": "NOASSERTION",
+      "fileName": "Contents/Resources/Prompts/paper_summarizer.chunk.prompt.md",
+      "licenseConcluded": "NOASSERTION",
+      "licenseInfoInFiles": [
+        "NOASSERTION"
+      ]
+    },
+    {
+      "SPDXID": "SPDXRef-File-48db72f82bdf3e5a3876",
+      "checksums": [
+        {
+          "algorithm": "SHA256",
+          "checksumValue": "cf6088a2be46600d02022c8ce997411d4c7fdd742d559becce0d97ae7c721ef6"
+        }
+      ],
+      "copyrightText": "NOASSERTION",
+      "fileName": "Contents/Resources/Prompts/paper_summarizer.consolidate.prompt.md",
+      "licenseConcluded": "NOASSERTION",
+      "licenseInfoInFiles": [
+        "NOASSERTION"
+      ]
+    },
+    {
+      "SPDXID": "SPDXRef-File-c5517b9a18a2cbfe4e54",
+      "checksums": [
+        {
+          "algorithm": "SHA256",
+          "checksumValue": "081ba70c7fa10fe31417c224a4f0f70c3ec19019a2f3b2c774a9188d04d1cfa1"
+        }
+      ],
+      "copyrightText": "NOASSERTION",
+      "fileName": "Contents/Resources/Prompts/paper_summarizer.instructions.md",
+      "licenseConcluded": "NOASSERTION",
+      "licenseInfoInFiles": [
+        "NOASSERTION"
+      ]
+    },
+    {
+      "SPDXID": "SPDXRef-File-67cfd897e7c46b4985d8",
+      "checksums": [
+        {
+          "algorithm": "SHA256",
+          "checksumValue": "db77148ab19b2ac26cce8e483ec95d8423131fbbe209f9c2d08438a3cfd76c0e"
+        }
+      ],
+      "copyrightText": "NOASSERTION",
+      "fileName": "Contents/Resources/Prompts/paper_summarizer.section.prompt.md",
+      "licenseConcluded": "NOASSERTION",
+      "licenseInfoInFiles": [
+        "NOASSERTION"
+      ]
+    },
+    {
+      "SPDXID": "SPDXRef-File-256213e741eabcfc9eea",
+      "checksums": [
+        {
+          "algorithm": "SHA256",
+          "checksumValue": "b47eca7e7e94b9541b32bbd2fe71f2f240afe5fbb285a7160526b8cf704944e7"
+        }
+      ],
+      "copyrightText": "NOASSERTION",
+      "fileName": "Contents/Resources/Prompts/paper_summarizer.section_instructions.md",
+      "licenseConcluded": "NOASSERTION",
+      "licenseInfoInFiles": [
+        "NOASSERTION"
+      ]
+    },
+    {
+      "SPDXID": "SPDXRef-File-50f94bc89398f04dca06",
+      "checksums": [
+        {
+          "algorithm": "SHA256",
+          "checksumValue": "98c0535a0d27048b39e1cff01aa197a945e6364cfc2ac7f870f0ac61973b31d7"
+        }
+      ],
+      "copyrightText": "NOASSERTION",
+      "fileName": "Contents/Resources/Prompts/paper_summarizer.takeaways.prompt.md",
+      "licenseConcluded": "NOASSERTION",
+      "licenseInfoInFiles": [
+        "NOASSERTION"
+      ]
+    },
+    {
+      "SPDXID": "SPDXRef-File-5a03c8befca46e3a60bc",
+      "checksums": [
+        {
+          "algorithm": "SHA256",
+          "checksumValue": "e1f55df96284fff2c23e4181843d926ea085cc51e87d7fcfbc5b8ce614ef37c4"
+        }
+      ],
+      "copyrightText": "NOASSERTION",
+      "fileName": "Contents/Resources/Prompts/paper_trading_lens.instructions.md",
+      "licenseConcluded": "NOASSERTION",
+      "licenseInfoInFiles": [
+        "NOASSERTION"
+      ]
+    },
+    {
+      "SPDXID": "SPDXRef-File-521ed9d0ecfbb17f3257",
+      "checksums": [
+        {
+          "algorithm": "SHA256",
+          "checksumValue": "40a29231f2aa4d0d676b39392413b174f601163d447df6645f8f3ee5dfcbe23c"
+        }
+      ],
+      "copyrightText": "NOASSERTION",
+      "fileName": "Contents/Resources/Prompts/paper_trading_lens.prompt.md",
+      "licenseConcluded": "NOASSERTION",
+      "licenseInfoInFiles": [
+        "NOASSERTION"
+      ]
+    },
+    {
+      "SPDXID": "SPDXRef-File-07774a8e3fc748c94c3f",
+      "checksums": [
+        {
+          "algorithm": "SHA256",
+          "checksumValue": "4de3d2ab65809dc59044e7aeb847fb9c4ec92192cecdebaf710ad9fb2b430776"
+        }
+      ],
+      "copyrightText": "NOASSERTION",
+      "fileName": "Contents/Resources/Prompts/question_answerer.evidence.prompt.md",
+      "licenseConcluded": "NOASSERTION",
+      "licenseInfoInFiles": [
+        "NOASSERTION"
+      ]
+    },
+    {
+      "SPDXID": "SPDXRef-File-1aac135090d5efe86ac3",
+      "checksums": [
+        {
+          "algorithm": "SHA256",
+          "checksumValue": "d6b967bd009b1528a5ecec4e0a3fa292933152712b61f7fe2e96df6b7a8a7707"
+        }
+      ],
+      "copyrightText": "NOASSERTION",
+      "fileName": "Contents/Resources/Prompts/question_answerer.instructions.md",
+      "licenseConcluded": "NOASSERTION",
+      "licenseInfoInFiles": [
+        "NOASSERTION"
+      ]
+    },
+    {
+      "SPDXID": "SPDXRef-File-6e43c0adb41b6f25ef2b",
+      "checksums": [
+        {
+          "algorithm": "SHA256",
+          "checksumValue": "319608c17a775d1beea6e06fa3080e1e36cbe7fc3c18c3c023e286b7c7b501b9"
+        }
+      ],
+      "copyrightText": "NOASSERTION",
+      "fileName": "Contents/Resources/Prompts/question_answerer.top_papers.prompt.md",
+      "licenseConcluded": "NOASSERTION",
+      "licenseInfoInFiles": [
+        "NOASSERTION"
+      ]
+    },
+    {
+      "SPDXID": "SPDXRef-File-97dfbdba179e4ba97556",
+      "checksums": [
+        {
+          "algorithm": "SHA256",
+          "checksumValue": "1cf5037ecd005308fa5135810ef8292ac4605565d9be7a15c89cd8b8a014455f"
+        }
+      ],
+      "copyrightText": "NOASSERTION",
+      "fileName": "Contents/Resources/Prompts/strategy_blueprint.instructions.md",
+      "licenseConcluded": "NOASSERTION",
+      "licenseInfoInFiles": [
+        "NOASSERTION"
+      ]
+    },
+    {
+      "SPDXID": "SPDXRef-File-5b6bf8d1f07d8d5ea89d",
+      "checksums": [
+        {
+          "algorithm": "SHA256",
+          "checksumValue": "586847657d387a23137c60b4d238168e3269df8ae64c2e94975f6b82217fde8c"
+        }
+      ],
+      "copyrightText": "NOASSERTION",
+      "fileName": "Contents/Resources/Prompts/strategy_blueprint.prompt.md",
+      "licenseConcluded": "NOASSERTION",
+      "licenseInfoInFiles": [
+        "NOASSERTION"
+      ]
+    },
+    {
+      "SPDXID": "SPDXRef-File-0fd86b5cb82d4582bff8",
+      "checksums": [
+        {
+          "algorithm": "SHA256",
+          "checksumValue": "b3a34bc25ca72ecea39b654364a251b3375da04308dfb39dc79c86d52f0738a8"
+        }
+      ],
+      "copyrightText": "NOASSERTION",
+      "fileName": "Contents/Resources/Prompts/topic_dossier.instructions.md",
+      "licenseConcluded": "NOASSERTION",
+      "licenseInfoInFiles": [
+        "NOASSERTION"
+      ]
+    },
+    {
+      "SPDXID": "SPDXRef-File-35597f196be86b0bf68a",
+      "checksums": [
+        {
+          "algorithm": "SHA256",
+          "checksumValue": "6eabc59e0ba9a046ab4548b5a5a3211eeb38d7e5dec5f4d6ac12f89c4072a5b3"
+        }
+      ],
+      "copyrightText": "NOASSERTION",
+      "fileName": "Contents/Resources/Prompts/topic_dossier.prompt.md",
+      "licenseConcluded": "NOASSERTION",
+      "licenseInfoInFiles": [
+        "NOASSERTION"
+      ]
+    },
+    {
+      "SPDXID": "SPDXRef-File-3d37d0fdef219cc40d77",
+      "checksums": [
+        {
+          "algorithm": "SHA256",
+          "checksumValue": "dc3a54176c5559b7e123b1ef9afad396c0cbcd04932129d139071af331b61e9a"
+        }
+      ],
+      "copyrightText": "NOASSERTION",
+      "fileName": "Contents/Resources/Prompts/ui.backtest_audit.instructions.md",
+      "licenseConcluded": "NOASSERTION",
+      "licenseInfoInFiles": [
+        "NOASSERTION"
+      ]
+    },
+    {
+      "SPDXID": "SPDXRef-File-cacc040c97418b04732b",
+      "checksums": [
+        {
+          "algorithm": "SHA256",
+          "checksumValue": "08b706f28d3931c1c53a8b829c426cd6efa4a299b7f33a37cc047b311b08970b"
+        }
+      ],
+      "copyrightText": "NOASSERTION",
+      "fileName": "Contents/Resources/Prompts/ui.backtest_audit.prompt.md",
+      "licenseConcluded": "NOASSERTION",
+      "licenseInfoInFiles": [
+        "NOASSERTION"
+      ]
+    },
+    {
+      "SPDXID": "SPDXRef-File-457bd64d9b5024b56dcb",
+      "checksums": [
+        {
+          "algorithm": "SHA256",
+          "checksumValue": "ec2d4b7c4c8e89d00ac7436c36c27ec2f1275beec9d9b50748e79b8967cc47d0"
+        }
+      ],
+      "copyrightText": "NOASSERTION",
+      "fileName": "Contents/Resources/Prompts/ui.debate.instructions.md",
+      "licenseConcluded": "NOASSERTION",
+      "licenseInfoInFiles": [
+        "NOASSERTION"
+      ]
+    },
+    {
+      "SPDXID": "SPDXRef-File-be1e57ef273bb5d9b8cf",
+      "checksums": [
+        {
+          "algorithm": "SHA256",
+          "checksumValue": "23d9016fbd744d09855994b20fbf112de7889a5401bb58e748a2b4eff9a2ddc2"
+        }
+      ],
+      "copyrightText": "NOASSERTION",
+      "fileName": "Contents/Resources/Prompts/ui.debate.prompt.md",
+      "licenseConcluded": "NOASSERTION",
+      "licenseInfoInFiles": [
+        "NOASSERTION"
+      ]
+    },
+    {
+      "SPDXID": "SPDXRef-File-dce8e7e4c50a77fc1190",
+      "checksums": [
+        {
+          "algorithm": "SHA256",
+          "checksumValue": "567ecac6b7e95ef5cd24a9b0a227f174318a9cc5cd8cdee3dcd2807ab4c9e7f6"
+        }
+      ],
+      "copyrightText": "NOASSERTION",
+      "fileName": "Contents/Resources/Prompts/ui.eli.instructions.md",
+      "licenseConcluded": "NOASSERTION",
+      "licenseInfoInFiles": [
+        "NOASSERTION"
+      ]
+    },
+    {
+      "SPDXID": "SPDXRef-File-64c21c2eb803ef7e96a3",
+      "checksums": [
+        {
+          "algorithm": "SHA256",
+          "checksumValue": "1ab84c2580c299cb0df5031f3986f235a98c8ddf57cb6f5abb10d3d8006336fb"
+        }
+      ],
+      "copyrightText": "NOASSERTION",
+      "fileName": "Contents/Resources/Prompts/ui.eli.prompt.md",
+      "licenseConcluded": "NOASSERTION",
+      "licenseInfoInFiles": [
+        "NOASSERTION"
+      ]
+    },
+    {
+      "SPDXID": "SPDXRef-File-63b0f60aa4f98fd22f77",
+      "checksums": [
+        {
+          "algorithm": "SHA256",
+          "checksumValue": "b3d03a4c7fdd7dd37ae116c2fc93c1062c7416ea296c761553b33c8e5f46465c"
+        }
+      ],
+      "copyrightText": "NOASSERTION",
+      "fileName": "Contents/Resources/Prompts/ui.flashcards.instructions.md",
+      "licenseConcluded": "NOASSERTION",
+      "licenseInfoInFiles": [
+        "NOASSERTION"
+      ]
+    },
+    {
+      "SPDXID": "SPDXRef-File-fc798342598265654816",
+      "checksums": [
+        {
+          "algorithm": "SHA256",
+          "checksumValue": "d290ef1744aa14d72772f0e9d44a4357eba8abeaa84151b8eb0ae40ade9c8dcd"
+        }
+      ],
+      "copyrightText": "NOASSERTION",
+      "fileName": "Contents/Resources/Prompts/ui.flashcards.prompt.md",
+      "licenseConcluded": "NOASSERTION",
+      "licenseInfoInFiles": [
+        "NOASSERTION"
+      ]
+    },
+    {
+      "SPDXID": "SPDXRef-File-25c729df57f39f162904",
+      "checksums": [
+        {
+          "algorithm": "SHA256",
+          "checksumValue": "f95a3075aabc856deec62901d6a7830fe35deb88b02f3f638aa1f489fec6abfb"
+        }
+      ],
+      "copyrightText": "NOASSERTION",
+      "fileName": "Contents/Resources/Prompts/ui.single_paper_qa.instructions.md",
+      "licenseConcluded": "NOASSERTION",
+      "licenseInfoInFiles": [
+        "NOASSERTION"
+      ]
+    },
+    {
+      "SPDXID": "SPDXRef-File-505df588ff99a2473991",
+      "checksums": [
+        {
+          "algorithm": "SHA256",
+          "checksumValue": "6edc4433d4fcd0b0973a33ede89ed7286e3eef9697ff32fca32eddae8aa9f2b3"
+        }
+      ],
+      "copyrightText": "NOASSERTION",
+      "fileName": "Contents/Resources/Prompts/ui.single_paper_qa.prompt.md",
+      "licenseConcluded": "NOASSERTION",
+      "licenseInfoInFiles": [
+        "NOASSERTION"
+      ]
+    },
+    {
+      "SPDXID": "SPDXRef-File-4fc199c5073a6b56b0a8",
+      "checksums": [
+        {
+          "algorithm": "SHA256",
+          "checksumValue": "cca8ae13ea652c7fb99d5b3de53fcd9643a29e18e6e8d866a6ea1d5f3d857224"
+        }
+      ],
+      "copyrightText": "NOASSERTION",
+      "fileName": "Contents/Resources/Prompts/ui.study_questions.instructions.md",
+      "licenseConcluded": "NOASSERTION",
+      "licenseInfoInFiles": [
+        "NOASSERTION"
+      ]
+    },
+    {
+      "SPDXID": "SPDXRef-File-423c0f0f7726709420ce",
+      "checksums": [
+        {
+          "algorithm": "SHA256",
+          "checksumValue": "8aabaa970a8d32eff070095d018ca999fa892972a6a69e998cfea70c9ef78c78"
+        }
+      ],
+      "copyrightText": "NOASSERTION",
+      "fileName": "Contents/Resources/Prompts/ui.study_questions.prompt.md",
+      "licenseConcluded": "NOASSERTION",
+      "licenseInfoInFiles": [
+        "NOASSERTION"
+      ]
+    },
+    {
+      "SPDXID": "SPDXRef-File-3d073ccf198b1975ec35",
+      "checksums": [
+        {
+          "algorithm": "SHA256",
+          "checksumValue": "42b9d4b3499f0567abf7189b237a0db7db1155e2b7e5463e3a279191faa6fc79"
+        }
+      ],
+      "copyrightText": "NOASSERTION",
+      "fileName": "Contents/_CodeSignature/CodeResources",
+      "licenseConcluded": "NOASSERTION",
+      "licenseInfoInFiles": [
+        "NOASSERTION"
+      ]
+    }
+  ],
+  "name": "LiteratureAtlasCommunity.app",
+  "packages": [
+    {
+      "SPDXID": "SPDXRef-Package-LiteratureAtlas",
+      "copyrightText": "NOASSERTION",
+      "downloadLocation": "NOASSERTION",
+      "filesAnalyzed": true,
+      "licenseConcluded": "MIT",
+      "licenseDeclared": "MIT",
+      "name": "LiteratureAtlasCommunity.app",
+      "versionInfo": "1.0.0+647911a"
+    }
+  ],
+  "relationships": [
+    {
+      "relatedSpdxElement": "SPDXRef-Package-LiteratureAtlas",
+      "relationshipType": "DESCRIBES",
+      "spdxElementId": "SPDXRef-DOCUMENT"
+    },
+    {
+      "relatedSpdxElement": "SPDXRef-File-d79c266d8af9c63b03c1",
+      "relationshipType": "CONTAINS",
+      "spdxElementId": "SPDXRef-Package-LiteratureAtlas"
+    },
+    {
+      "relatedSpdxElement": "SPDXRef-File-e58ce684c7a1fe328653",
+      "relationshipType": "CONTAINS",
+      "spdxElementId": "SPDXRef-Package-LiteratureAtlas"
+    },
+    {
+      "relatedSpdxElement": "SPDXRef-File-441a12e3e00648c62bed",
+      "relationshipType": "CONTAINS",
+      "spdxElementId": "SPDXRef-Package-LiteratureAtlas"
+    },
+    {
+      "relatedSpdxElement": "SPDXRef-File-803ace7a4a64d54ef033",
+      "relationshipType": "CONTAINS",
+      "spdxElementId": "SPDXRef-Package-LiteratureAtlas"
+    },
+    {
+      "relatedSpdxElement": "SPDXRef-File-ed4dab69512cee1b0718",
+      "relationshipType": "CONTAINS",
+      "spdxElementId": "SPDXRef-Package-LiteratureAtlas"
+    },
+    {
+      "relatedSpdxElement": "SPDXRef-File-aaf6ee9747c09aff63da",
+      "relationshipType": "CONTAINS",
+      "spdxElementId": "SPDXRef-Package-LiteratureAtlas"
+    },
+    {
+      "relatedSpdxElement": "SPDXRef-File-409770383dc54ee25570",
+      "relationshipType": "CONTAINS",
+      "spdxElementId": "SPDXRef-Package-LiteratureAtlas"
+    },
+    {
+      "relatedSpdxElement": "SPDXRef-File-cb15716bf5f6042ab932",
+      "relationshipType": "CONTAINS",
+      "spdxElementId": "SPDXRef-Package-LiteratureAtlas"
+    },
+    {
+      "relatedSpdxElement": "SPDXRef-File-63b3450b11b3dd8ad5da",
+      "relationshipType": "CONTAINS",
+      "spdxElementId": "SPDXRef-Package-LiteratureAtlas"
+    },
+    {
+      "relatedSpdxElement": "SPDXRef-File-86b5e2aabe3dfa4dd88e",
+      "relationshipType": "CONTAINS",
+      "spdxElementId": "SPDXRef-Package-LiteratureAtlas"
+    },
+    {
+      "relatedSpdxElement": "SPDXRef-File-9673d72067fcafff835c",
+      "relationshipType": "CONTAINS",
+      "spdxElementId": "SPDXRef-Package-LiteratureAtlas"
+    },
+    {
+      "relatedSpdxElement": "SPDXRef-File-1148056e01d7300c3a4a",
+      "relationshipType": "CONTAINS",
+      "spdxElementId": "SPDXRef-Package-LiteratureAtlas"
+    },
+    {
+      "relatedSpdxElement": "SPDXRef-File-aaa6b6a6764e9e1b2846",
+      "relationshipType": "CONTAINS",
+      "spdxElementId": "SPDXRef-Package-LiteratureAtlas"
+    },
+    {
+      "relatedSpdxElement": "SPDXRef-File-48db72f82bdf3e5a3876",
+      "relationshipType": "CONTAINS",
+      "spdxElementId": "SPDXRef-Package-LiteratureAtlas"
+    },
+    {
+      "relatedSpdxElement": "SPDXRef-File-c5517b9a18a2cbfe4e54",
+      "relationshipType": "CONTAINS",
+      "spdxElementId": "SPDXRef-Package-LiteratureAtlas"
+    },
+    {
+      "relatedSpdxElement": "SPDXRef-File-67cfd897e7c46b4985d8",
+      "relationshipType": "CONTAINS",
+      "spdxElementId": "SPDXRef-Package-LiteratureAtlas"
+    },
+    {
+      "relatedSpdxElement": "SPDXRef-File-256213e741eabcfc9eea",
+      "relationshipType": "CONTAINS",
+      "spdxElementId": "SPDXRef-Package-LiteratureAtlas"
+    },
+    {
+      "relatedSpdxElement": "SPDXRef-File-50f94bc89398f04dca06",
+      "relationshipType": "CONTAINS",
+      "spdxElementId": "SPDXRef-Package-LiteratureAtlas"
+    },
+    {
+      "relatedSpdxElement": "SPDXRef-File-5a03c8befca46e3a60bc",
+      "relationshipType": "CONTAINS",
+      "spdxElementId": "SPDXRef-Package-LiteratureAtlas"
+    },
+    {
+      "relatedSpdxElement": "SPDXRef-File-521ed9d0ecfbb17f3257",
+      "relationshipType": "CONTAINS",
+      "spdxElementId": "SPDXRef-Package-LiteratureAtlas"
+    },
+    {
+      "relatedSpdxElement": "SPDXRef-File-07774a8e3fc748c94c3f",
+      "relationshipType": "CONTAINS",
+      "spdxElementId": "SPDXRef-Package-LiteratureAtlas"
+    },
+    {
+      "relatedSpdxElement": "SPDXRef-File-1aac135090d5efe86ac3",
+      "relationshipType": "CONTAINS",
+      "spdxElementId": "SPDXRef-Package-LiteratureAtlas"
+    },
+    {
+      "relatedSpdxElement": "SPDXRef-File-6e43c0adb41b6f25ef2b",
+      "relationshipType": "CONTAINS",
+      "spdxElementId": "SPDXRef-Package-LiteratureAtlas"
+    },
+    {
+      "relatedSpdxElement": "SPDXRef-File-97dfbdba179e4ba97556",
+      "relationshipType": "CONTAINS",
+      "spdxElementId": "SPDXRef-Package-LiteratureAtlas"
+    },
+    {
+      "relatedSpdxElement": "SPDXRef-File-5b6bf8d1f07d8d5ea89d",
+      "relationshipType": "CONTAINS",
+      "spdxElementId": "SPDXRef-Package-LiteratureAtlas"
+    },
+    {
+      "relatedSpdxElement": "SPDXRef-File-0fd86b5cb82d4582bff8",
+      "relationshipType": "CONTAINS",
+      "spdxElementId": "SPDXRef-Package-LiteratureAtlas"
+    },
+    {
+      "relatedSpdxElement": "SPDXRef-File-35597f196be86b0bf68a",
+      "relationshipType": "CONTAINS",
+      "spdxElementId": "SPDXRef-Package-LiteratureAtlas"
+    },
+    {
+      "relatedSpdxElement": "SPDXRef-File-3d37d0fdef219cc40d77",
+      "relationshipType": "CONTAINS",
+      "spdxElementId": "SPDXRef-Package-LiteratureAtlas"
+    },
+    {
+      "relatedSpdxElement": "SPDXRef-File-cacc040c97418b04732b",
+      "relationshipType": "CONTAINS",
+      "spdxElementId": "SPDXRef-Package-LiteratureAtlas"
+    },
+    {
+      "relatedSpdxElement": "SPDXRef-File-457bd64d9b5024b56dcb",
+      "relationshipType": "CONTAINS",
+      "spdxElementId": "SPDXRef-Package-LiteratureAtlas"
+    },
+    {
+      "relatedSpdxElement": "SPDXRef-File-be1e57ef273bb5d9b8cf",
+      "relationshipType": "CONTAINS",
+      "spdxElementId": "SPDXRef-Package-LiteratureAtlas"
+    },
+    {
+      "relatedSpdxElement": "SPDXRef-File-dce8e7e4c50a77fc1190",
+      "relationshipType": "CONTAINS",
+      "spdxElementId": "SPDXRef-Package-LiteratureAtlas"
+    },
+    {
+      "relatedSpdxElement": "SPDXRef-File-64c21c2eb803ef7e96a3",
+      "relationshipType": "CONTAINS",
+      "spdxElementId": "SPDXRef-Package-LiteratureAtlas"
+    },
+    {
+      "relatedSpdxElement": "SPDXRef-File-63b0f60aa4f98fd22f77",
+      "relationshipType": "CONTAINS",
+      "spdxElementId": "SPDXRef-Package-LiteratureAtlas"
+    },
+    {
+      "relatedSpdxElement": "SPDXRef-File-fc798342598265654816",
+      "relationshipType": "CONTAINS",
+      "spdxElementId": "SPDXRef-Package-LiteratureAtlas"
+    },
+    {
+      "relatedSpdxElement": "SPDXRef-File-25c729df57f39f162904",
+      "relationshipType": "CONTAINS",
+      "spdxElementId": "SPDXRef-Package-LiteratureAtlas"
+    },
+    {
+      "relatedSpdxElement": "SPDXRef-File-505df588ff99a2473991",
+      "relationshipType": "CONTAINS",
+      "spdxElementId": "SPDXRef-Package-LiteratureAtlas"
+    },
+    {
+      "relatedSpdxElement": "SPDXRef-File-4fc199c5073a6b56b0a8",
+      "relationshipType": "CONTAINS",
+      "spdxElementId": "SPDXRef-Package-LiteratureAtlas"
+    },
+    {
+      "relatedSpdxElement": "SPDXRef-File-423c0f0f7726709420ce",
+      "relationshipType": "CONTAINS",
+      "spdxElementId": "SPDXRef-Package-LiteratureAtlas"
+    },
+    {
+      "relatedSpdxElement": "SPDXRef-File-3d073ccf198b1975ec35",
+      "relationshipType": "CONTAINS",
+      "spdxElementId": "SPDXRef-Package-LiteratureAtlas"
+    }
+  ],
+  "spdxVersion": "SPDX-2.3"
+}
