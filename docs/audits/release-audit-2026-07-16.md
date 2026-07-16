@@ -146,3 +146,21 @@ is stored outside exported paper JSON.
 - Developer ID key authorization, signing, notarization upload, stapling,
   Gatekeeper/quarantine acceptance, exact signed-artifact SBOM/provenance, tag,
   and public release remain owner-controlled external actions.
+
+## PR and merge closeout
+
+- PR: <https://github.com/s1korrrr/LiteratureAtlas/pull/4>
+- Reviewed head: `d6f231346cbae8ca92e1fb448bf7142369dd0938`
+- Merge commit: `c335fbdae87b940c39483fa47761a6d57cf0593d`
+- Hosted result: all nine checks passed, including Apple/Swift distributed
+  bundle, Python, Rust, release policy, REUSE, dependency review, and
+  Python/Swift CodeQL.
+- Review result: the only inline concern was resolved with effective Xcode
+  build-setting evidence; all review threads were resolved and the PR reported
+  a clean merge state before merge.
+- Exact-main result: the merge tree matched the reviewed PR tree. The local
+  `main` checkout matched `origin/main` and repeated Swift, Python, Rust,
+  release-policy, release-validator, and deterministic source-SBOM checks.
+- Cleanup result: superseded release branches, obsolete worktrees, and old
+  temporary release/fresh-clone directories were removed after ancestry and
+  clean-state proof. The exact `647911a` artifact evidence bundle was retained.
