@@ -9,10 +9,10 @@
 - [x] Complete governance and contributor documents (DoD: policies contain real commands, paths, roles, and explicit owner blockers)
 - [x] Harden GitHub CI and supply chain (DoD: least privilege, pinned actions/tools, locked dependencies, community build, REUSE, secret, workflow, and SBOM gates validate locally)
 - [x] Generate publication artifacts (DoD: required open-source reports, SBOMs, and manifest are complete and internally consistent)
-- [ ] Clean obsolete release/build state (DoD: only generated or superseded artifacts/worktrees are removed after clean-state and ancestry proof; unique commits remain preserved)
-- [ ] Run full static and code-level security review (DoD: full diff/source/docs/workflow review has no unresolved blocker/high implementation finding; Codex Security remains explicitly deferred)
+- [x] Clean obsolete release/build state (DoD: only generated or superseded artifacts/worktrees are removed after clean-state and ancestry proof; unique commits remain preserved)
+- [x] Run full static and code-level security review (DoD: full diff/source/docs/workflow review has no unresolved blocker/high implementation finding; Codex Security remains explicitly deferred)
 - [ ] Verify from a fresh clone/worktree (DoD: public docs alone reproduce the community build and tests)
-- [ ] Complete native macOS E2E audit (DoD: app relaunch, primary workflows, controls, edge states, persistence, accessibility/help, and focused runtime logs are captured in an audit report)
+- [x] Complete native macOS E2E audit (DoD: app relaunch, primary workflows, controls, edge states, persistence, accessibility/help, and focused runtime logs are captured in an audit report)
 - [ ] Request final independent review (DoD: all critical/important findings resolved and re-reviewed)
 - [ ] Create and harden PR (DoD: branch pushed, PR opened, GitHub checks/review inspected, and all actionable findings resolved)
 - [ ] Merge and verify exact `main` (DoD: PR merged only after approval/gates; local `main` matches `origin/main` and merged-revision verification passes)
@@ -20,7 +20,7 @@
 - [ ] Final handoff (DoD: exact verdicts, exceptions, blockers, approvals, artifact paths, commits, and next action are recorded)
 
 ## In progress
-- [ ] Clean generated release state, then run the full audit and fresh-clone reproduction.
+- [ ] Reproduce the final evidence commit from a fresh clone, then request exact-diff review and harden the PR.
 
 ## Done
 - [x] Session bootstrap and repository instructions reviewed.
@@ -31,6 +31,8 @@
 - [x] Community app relocated, launched, verified, and packaged into a checksummed DMG.
 - [x] Fresh signature-free official pre-sign app rebuilt and inspected; Developer ID key authorization remains external.
 - [x] REUSE 3.3, workflow actionlint/zizmor, CFF/JSON validation, SBOM generation, Cargo audit, pip-audit, and OSV lock scanning completed.
+- [x] Exact community app/DMG from `647911a` verified, launched, navigated, ingested a real sandboxed fixture, and restored persisted state after relaunch.
+- [x] Exact signature-free official pre-sign app from `647911a` inspected with source mapping and retained dSYM.
 
 ## External / owner-controlled blockers
 

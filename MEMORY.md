@@ -23,9 +23,9 @@
 - Rust: `cargo clippy --locked --manifest-path analytics/ffi/Cargo.toml --all-targets --all-features -- -D warnings`
 
 ### Tests
-- Swift: `swift test` (57 tests, typically 1 opt-in smoke test skipped without env vars; requires macOS 26+)
-- Python: `analytics/.venv/bin/python -m pytest analytics/tests -v` (14 tests)
-- Rust FFI: `cargo test --locked --manifest-path analytics/ffi/Cargo.toml` (3 tests)
+- Swift: `swift test -Xswiftc -warnings-as-errors` (59 XCTest cases, typically 1 opt-in smoke skipped, plus 4 Swift Testing bookmark cases; requires macOS 26+)
+- Python: `analytics/.venv/bin/python -m pytest analytics/tests -v` (23 tests)
+- Rust FFI: `cargo test --locked --manifest-path analytics/ffi/Cargo.toml` (5 tests)
 - Release configuration: `python3 scripts/validate_release_configuration.py` (fails closed until approved AppIcon artwork is committed)
 - Known-blocker CI gate: `python3 scripts/validate_release_configuration.py --allow-blocker app_icon_artwork` (fails on every other gate)
 - Release script policy: `scripts/tests/test_release_scripts.sh`
@@ -50,6 +50,7 @@
 - **Analytics app sync**: `rebuildAnalyticsViaPython` and `rebuildAnalyticsWithCutoffs` now run output/topic health checks after successful rebuild and expose status/log in `AnalyticsView`; manual health-check trigger available in Analytics backend card.
 - **App bundle paths**: Use `AppPaths` for repo-relative roots. Proper `.app` launches do not reliably inherit the repo current working directory, so app code should not derive `Output/` or `Prompts/` directly from `FileManager.default.currentDirectoryPath`.
 - **Distributed product boundary**: Xcode app targets compile with `DISTRIBUTED_APP_BUILD`. They store mutable artifacts under container Application Support, bundle prompts, exclude external Python execution and dormant OpenAI networking, and disable repository-relative Rust FFI loading in favor of the Swift fallback.
+- **Persistent source access**: Distributed macOS ingest stores app-scoped read-only bookmarks outside exported paper JSON, activates the picker scope while creating them, resolves/refreshes them, and holds the resolved scope for the full async ingest task and later source-document opens.
 - **Direct-download scope**: the first direct macOS artifact is Apple Silicon (`arm64`) on macOS 26+. The iPad-only iPadOS 26+ target remains a development/App Store lane, not part of the direct-download artifact.
 - **Immersive galaxy UI**: Shared visual styling lives in `Sources/LiteratureAtlas/Views/GalaxyTheme.swift`; prefer its backdrop, hero, metric, status pill, section header, and action helpers plus tinted `GlassCard` before adding one-off colors or custom card styles.
 - **Knowledge Universe map**: The primary map experience is general-purpose corpus exploration and opens by default as `Universe` / `Knowledge Universe`; trading-specific filtering and ranking belong in `TradingLensView`, not the main map.
@@ -104,3 +105,5 @@
 - 2026-07-15: Added the `DISTRIBUTED_APP_BUILD` boundary and separate credential-free community, signature-free official pre-sign, Developer ID signing, DMG, approval-gated notarization, and distribution-verification scripts. Official signing is blocked until the owner authorizes the installed private key; no Apple upload was performed.
 - 2026-07-15: The source repository is already public and effectively MIT-licensed. REUSE 3.3 passes, but chain of title and four reachable historical third-party PDFs block a truthful clean official source release or MPL/CC relicense.
 - 2026-07-15: Ordinary CI uses read-only permissions, pinned actions/tools, locked Python/Rust environments, and no Apple credentials. GitHub branch protection, dependency graph/security updates, private vulnerability reporting, and required checks remain owner-controlled external gates.
+- 2026-07-16: Direct release builds use a validated generated xcconfig to bind product/bundle/version/build/source revision, reject control-character injection, retain dSYMs, fail on Swift warnings, and use diagnostic-only Xcode output. Distribution verification mounts and exactly compares DMG app contents before accepting them.
+- 2026-07-16: Real sandboxed community-app testing must include folder-picker selection, bookmark creation, actual file enumeration/ingest, truthful counters/output artifacts, all six sidebar destinations, and relaunch persistence; unit/build proof alone missed two bookmark lifetime defects.
