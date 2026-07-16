@@ -48,7 +48,7 @@ Current SHA-256 values:
 ```text
 1c8dc2d061b7b7dfe58695a4bff38df8fa89548eada54d0d60c86a4a43105c68  community-app.spdx.json
 65657374f17e19d5f82fc69567396e062d0a4ee8361bf5bf010ae91a0c1e0132  official-unsigned-app.spdx.json
-b5231010c901d492c9c9285f09a8919aa4dc7b3138f6a2569ca00911951f55bb  source.spdx.json
+dece5e60f77525d4e8d06eb08e008b608c3a68f5c6cb7df8e1812f870db529c5  source.spdx.json
 4376c231aabcf7968ce054b7c9b3eb4a0cc08f6335e41d3b5622c03477e06e86  python-environment.cdx.json
 204900d5f3865ef0c8065479e31d378770422f425e7fee68ba74faf7e0448906  rust-source.cdx.json
 ```

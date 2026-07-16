@@ -236,6 +236,20 @@ for workflow in dependency-review.yml license-compliance.yml codeql.yml; do
     fi
 done
 
+if grep -F 'python-version: "3.12.10"' "$ROOT/.github/workflows/ci.yml" >/dev/null \
+    && ! grep -F '3.12.13' "$ROOT/.github/workflows/ci.yml" >/dev/null; then
+    pass "CI pins an available macOS arm64 Python version"
+else
+    fail "CI pins an available macOS arm64 Python version"
+fi
+
+if grep -F 'echo "$RUNNER_TEMP/xcodegen/xcodegen/bin" >> "$GITHUB_PATH"' "$ROOT/.github/workflows/ci.yml" >/dev/null \
+    && grep -F '090ec29491aad50aec10631bf6e62253fed733c50f3aab0f5ffc86bc170bdbef' "$ROOT/.github/workflows/ci.yml" >/dev/null; then
+    pass "CI exposes the verified XcodeGen archive binary path"
+else
+    fail "CI exposes the verified XcodeGen archive binary path"
+fi
+
 if grep -F 'id: dependency-graph' "$ROOT/.github/workflows/dependency-review.yml" >/dev/null \
     && grep -F '/dependency-graph/sbom' "$ROOT/.github/workflows/dependency-review.yml" >/dev/null \
     && grep -F 'classify_dependency_graph_status.sh "$repository_status" "$graph_status"' "$ROOT/.github/workflows/dependency-review.yml" >/dev/null \
