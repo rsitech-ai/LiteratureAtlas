@@ -158,16 +158,6 @@ def sanitize_cyclonedx(payload: Any, workspace_root: pathlib.Path) -> Any:
     return payload
 
 
-def git_output(root: pathlib.Path, *arguments: str) -> str:
-    result = subprocess.run(
-        ["git", "-C", str(root), *arguments],
-        check=True,
-        capture_output=True,
-        text=True,
-    )
-    return result.stdout.strip()
-
-
 def tracked_source_paths(root: pathlib.Path) -> list[pathlib.Path]:
     result = subprocess.run(
         [
@@ -251,9 +241,7 @@ def main() -> int:
         root = args.source_root.resolve()
         paths = tracked_source_paths(root)
         revision = source_inventory_revision(root, paths)
-        created = git_output(root, "show", "-s", "--format=%cI", "HEAD").replace(
-            "+00:00", "Z"
-        )
+        created = reproducible_created_at()
         payload = build_source_document(
             root=root,
             paths=paths,

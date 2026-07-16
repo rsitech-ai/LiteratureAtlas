@@ -103,7 +103,7 @@ is stored outside exported paper JSON.
 
 - Swift: 59 XCTest cases passed, one explicit corpus-input smoke skipped; four
   Swift Testing bookmark cases passed; warnings treated as errors.
-- Python: 23 tests passed; Ruff format/lint passed.
+- Python: 24 tests passed; Ruff format/lint passed.
 - Rust FFI: five tests passed; `cargo fmt` and strict Clippy passed.
 - Release scripts: negative/positive policy, signature, DMG, notary-evidence,
   provenance, dSYM, workflow-trigger, and input-boundary cases passed.
