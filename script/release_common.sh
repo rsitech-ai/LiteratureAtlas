@@ -87,7 +87,7 @@ release_build_presign_app() {
     release_validate_output "$output"
 
     if [ "$dry_run" = true ]; then
-        release_print_command xcodebuild \
+        release_print_command xcodebuild -quiet \
             -project "$RELEASE_ROOT/LiteratureAtlas.xcodeproj" \
             -scheme LiteratureAtlas-macOS \
             -configuration Release \
@@ -129,6 +129,7 @@ CURRENT_PROJECT_VERSION = $build_number
 EOF
 
     xcodebuild \
+        -quiet \
         -project "$RELEASE_ROOT/LiteratureAtlas.xcodeproj" \
         -scheme LiteratureAtlas-macOS \
         -configuration Release \

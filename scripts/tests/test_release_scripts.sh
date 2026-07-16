@@ -244,6 +244,13 @@ else
     fail "release builds retain dSYM evidence"
 fi
 
+if grep -F 'release_print_command xcodebuild -quiet' "$ROOT/script/release_common.sh" >/dev/null \
+    && grep -F '        -quiet \' "$ROOT/script/release_common.sh" >/dev/null; then
+    pass "release builds keep Xcode output diagnostic-focused"
+else
+    fail "release builds keep Xcode output diagnostic-focused"
+fi
+
 if grep -F 'response_tmp=' "$ROOT/script/notarize_dmg.sh" >/dev/null \
     && grep -F 'mv "$response_tmp" "$response_output"' "$ROOT/script/notarize_dmg.sh" >/dev/null; then
     pass "notarization publishes submission evidence atomically"

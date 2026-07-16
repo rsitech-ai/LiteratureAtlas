@@ -236,11 +236,12 @@ def validate(root: Path) -> dict[str, Any]:
     )
     persistent_source_access = (
         "sourceAccessStore.rememberFolder(url)" in app_model
+        and "sourceAccessStore.withAccess(to: url)" in app_model
         and "sourceAccessStore.withAccess(to: paper.fileURL)" in app_model
         and ".withSecurityScope" in source_access_store
         and "resolution.isStale" in source_access_store
-        and "provider.startAccessing(resolution.url)" in source_access_store
-        and "provider.stopAccessing(resolution.url)" in source_access_store
+        and "provider.startAccessing(resolution.scopedURL)" in source_access_store
+        and "provider.stopAccessing(resolution.scopedURL)" in source_access_store
     )
     add_gate(
         gates,
