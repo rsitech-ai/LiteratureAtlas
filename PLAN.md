@@ -61,10 +61,17 @@ Chosen: 2 because it can reveal stale assumptions and runtime regressions while 
   relaunch, accessibility semantics, and fresh macOS/iPadOS Release builds.
   PR review findings for stale duplicate topic exports and main-actor checksum
   hashing have focused regressions; incremental hashing also has a cancellation-
-  latency regression. All pass the complete local quality matrix.
-  Replacement hosted PR gates remain.
+  latency regression. All pass the complete local quality matrix. PR #8 passed
+  all nine hosted checks on reviewed head `a5c1cc8199fd61b19a8a957c24eeaece38e06552`,
+  including the 45-minute Swift CodeQL job and the full Apple distributed-bundle
+  job. GitHub merged that head as `6802f6e24e8e78e77b5a54cb4b58ee14c57f5926`.
 - Tradeoffs: The local contributor build keeps explicit checkout tooling, while
   distributed targets retain the self-contained sandbox boundary. The optional
   Rust accelerator still accepts only caller-contract-valid non-null pointers;
   the new ABI symbol prevents stale dylib signature confusion. Apple signing,
   notarization, icon/legal provenance, and owner GitHub settings remain external.
+- Closeout: Both GitHub inline findings were resolved with focused tests. A
+  follow-up independent review found and then verified cooperative chunk-level
+  checksum cancellation, returning SHIP with no remaining finding. The PR merge
+  tree exactly matched the reviewed head, and local `main` matched `origin/main`
+  before the documentation-only closeout commit.
