@@ -386,6 +386,29 @@ final class AppModelTests: XCTestCase {
         XCTAssertFalse(shouldSkip)
     }
 
+    func testSourceChecksumCancellationStopsChunkedHashingPromptly() async throws {
+        let tmp = FileManager.default.temporaryDirectory.appendingPathComponent(UUID().uuidString)
+        try FileManager.default.createDirectory(at: tmp, withIntermediateDirectories: true)
+        defer { try? FileManager.default.removeItem(at: tmp) }
+        let source = tmp.appendingPathComponent("large-paper.pdf")
+        try Data(repeating: 0x41, count: 32 * 1_024 * 1_024).write(to: source)
+        let model = await MainActor.run {
+            AppModel(skipInitialLoad: true, customOutputRoot: tmp.appendingPathComponent("Output"))
+        }
+        let checksumTask = Task {
+            await model.testSourceChecksum(sourceURL: source, chunkSize: 1)
+        }
+
+        try await Task.sleep(for: .milliseconds(20))
+        let cancellationStart = ContinuousClock.now
+        checksumTask.cancel()
+        let checksum = await checksumTask.value
+        let cancellationLatency = ContinuousClock.now - cancellationStart
+
+        XCTAssertNil(checksum)
+        XCTAssertLessThan(cancellationLatency, .seconds(1))
+    }
+
     func testLoadingSavedPapersDeduplicatesPaperIDs() async throws {
         let tmp = FileManager.default.temporaryDirectory.appendingPathComponent(UUID().uuidString)
         let model = await MainActor.run { AppModel(skipInitialLoad: true, customOutputRoot: tmp) }
