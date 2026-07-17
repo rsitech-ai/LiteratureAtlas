@@ -187,6 +187,18 @@ without an app intent integration, and did not affect launch or interaction.
 
 ## Final readiness label
 
-- **repo-ready** after the reviewed PR and hosted checks pass.
+- **repo-ready**: PR #8 passed all nine hosted checks and merged to `main`.
 - **runtime-proven** for the local contributor app and isolated end-to-end flow.
 - **blocked:external** for Developer ID/notarized/App Store/public release.
+
+## PR and merge closeout
+
+- Reviewed head: `a5c1cc8199fd61b19a8a957c24eeaece38e06552`.
+- GitHub merge commit: `6802f6e24e8e78e77b5a54cb4b58ee14c57f5926`.
+- All nine hosted checks passed, including Python/Rust/Apple quality, release
+  policy, dependency review, REUSE, and Python/Swift CodeQL.
+- The two automated inline findings were fixed, regression-tested, replied to,
+  and resolved. Independent follow-up review returned SHIP after verifying
+  cooperative chunk-level checksum cancellation.
+- The merge commit's tree exactly matched the reviewed head, and local `main`
+  matched `origin/main` before the documentation-only closeout record.
