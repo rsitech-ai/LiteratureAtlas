@@ -135,6 +135,44 @@ class TopicFocusAuditUnitTests(unittest.TestCase):
             self.assertEqual(code, 1, message)
             self.assertIn("FAIL", message)
 
+    def test_load_papers_rejects_malformed_json(self):
+        with tempfile.TemporaryDirectory() as tmpdir:
+            output_root = Path(tmpdir) / "Output"
+            papers_dir = output_root / "papers"
+            papers_dir.mkdir(parents=True)
+            (papers_dir / "broken.paper.json").write_text("{not-json", encoding="utf-8")
+
+            with self.assertRaisesRegex(ValueError, "broken.paper.json"):
+                self.mod.load_papers(output_root)
+
+    def test_load_papers_rejects_non_finite_and_ragged_embeddings(self):
+        with tempfile.TemporaryDirectory() as tmpdir:
+            output_root = Path(tmpdir) / "Output"
+            papers_dir = output_root / "papers"
+            papers_dir.mkdir(parents=True)
+            _write_paper(papers_dir / "valid.paper.json", "Valid", "", [], [0.1, 0.2], 2024)
+            _write_paper(papers_dir / "ragged.paper.json", "Ragged", "", [], [0.1, 0.2, 0.3], 2024)
+
+            with self.assertRaisesRegex(ValueError, "embedding dimension"):
+                self.mod.load_papers(output_root)
+
+            (papers_dir / "ragged.paper.json").unlink()
+            payload = {
+                "id": str(uuid.uuid4()),
+                "title": "Non-finite",
+                "embedding": [float("nan"), 0.2],
+                "year": 2024,
+            }
+            (papers_dir / "nonfinite.paper.json").write_text(json.dumps(payload), encoding="utf-8")
+            with self.assertRaisesRegex(ValueError, "non-finite"):
+                self.mod.load_papers(output_root)
+
+    def test_safe_int_rejects_non_finite_and_fractional_metadata(self):
+        self.assertIsNone(self.mod._safe_int(float("inf")))
+        self.assertIsNone(self.mod._safe_int(float("-inf")))
+        self.assertIsNone(self.mod._safe_int(2020.5))
+        self.assertEqual(self.mod._safe_int(2020.0), 2020)
+
 
 if __name__ == "__main__":
     unittest.main()

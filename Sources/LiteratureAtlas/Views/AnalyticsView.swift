@@ -3,6 +3,18 @@ import Charts
 import FoundationModels
 import Combine
 
+private final class AnalyticsRecomputeTasks {
+    var timeline: Task<Void, Never>?
+    var temporal: Task<Void, Never>?
+    var backend: Task<Void, Never>?
+
+    deinit {
+        timeline?.cancel()
+        temporal?.cancel()
+        backend?.cancel()
+    }
+}
+
 @available(macOS 26, iOS 26, *)
 private struct NoveltyConsensusPoint: Identifiable {
     let id: UUID
@@ -63,9 +75,7 @@ struct AnalyticsView: View {
     @State private var cachedInfluenceTimeline: [(paper: Paper, score: Double, year: Int)] = []
     @State private var cachedIdeaRiver: [Paper] = []
 
-    @State private var timelineTask: Task<Void, Never>?
-    @State private var temporalTask: Task<Void, Never>?
-    @State private var backendTask: Task<Void, Never>?
+    @State private var recomputeTasks = AnalyticsRecomputeTasks()
 
     private enum NoveltyMode: String, CaseIterable, Identifiable {
         case geometric, combinatorial, directional
@@ -207,10 +217,10 @@ struct AnalyticsView: View {
     }
 
     private func scheduleTimelineRecompute() {
-        timelineTask?.cancel()
+        recomputeTasks.timeline?.cancel()
         let papersSnapshot = model.papers
 
-        timelineTask = Task(priority: .userInitiated) {
+        recomputeTasks.timeline = Task(priority: .userInitiated) {
             typealias TimelineSeries = [(year: Int, count: Int)]
             let computeTask: Task<TimelineSeries, Never> = Task.detached(priority: .userInitiated) { [papersSnapshot] in
                 let currentYear = Calendar.current.component(.year, from: Date())
@@ -244,13 +254,13 @@ struct AnalyticsView: View {
     }
 
     private func scheduleTemporalRecompute(delay: TimeInterval = 0.15) {
-        temporalTask?.cancel()
+        recomputeTasks.temporal?.cancel()
         let papersSnapshot = papersForAnalytics
         let clustersSnapshot = model.clusters
         let tagsSnapshot = methodTags
         let emptyStats = ReadingLagStats(averageLagYears: 0, realTimeClusterIDs: [], lateClusterIDs: [], overlay: [])
 
-        temporalTask = Task(priority: .userInitiated) {
+        recomputeTasks.temporal = Task(priority: .userInitiated) {
             typealias TemporalResults = (streams: [TopicEvolutionStream], signals: [MethodTakeover], stats: ReadingLagStats)
             if delay > 0 {
                 let ns = UInt64(max(0, delay) * 1_000_000_000)
@@ -282,7 +292,7 @@ struct AnalyticsView: View {
     }
 
     private func scheduleBackendRecompute(delay: TimeInterval = 0.15) {
-        backendTask?.cancel()
+        recomputeTasks.backend?.cancel()
         let summarySnapshot = analyticsSummary
         let papersSnapshot = model.papers
         let modeSnapshot = noveltyMode
@@ -290,7 +300,7 @@ struct AnalyticsView: View {
         let yearRangeSnapshot = effectiveYearRange
         let focusSnapshot = focusMyExposure
 
-        backendTask = Task(priority: .userInitiated) {
+        recomputeTasks.backend = Task(priority: .userInitiated) {
             if delay > 0 {
                 let ns = UInt64(max(0, delay) * 1_000_000_000)
                 try? await Task.sleep(nanoseconds: ns)
@@ -1425,12 +1435,6 @@ struct AnalyticsView: View {
                 hoveredCount: $hoveredTimelineCount,
                 brushAnchor: $yearBrushAnchor
             )
-            .task(id: "\(domain.lowerBound)-\(domain.upperBound)") {
-                if model.yearFilterStart == 0 { model.yearFilterStart = domain.lowerBound }
-                if model.yearFilterEnd == 0 { model.yearFilterEnd = domain.upperBound }
-                model.yearFilterStart = min(max(model.yearFilterStart, domain.lowerBound), domain.upperBound)
-                model.yearFilterEnd = min(max(model.yearFilterEnd, domain.lowerBound), domain.upperBound)
-            }
         } else {
             GlassCard {
                 VStack(alignment: .leading, spacing: 8) {
@@ -1535,6 +1539,12 @@ struct AnalyticsView: View {
                     }
                     .buttonStyle(.bordered)
 #endif
+                }
+                if let loadError = model.analyticsLoadError {
+                    Label(loadError, systemImage: "exclamationmark.triangle.fill")
+                        .font(.caption2)
+                        .foregroundStyle(.red)
+                        .accessibilityLabel("Analytics load error: \(loadError)")
                 }
 #if os(macOS) && !DISTRIBUTED_APP_BUILD
                 HStack {
@@ -2103,20 +2113,30 @@ struct AnalyticsView: View {
                     analyticsContentWidth = width
                 }
                 .task {
+                    await Task.yield()
                     scheduleTimelineRecompute()
                     scheduleTemporalRecompute(delay: 0)
                     scheduleBackendRecompute(delay: 0)
                 }
                 .onReceive(model.$papers) { _ in
-                    scheduleTimelineRecompute()
-                    scheduleTemporalRecompute()
-                    scheduleBackendRecompute()
+                    Task { @MainActor in
+                        await Task.yield()
+                        scheduleTimelineRecompute()
+                        scheduleTemporalRecompute()
+                        scheduleBackendRecompute()
+                    }
                 }
                 .onReceive(model.$clusters) { _ in
-                    scheduleTemporalRecompute()
+                    Task { @MainActor in
+                        await Task.yield()
+                        scheduleTemporalRecompute()
+                    }
                 }
                 .onReceive(model.$analyticsSummary) { _ in
-                    scheduleBackendRecompute()
+                    Task { @MainActor in
+                        await Task.yield()
+                        scheduleBackendRecompute()
+                    }
                 }
                 .onChange(of: methodTagsText) { _, _ in
                     scheduleTemporalRecompute()
@@ -2328,7 +2348,7 @@ private struct TimelineBarChart: View {
                     .foregroundStyle(.white.opacity(0.28))
                     .lineStyle(StrokeStyle(lineWidth: 1, dash: [4, 4]))
                     .annotation(position: .top, alignment: .center) {
-                        Text("\(y) · \(c)")
+                        Text(verbatim: "\(String(y)) · \(String(c))")
                             .font(.caption2.weight(.semibold))
                             .foregroundStyle(.primary)
                             .padding(.horizontal, 8)
@@ -2341,6 +2361,20 @@ private struct TimelineBarChart: View {
         .chartYScale(domain: 0...maxCount)
         .chartXAxisLabel("Year")
         .chartYAxisLabel("Papers")
+        .chartXAxis {
+            AxisMarks(values: .automatic(desiredCount: 8)) { value in
+                AxisGridLine()
+                AxisTick()
+                if let year = value.as(Int.self) {
+                    AxisValueLabel { Text(verbatim: String(year)) }
+                } else if let year = value.as(Double.self) {
+                    AxisValueLabel { Text(verbatim: String(Int(year.rounded()))) }
+                }
+            }
+        }
+        .accessibilityElement(children: .ignore)
+        .accessibilityLabel("Paper timeline")
+        .accessibilityValue(Text(verbatim: "\(String(domain.lowerBound)) to \(String(domain.upperBound)), \(String(data.reduce(0) { $0 + $1.count })) papers"))
         .frame(height: height)
         .chartOverlay { (proxy: ChartProxy) in
             GeometryReader { geo in
@@ -2464,7 +2498,7 @@ private struct TimelineYearControls: View {
         if canSlide {
             VStack(alignment: .leading, spacing: 8) {
                 HStack {
-                    Text("From \(startValue)")
+                    Text(verbatim: "From \(String(startValue))")
                         .font(.caption2)
                         .foregroundStyle(.secondary)
                     Slider(
@@ -2480,7 +2514,7 @@ private struct TimelineYearControls: View {
                     )
                 }
                 HStack {
-                    Text("To \(endValue)")
+                    Text(verbatim: "To \(String(endValue))")
                         .font(.caption2)
                         .foregroundStyle(.secondary)
                     Slider(
@@ -2497,7 +2531,7 @@ private struct TimelineYearControls: View {
                 }
             }
         } else {
-            Text("Only year \(safeDomain.lowerBound) in corpus.")
+            Text(verbatim: "Only year \(String(safeDomain.lowerBound)) in corpus.")
                 .font(.caption2)
                 .foregroundStyle(.secondary)
         }
@@ -2680,10 +2714,6 @@ private struct NoveltyConsensusChartView: View {
                 }
             }
         }
-        .onAppear {
-            if visibleXDomain == nil { visibleXDomain = fullXDomain }
-            if visibleYDomain == nil { visibleYDomain = fullYDomain }
-        }
         .onChange(of: fullXDomain) { _, newValue in
             visibleXDomain = newValue
         }
@@ -2857,9 +2887,6 @@ private struct TopicStreamChart: View {
                 }
             }
         }
-        .onAppear {
-            if visibleDomain == nil { visibleDomain = fullDomain }
-        }
         .onChange(of: fullDomain) { _, newValue in
             visibleDomain = newValue
         }
@@ -3012,9 +3039,6 @@ private struct MethodCrossoverChart: View {
                         #endif
                 }
             }
-        }
-        .onAppear {
-            if visibleDomain == nil { visibleDomain = fullDomain }
         }
         .onChange(of: fullDomain) { _, newValue in
             visibleDomain = newValue
@@ -3263,10 +3287,6 @@ private struct ReadingLagChart: View {
                 }
             }
         }
-        .onAppear {
-            if visibleXDomain == nil { visibleXDomain = fullDomain }
-            if visibleYDomain == nil { visibleYDomain = fullDomain }
-        }
         .onChange(of: fullDomain) { _, newValue in
             visibleXDomain = newValue
             visibleYDomain = newValue
@@ -3317,6 +3337,20 @@ private struct FactorExposureChart: View {
             }
         }
         .chartXScale(domain: xDomain)
+        .chartXAxis {
+            AxisMarks(values: .automatic(desiredCount: 8)) { value in
+                AxisGridLine()
+                AxisTick()
+                if let year = value.as(Int.self) {
+                    AxisValueLabel { Text(verbatim: String(year)) }
+                } else if let year = value.as(Double.self) {
+                    AxisValueLabel { Text(verbatim: String(Int(year.rounded()))) }
+                }
+            }
+        }
+        .accessibilityElement(children: .ignore)
+        .accessibilityLabel("Factor exposure over time")
+        .accessibilityValue(Text(verbatim: "\(String(xDomain.lowerBound)) to \(String(xDomain.upperBound)), \(String(exposures.count)) exposure values"))
         .frame(height: height)
         .chartLegend(position: .bottom)
         .overlay(alignment: .topTrailing) {
@@ -3409,9 +3443,6 @@ private struct FactorExposureChart: View {
                 }
             }
         }
-        .onAppear {
-            if visibleDomain == nil { visibleDomain = fullDomain }
-        }
         .onChange(of: fullDomain) { _, newValue in
             visibleDomain = newValue
         }
@@ -3496,6 +3527,20 @@ private struct InfluenceTimelineChart: View {
         .chartYScale(domain: yDomain)
         .chartXAxisLabel("Year")
         .chartYAxisLabel("Influence")
+        .chartXAxis {
+            AxisMarks(values: .automatic(desiredCount: 8)) { value in
+                AxisGridLine()
+                AxisTick()
+                if let year = value.as(Int.self) {
+                    AxisValueLabel { Text(verbatim: String(year)) }
+                } else if let year = value.as(Double.self) {
+                    AxisValueLabel { Text(verbatim: String(Int(year.rounded()))) }
+                }
+            }
+        }
+        .accessibilityElement(children: .ignore)
+        .accessibilityLabel("Idea flow timeline")
+        .accessibilityValue(Text(verbatim: "\(String(xDomain.lowerBound)) to \(String(xDomain.upperBound)), \(String(items.count)) papers"))
         .frame(height: height)
         .overlay(alignment: .topTrailing) {
             ChartZoomControls(
@@ -3589,10 +3634,6 @@ private struct InfluenceTimelineChart: View {
                         #endif
                 }
             }
-        }
-        .onAppear {
-            if visibleXDomain == nil { visibleXDomain = fullXDomain }
-            if visibleYDomain == nil { visibleYDomain = fullYDomain }
         }
         .onChange(of: fullXDomain) { _, newValue in
             visibleXDomain = newValue

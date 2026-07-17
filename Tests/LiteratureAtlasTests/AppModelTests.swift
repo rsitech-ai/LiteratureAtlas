@@ -1,14 +1,63 @@
 import XCTest
+import CryptoKit
 @testable import LiteratureAtlas
 
 @available(macOS 26, iOS 26, *)
 final class AppModelTests: XCTestCase {
+#if os(macOS)
+    func testPythonRunnerDoesNotFallBackToGlobalInterpreter() async throws {
+        let tmp = FileManager.default.temporaryDirectory.appendingPathComponent(UUID().uuidString)
+        try FileManager.default.createDirectory(at: tmp, withIntermediateDirectories: true)
+        let model = await MainActor.run { AppModel(skipInitialLoad: true, customOutputRoot: tmp.appendingPathComponent("Output")) }
+
+        let result = model.testRunPython(arguments: ["--version"], cwd: tmp)
+
+        switch result {
+        case .success:
+            XCTFail("A missing analytics/.venv must not fall back to a global Python")
+        case .failure(let error):
+            XCTAssertTrue(error.localizedDescription.contains("analytics/.venv"))
+        }
+    }
+#endif
+
     func testCancelClusteringImmediatelyLeavesCancelableState() async {
         let model = await AppModel(skipInitialLoad: true)
+        let papers = (0..<20).map { index in
+            Paper(
+                filePath: "paper-\(index)", id: UUID(), originalFilename: "paper-\(index).pdf",
+                title: "Paper \(index)", introSummary: nil, summary: "summary",
+                methodSummary: nil, resultsSummary: nil, takeaways: nil, keywords: nil,
+                userNotes: nil, userTags: nil, readingStatus: nil, noteEmbedding: nil,
+                userQuestions: nil, flashcards: nil, year: nil,
+                embedding: [Float(index), Float(index % 3)], clusterIndex: nil
+            )
+        }
         await MainActor.run {
-            model.isClustering = true
+            model.papers = papers
+            model.clusters = [
+                Cluster(
+                    id: 7,
+                    name: "Existing cluster",
+                    metaSummary: "Previously valid state",
+                    centroid: [1, 0],
+                    memberPaperIDs: papers.map(\.id),
+                    layoutPosition: nil,
+                    resolutionK: 1,
+                    corpusVersion: "existing",
+                    subclusters: nil
+                )
+            ]
+            model.selectedClusterIDs = [7]
+            model.performClustering(k: 3)
             model.cancelClustering()
+        }
+        try? await Task.sleep(for: .milliseconds(100))
+        await MainActor.run {
             XCTAssertFalse(model.isClustering)
+            XCTAssertEqual(model.clusters.map(\.id), [7])
+            XCTAssertEqual(model.selectedClusterIDs, [7])
+            XCTAssertTrue(model.papers.allSatisfy { $0.clusterIndex == nil })
         }
     }
 
@@ -172,5 +221,243 @@ final class AppModelTests: XCTestCase {
         XCTAssertTrue(contents.contains("\"question_length\":14"))
         XCTAssertFalse(contents.contains("Test question?"))
         XCTAssertFalse(contents.contains("\"q\""))
+    }
+
+    func testCreateEmptyStrategyProjectDoesNotPublishWhenPersistenceFails() async throws {
+        let tmp = FileManager.default.temporaryDirectory.appendingPathComponent(UUID().uuidString)
+        let model = await MainActor.run { AppModel(skipInitialLoad: true, customOutputRoot: tmp) }
+        let strategiesDirectory = tmp.appendingPathComponent("strategies", isDirectory: true)
+        try FileManager.default.removeItem(at: strategiesDirectory)
+        try Data("not a directory".utf8).write(to: strategiesDirectory)
+
+        let created = await MainActor.run {
+            model.createEmptyStrategyProject()
+        }
+
+        await MainActor.run {
+            XCTAssertNil(created)
+            XCTAssertTrue(model.strategyProjects.isEmpty)
+            XCTAssertNotNil(model.persistenceError)
+        }
+    }
+
+    func testUpdateStrategyProjectDoesNotReplacePublishedDraftWhenPersistenceFails() async throws {
+        let tmp = FileManager.default.temporaryDirectory.appendingPathComponent(UUID().uuidString)
+        let model = await MainActor.run { AppModel(skipInitialLoad: true, customOutputRoot: tmp) }
+        let original = StrategyProject(title: "Saved title")
+        await MainActor.run { model.strategyProjects = [original] }
+
+        let strategiesDirectory = tmp.appendingPathComponent("strategies", isDirectory: true)
+        try FileManager.default.removeItem(at: strategiesDirectory)
+        try Data("not a directory".utf8).write(to: strategiesDirectory)
+        var draft = original
+        draft.title = "Unsaved edit"
+
+        let saved = await MainActor.run { model.updateStrategyProject(draft) }
+
+        await MainActor.run {
+            XCTAssertFalse(saved)
+            XCTAssertEqual(model.strategyProjects.first?.title, "Saved title")
+            XCTAssertNotNil(model.persistenceError)
+        }
+    }
+
+    func testDeleteStrategyProjectKeepsCanonicalProjectWhenNotesCannotBeInspected() async throws {
+        let tmp = FileManager.default.temporaryDirectory.appendingPathComponent(UUID().uuidString)
+        let model = await MainActor.run { AppModel(skipInitialLoad: true, customOutputRoot: tmp) }
+        let created = await MainActor.run { model.createEmptyStrategyProject(title: "Keep me") }
+        let project = try XCTUnwrap(created)
+        let strategiesDirectory = tmp.appendingPathComponent("strategies", isDirectory: true)
+        let canonicalFiles = try FileManager.default.contentsOfDirectory(
+            at: strategiesDirectory,
+            includingPropertiesForKeys: nil
+        )
+        XCTAssertEqual(canonicalFiles.count, 1)
+
+        let notesDirectory = tmp
+            .appendingPathComponent("obsidian", isDirectory: true)
+            .appendingPathComponent("strategies", isDirectory: true)
+        try FileManager.default.removeItem(at: notesDirectory)
+        try Data("not a directory".utf8).write(to: notesDirectory)
+
+        let deleted = await MainActor.run { model.deleteStrategyProject(project.id) }
+
+        await MainActor.run {
+            XCTAssertFalse(deleted)
+            XCTAssertEqual(model.strategyProjects.map(\.id), [project.id])
+            XCTAssertNotNil(model.persistenceError)
+        }
+        XCTAssertTrue(FileManager.default.fileExists(atPath: canonicalFiles[0].path))
+    }
+
+    func testFailedCanonicalPaperWritePublishesNeitherPaperNorChunks() async throws {
+        let tmp = FileManager.default.temporaryDirectory.appendingPathComponent(UUID().uuidString)
+        let model = await MainActor.run { AppModel(skipInitialLoad: true, customOutputRoot: tmp) }
+        let paper = Paper(
+            filePath: "/tmp/paper.md", id: UUID(), originalFilename: "paper.md",
+            title: "Transactional paper", introSummary: nil, summary: "Summary",
+            methodSummary: nil, resultsSummary: nil, takeaways: nil, keywords: nil,
+            userNotes: nil, userTags: nil, readingStatus: nil, noteEmbedding: nil,
+            userQuestions: nil, flashcards: nil, year: nil, embedding: [1, 0], clusterIndex: nil
+        )
+        let chunk = PaperChunk(
+            id: UUID(), paperID: paper.id, text: "Chunk", embedding: [1, 0],
+            order: 0, pageHint: nil, citationAnchor: nil
+        )
+        let papersDirectory = tmp.appendingPathComponent("papers", isDirectory: true)
+        try FileManager.default.removeItem(at: papersDirectory)
+        try Data("not a directory".utf8).write(to: papersDirectory)
+
+        let failed = await MainActor.run { () -> Bool in
+            do {
+                try model.testPersistAndPublishIngestedPaper(paper, chunks: [chunk])
+                return false
+            } catch {
+                return true
+            }
+        }
+
+        XCTAssertTrue(failed)
+        await MainActor.run {
+            XCTAssertTrue(model.papers.isEmpty)
+            XCTAssertTrue(model.paperChunks.isEmpty)
+        }
+    }
+
+    func testFailedChunkIndexWritePublishesNeitherPaperNorChunks() async throws {
+        let tmp = FileManager.default.temporaryDirectory.appendingPathComponent(UUID().uuidString)
+        let model = await MainActor.run { AppModel(skipInitialLoad: true, customOutputRoot: tmp) }
+        let paper = Paper(
+            filePath: "/tmp/chunk-failure.md", id: UUID(), originalFilename: "chunk-failure.md",
+            title: "Chunk failure", introSummary: nil, summary: "Summary", methodSummary: nil,
+            resultsSummary: nil, takeaways: nil, keywords: nil, userNotes: nil, userTags: nil,
+            readingStatus: nil, noteEmbedding: nil, userQuestions: nil, flashcards: nil,
+            year: nil, embedding: [1, 0], clusterIndex: nil
+        )
+        let chunk = PaperChunk(
+            id: UUID(), paperID: paper.id, text: "Chunk", embedding: [1, 0],
+            order: 0, pageHint: nil, citationAnchor: nil
+        )
+        let chunksDirectory = tmp.appendingPathComponent("chunks", isDirectory: true)
+        try FileManager.default.removeItem(at: chunksDirectory)
+        try Data("not a directory".utf8).write(to: chunksDirectory)
+
+        let failed = await MainActor.run { () -> Bool in
+            do {
+                try model.testPersistAndPublishIngestedPaper(paper, chunks: [chunk])
+                return false
+            } catch {
+                return true
+            }
+        }
+
+        XCTAssertTrue(failed)
+        await MainActor.run {
+            XCTAssertTrue(model.papers.isEmpty)
+            XCTAssertTrue(model.paperChunks.isEmpty)
+        }
+        let paperFiles = try FileManager.default.contentsOfDirectory(
+            at: tmp.appendingPathComponent("papers", isDirectory: true),
+            includingPropertiesForKeys: nil
+        )
+        XCTAssertTrue(paperFiles.isEmpty)
+    }
+
+    func testSourceChecksumPreventsFalseSkipWhenTimestampIsPreserved() async throws {
+        let tmp = FileManager.default.temporaryDirectory.appendingPathComponent(UUID().uuidString)
+        try FileManager.default.createDirectory(at: tmp, withIntermediateDirectories: true)
+        let source = tmp.appendingPathComponent("paper.md")
+        try Data("original".utf8).write(to: source)
+        let checksum = SHA256.hash(data: Data("original".utf8)).map { String(format: "%02x", $0) }.joined()
+        var paper = Paper(
+            filePath: source.path, sourceChecksum: checksum, id: UUID(), originalFilename: "paper.md",
+            title: "Paper", introSummary: nil, summary: "Summary", methodSummary: nil,
+            resultsSummary: nil, takeaways: nil, keywords: nil, userNotes: nil, userTags: nil,
+            readingStatus: nil, noteEmbedding: nil, userQuestions: nil, flashcards: nil,
+            year: nil, embedding: [1, 0], clusterIndex: nil
+        )
+        paper.ingestedAt = Date()
+        try Data("changed".utf8).write(to: source)
+        try FileManager.default.setAttributes([.modificationDate: Date.distantPast], ofItemAtPath: source.path)
+        let model = await MainActor.run { AppModel(skipInitialLoad: true, customOutputRoot: tmp.appendingPathComponent("Output")) }
+
+        let shouldSkip = await MainActor.run { model.testShouldSkipSource(sourceURL: source, existingPaper: paper) }
+
+        XCTAssertFalse(shouldSkip)
+    }
+
+    func testLoadingSavedPapersDeduplicatesPaperIDs() async throws {
+        let tmp = FileManager.default.temporaryDirectory.appendingPathComponent(UUID().uuidString)
+        let model = await MainActor.run { AppModel(skipInitialLoad: true, customOutputRoot: tmp) }
+        let papersDirectory = tmp.appendingPathComponent("papers", isDirectory: true)
+        let sharedID = UUID()
+        let older = Paper(
+            filePath: "/tmp/older.pdf", id: sharedID, originalFilename: "older.pdf", title: "Older",
+            introSummary: nil, summary: "old", methodSummary: nil, resultsSummary: nil,
+            takeaways: nil, keywords: nil, userNotes: nil, userTags: nil, readingStatus: nil,
+            noteEmbedding: nil, userQuestions: nil, flashcards: nil, year: nil,
+            embedding: [1, 0], clusterIndex: nil
+        )
+        var newer = older
+        newer.filePath = "/tmp/newer.pdf"
+        newer.originalFilename = "newer.pdf"
+        newer.title = "Newer"
+        newer.summary = "new"
+        let encoder = JSONEncoder()
+        let olderURL = papersDirectory.appendingPathComponent("older.paper.json")
+        let newerURL = papersDirectory.appendingPathComponent("newer.paper.json")
+        try encoder.encode(older).write(to: olderURL)
+        try encoder.encode(newer).write(to: newerURL)
+        try FileManager.default.setAttributes([.modificationDate: Date(timeIntervalSince1970: 1)], ofItemAtPath: olderURL.path)
+        try FileManager.default.setAttributes([.modificationDate: Date(timeIntervalSince1970: 2)], ofItemAtPath: newerURL.path)
+
+        await model.testLoadSavedPapers()
+
+        await MainActor.run {
+            XCTAssertEqual(model.papers.count, 1)
+            XCTAssertEqual(model.papers.first?.title, "Newer")
+        }
+    }
+
+    func testLoadingSavedPapersDerivesDimensionAfterDiscardingStaleDuplicate() async throws {
+        let tmp = FileManager.default.temporaryDirectory.appendingPathComponent(UUID().uuidString)
+        let model = await MainActor.run { AppModel(skipInitialLoad: true, customOutputRoot: tmp) }
+        let papersDirectory = tmp.appendingPathComponent("papers", isDirectory: true)
+        let sharedID = UUID()
+        let stale = Paper(
+            filePath: "/tmp/stale.pdf", id: sharedID, originalFilename: "stale.pdf", title: "Stale",
+            introSummary: nil, summary: "stale", methodSummary: nil, resultsSummary: nil,
+            takeaways: nil, keywords: nil, userNotes: nil, userTags: nil, readingStatus: nil,
+            noteEmbedding: nil, userQuestions: nil, flashcards: nil, year: nil,
+            embedding: [1, 0], clusterIndex: nil
+        )
+        var fresh = stale
+        fresh.filePath = "/tmp/fresh.pdf"
+        fresh.originalFilename = "fresh.pdf"
+        fresh.title = "Fresh"
+        fresh.embedding = [1, 0, 0]
+        var peer = stale
+        peer.id = UUID()
+        peer.filePath = "/tmp/peer.pdf"
+        peer.originalFilename = "peer.pdf"
+        peer.title = "Peer"
+        peer.embedding = [0, 1, 0]
+        let encoder = JSONEncoder()
+        let staleURL = papersDirectory.appendingPathComponent("a-stale.paper.json")
+        let freshURL = papersDirectory.appendingPathComponent("b-fresh.paper.json")
+        let peerURL = papersDirectory.appendingPathComponent("c-peer.paper.json")
+        try encoder.encode(stale).write(to: staleURL)
+        try encoder.encode(fresh).write(to: freshURL)
+        try encoder.encode(peer).write(to: peerURL)
+        try FileManager.default.setAttributes([.modificationDate: Date(timeIntervalSince1970: 1)], ofItemAtPath: staleURL.path)
+        try FileManager.default.setAttributes([.modificationDate: Date(timeIntervalSince1970: 2)], ofItemAtPath: freshURL.path)
+
+        await model.testLoadSavedPapers()
+
+        await MainActor.run {
+            XCTAssertEqual(model.papers.count, 2)
+            XCTAssertTrue(model.papers.allSatisfy { $0.embedding.count == 3 })
+            XCTAssertEqual(model.papers.first(where: { $0.id == sharedID })?.title, "Fresh")
+        }
     }
 }

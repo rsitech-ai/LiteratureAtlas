@@ -2,9 +2,11 @@
 name = "atlas_ffi"
 version = "0.1.0"
 edition = "2021"
+rust-version = "1.91"
+license = "MIT"
 
 [lib]
 crate-type = ["cdylib", "staticlib"]
 
 [dependencies]
-hnsw_rs = "0.3.3"
+hnsw_rs = "0.3.4"

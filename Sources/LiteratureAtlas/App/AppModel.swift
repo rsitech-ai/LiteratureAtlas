@@ -4,6 +4,7 @@ import SwiftUI
 import Accelerate
 import FoundationModels
 import Darwin
+import CryptoKit
 
 enum MapLens: String, CaseIterable, Identifiable {
     case standard
@@ -125,7 +126,18 @@ final class AppModel: ObservableObject {
     #endif
     private var ingestionTask: Task<Void, Never>?
     private var tradingLensBackfillTask: Task<Void, Never>?
+    private var clusteringTask: Task<Void, Never>?
+    private var activeClusteringRunID: UUID?
     private var clusteringCancellationRequested = false
+    private enum PaperAsyncOperation: Hashable {
+        case notes(UUID)
+        case flashcards(UUID)
+        case studyQuestions(UUID)
+        case tradingLens(UUID)
+        case strategyBlueprint(UUID)
+        case backtestAudit(UUID)
+    }
+    private var paperAsyncTasks: [PaperAsyncOperation: Task<Void, Never>] = [:]
     private var canonicalEmbeddingDim: Int?
     private var clusterCache: [ClusterCacheKey: [Cluster]] = [:]
     private var subclusterCache: [Int: [Cluster]] = [:]
@@ -428,6 +440,8 @@ final class AppModel: ObservableObject {
         #endif
 
         defer {
+            recomputeCorpusYearDomain()
+            recomputeSourceKindCounts()
             isIngesting = false
             ingestionTask = nil
         }
@@ -484,13 +498,13 @@ final class AppModel: ObservableObject {
 
             do {
                 if Task.isCancelled { break }
-                let paper = try await ingestSourceDocument(
+                let ingested = try await ingestSourceDocument(
                     at: sourceURL,
                     existingPaper: existingPaper,
                     smokeFastMode: smokeFastMode
                 )
-                upsertPaper(paper)
-                let jsonURL = try savePaperJSON(paper)
+                let paper = ingested.paper
+                let jsonURL = try persistAndPublishIngestedPaper(paper, chunks: ingested.chunks)
                 ingestionLog += "\n  Saved JSON: \(jsonURL.lastPathComponent)"
                 do {
                     _ = try saveDocumentJSON(paper)
@@ -505,7 +519,6 @@ final class AppModel: ObservableObject {
                     ingestionLog += "\n  Warning: Markdown export failed: \(error.localizedDescription)"
                     logger.error("[Ingest] Markdown export failed: \(error.localizedDescription, privacy: .private)")
                 }
-                saveChunkIndex()
                 ingestionCompletedCount += 1
             } catch {
                 ingestionLog += "\n  Error: \(error.localizedDescription)"
@@ -530,7 +543,7 @@ final class AppModel: ObservableObject {
             }
             savePaperIndex()
         }
-        saveChunkIndex()
+        exportObsidianVaultArtifacts(force: false)
         recomputeCorpusYearDomain()
         isIngesting = false
     }
@@ -561,7 +574,7 @@ final class AppModel: ObservableObject {
         at sourceURL: URL,
         existingPaper: Paper?,
         smokeFastMode: Bool
-    ) async throws -> Paper {
+    ) async throws -> (paper: Paper, chunks: [PaperChunk]) {
         let sourceKind: SourceKind = {
             switch sourceURL.pathExtension.lowercased() {
             case "md", "markdown":
@@ -642,16 +655,9 @@ final class AppModel: ObservableObject {
         }
 
         let chunks = await buildChunks(for: extraction.sections, paperID: preliminaryPaperID)
-        paperChunks.removeAll(where: { $0.paperID == preliminaryPaperID })
-        if !chunks.isEmpty {
-            paperChunks.append(contentsOf: chunks)
-            invalidateChunkLookupCache()
-        } else {
-            invalidateChunkLookupCache()
-        }
 
         let compiledArtifacts = compiledArtifactRefs(for: preliminaryPaperID, title: title)
-        return Paper(
+        let paper = Paper(
             version: 2,
             sourceKind: sourceKind,
             filePath: sourceURL.path,
@@ -692,6 +698,32 @@ final class AppModel: ObservableObject {
             ingestedAt: Date(),
             pageCount: extraction.pageCount
         )
+        return (paper, chunks)
+    }
+
+    /// Commits the canonical paper JSON before publishing any corresponding in-memory state.
+    /// Derived document/Markdown exports are intentionally performed by the caller afterward.
+    private func persistAndPublishIngestedPaper(_ paper: Paper, chunks: [PaperChunk]) throws -> URL {
+        let previousChunks = paperChunks
+        var nextChunks = previousChunks.filter { $0.paperID != paper.id }
+        nextChunks.append(contentsOf: chunks)
+        try saveChunkIndex(nextChunks)
+
+        let jsonURL: URL
+        do {
+            jsonURL = try savePaperJSON(paper)
+        } catch {
+            do {
+                try saveChunkIndex(previousChunks)
+            } catch let rollbackError {
+                logger.error("[Ingest] Failed to roll back chunk index: \(rollbackError.localizedDescription, privacy: .private)")
+            }
+            throw error
+        }
+        upsertPaper(paper)
+        paperChunks = nextChunks
+        invalidateChunkLookupCache()
+        return jsonURL
     }
 
     private func extractDocument(at sourceURL: URL, documentID: UUID, sourceKind: SourceKind) async throws -> PDFExtractionResult {
@@ -705,7 +737,7 @@ final class AppModel: ObservableObject {
                 text: extraction.text,
                 sections: extraction.sections,
                 pageCount: nil,
-                year: pdfProcessor.inferYear(fromText: extraction.text),
+                year: extraction.year ?? pdfProcessor.inferYear(fromText: extraction.text),
                 checksum: extraction.checksum,
                 modifiedAt: extraction.modifiedAt,
                 keywords: extraction.keywords
@@ -754,6 +786,22 @@ final class AppModel: ObservableObject {
         return url
     }
 
+    /// Refreshes the derived Obsidian note without turning a successful canonical JSON
+    /// commit into a reported generation failure.
+    private func refreshPaperMarkdownAfterSave(_ paper: Paper) {
+        do {
+            _ = try PaperMarkdownExporter.write(
+                paper: paper,
+                outputRoot: outputRoot,
+                context: paperObsidianContextSnapshot()
+            )
+        } catch {
+            persistenceError = "Paper data was saved, but the Markdown note could not be refreshed: \(error.localizedDescription)"
+            ingestionLog += "\nWarning: paper data was saved, but Markdown refresh failed: \(error.localizedDescription)"
+            logger.error("[Persistence] Failed to refresh paper Markdown: \(error.localizedDescription, privacy: .private)")
+        }
+    }
+
     private func saveDocumentJSON(_ paper: Paper) throws -> URL {
         let baseName = paper.title.isEmpty ? paper.originalFilename : paper.title
         let safeName = baseName.replacingOccurrences(of: "/", with: "-")
@@ -769,10 +817,21 @@ final class AppModel: ObservableObject {
     private func shouldSkipSource(sourceURL: URL, existingPaper: Paper?) -> Bool {
         let fm = FileManager.default
         guard let existingPaper else { return false }
+        guard !existingPaper.summary.isEmpty, !existingPaper.embedding.isEmpty else { return false }
+
+        if let expectedChecksum = existingPaper.sourceChecksum, !expectedChecksum.isEmpty {
+            guard let data = try? Data(contentsOf: sourceURL, options: .mappedIfSafe) else { return false }
+            let currentChecksum = SHA256.hash(data: data).map { String(format: "%02x", $0) }.joined()
+            if currentChecksum == expectedChecksum {
+                ingestionLog += "\n  Validated existing record checksum; skipping."
+                return true
+            }
+            return false
+        }
+
         guard let attr = try? fm.attributesOfItem(atPath: sourceURL.path),
               let modDate = attr[.modificationDate] as? Date else { return false }
         guard let ingestedAt = existingPaper.ingestedAt else { return false }
-        guard !existingPaper.summary.isEmpty, !existingPaper.embedding.isEmpty else { return false }
         if ingestedAt >= modDate {
             ingestionLog += "\n  Validated existing record; skipping."
             return true
@@ -873,7 +932,13 @@ final class AppModel: ObservableObject {
     }
 
     func testRunClustering(k: Int) async {
-        await runClustering(k: k)
+        let runID = UUID()
+        activeClusteringRunID = runID
+        await runClustering(k: k, runID: runID)
+    }
+
+    func testPersistAndPublishIngestedPaper(_ paper: Paper, chunks: [PaperChunk]) throws {
+        _ = try persistAndPublishIngestedPaper(paper, chunks: chunks)
     }
 
     func testFallbackEmbedding(for text: String, dimension: Int) -> [Float] {
@@ -887,10 +952,24 @@ final class AppModel: ObservableObject {
     func testExportObsidianVaultArtifacts(force: Bool) {
         exportObsidianVaultArtifacts(force: force)
     }
+
+    func testLoadSavedPapers() async {
+        await loadSavedPapersIfNeeded()
+    }
+
+    func testShouldSkipSource(sourceURL: URL, existingPaper: Paper?) -> Bool {
+        shouldSkipSource(sourceURL: sourceURL, existingPaper: existingPaper)
+    }
+
+#if os(macOS)
+    nonisolated func testRunPython(arguments: [String], cwd: URL) -> Result<(Int32, String, String), Error> {
+        Self.runPython(arguments: arguments, cwd: cwd)
+    }
+#endif
 #endif
 
     private func upsertPaper(_ paper: Paper) {
-        if let idx = papers.firstIndex(where: { $0.filePath == paper.filePath }) {
+        if let idx = papers.firstIndex(where: { $0.id == paper.id || $0.filePath == paper.filePath }) {
             papers[idx] = paper
         } else {
             papers.append(paper)
@@ -935,8 +1014,6 @@ final class AppModel: ObservableObject {
             let normalized = normalizeTakeaways(paper.takeaways)
             paper.takeaways = normalized.takeaways
 
-            paper.embedding = normalizeEmbedding(paper.embedding)
-            paper.noteEmbedding = normalizeEmbedding(paper.noteEmbedding ?? [])
             if let year = paper.year {
                 let currentYear = Calendar.current.component(.year, from: Date())
                 if year < 1900 || year > currentYear + 1 {
@@ -953,13 +1030,39 @@ final class AppModel: ObservableObject {
             newestByPath[paper.filePath] = (paper, modDate, url, normalized.changed)
         }
 
-        let loaded = newestByPath.values.map { $0.paper }
+        var newestByID: [UUID: (paper: Paper, date: Date?, url: URL, needsRewrite: Bool)] = [:]
+        for candidate in newestByPath.values {
+            if let existing = newestByID[candidate.paper.id],
+               let existingDate = existing.date,
+               let candidateDate = candidate.date,
+               candidateDate <= existingDate {
+                continue
+            }
+            newestByID[candidate.paper.id] = candidate
+        }
+
+        let dimensionCounts = Dictionary(
+            grouping: newestByID.values.map { $0.paper.embedding }.filter { !$0.isEmpty },
+            by: \.count
+        ).mapValues { $0.count }
+        canonicalEmbeddingDim = dimensionCounts
+            .sorted { lhs, rhs in
+                lhs.value == rhs.value ? lhs.key < rhs.key : lhs.value > rhs.value
+            }
+            .first?.key
+        for id in Array(newestByID.keys) {
+            guard var candidate = newestByID[id] else { continue }
+            candidate.paper.embedding = normalizeEmbedding(candidate.paper.embedding)
+            candidate.paper.noteEmbedding = normalizeEmbedding(candidate.paper.noteEmbedding ?? [])
+            newestByID[id] = candidate
+        }
+        let loaded = newestByID.values.map(\.paper).sorted { $0.title.localizedStandardCompare($1.title) == .orderedAscending }
         if !loaded.isEmpty {
             papers = loaded
             ingestionLog += "\nLoaded \(loaded.count) papers from disk (Output folder)."
             savePaperIndex()
 
-            let rewrites = newestByPath.values.filter { $0.needsRewrite }.map { ($0.paper, $0.url) }
+            let rewrites = newestByID.values.filter { $0.needsRewrite }.map { ($0.paper, $0.url) }
             if !rewrites.isEmpty {
                 Task.detached(priority: .utility) {
                     let encoder = JSONEncoder()
@@ -993,7 +1096,7 @@ final class AppModel: ObservableObject {
             }
         }
 
-        return Array(urls)
+        return urls.sorted { $0.path < $1.path }
     }
 
     // MARK: - Research projects (Paper -> Idea -> Feature -> Model -> Plan -> Outcome -> Feedback)
@@ -1092,6 +1195,35 @@ final class AppModel: ObservableObject {
         return url
     }
 
+    private func strategyPaperTitleMap() -> [UUID: String] {
+        Dictionary(papers.map { ($0.id, $0.title) }, uniquingKeysWith: { current, _ in current })
+    }
+
+    private func publishStrategyProject(_ project: StrategyProject, eventPaperID: UUID?, eventType: String) -> Bool {
+        do {
+            _ = try saveStrategyJSON(project)
+        } catch {
+            persistenceError = "The research project was not saved: \(error.localizedDescription)"
+            logger.error("[Projects] Failed to save project: \(error.localizedDescription, privacy: .private)")
+            return false
+        }
+
+        upsertStrategyProject(project)
+        persistenceError = nil
+        do {
+            _ = try StrategyMarkdownExporter.write(
+                project: project,
+                outputRoot: outputRoot,
+                paperTitlesByID: strategyPaperTitleMap()
+            )
+        } catch {
+            persistenceError = "The project was saved, but its Markdown note could not be refreshed: \(error.localizedDescription)"
+            logger.error("[Projects] Failed to refresh Markdown note: \(error.localizedDescription, privacy: .private)")
+        }
+        appendUserEvent(type: eventType, paperID: eventPaperID, extra: ["strategy_id": project.id.uuidString])
+        return true
+    }
+
     func createStrategyProject(from paperID: UUID) -> StrategyProject? {
         guard let paper = papers.first(where: { $0.id == paperID }) else { return nil }
 
@@ -1116,55 +1248,80 @@ final class AppModel: ObservableObject {
             tags: paper.tradingLens?.tradingTags
         )
         project.updatedAt = Date()
-        upsertStrategyProject(project)
-        _ = try? saveStrategyJSON(project)
-        let titleMap = Dictionary(uniqueKeysWithValues: papers.map { ($0.id, $0.title) })
-        _ = try? StrategyMarkdownExporter.write(project: project, outputRoot: outputRoot, paperTitlesByID: titleMap)
-        appendUserEvent(type: "strategy_project_created", paperID: paperID, extra: ["strategy_id": project.id.uuidString])
-        return project
+        return publishStrategyProject(project, eventPaperID: paperID, eventType: "strategy_project_created") ? project : nil
     }
 
-    func createEmptyStrategyProject(title: String = "New research project") -> StrategyProject {
+    func createEmptyStrategyProject(title: String = "New research project") -> StrategyProject? {
         var project = StrategyProject(title: title.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty ? "New research project" : title)
         project.updatedAt = Date()
-        upsertStrategyProject(project)
-        _ = try? saveStrategyJSON(project)
-        let titleMap = Dictionary(uniqueKeysWithValues: papers.map { ($0.id, $0.title) })
-        _ = try? StrategyMarkdownExporter.write(project: project, outputRoot: outputRoot, paperTitlesByID: titleMap)
-        appendUserEvent(type: "strategy_project_created", paperID: nil, extra: ["strategy_id": project.id.uuidString])
-        return project
+        return publishStrategyProject(project, eventPaperID: nil, eventType: "strategy_project_created") ? project : nil
     }
 
-    func updateStrategyProject(_ project: StrategyProject) {
+    @discardableResult
+    func updateStrategyProject(_ project: StrategyProject) -> Bool {
         var updated = project
         updated.updatedAt = Date()
-        upsertStrategyProject(updated)
-        _ = try? saveStrategyJSON(updated)
-        let titleMap = Dictionary(uniqueKeysWithValues: papers.map { ($0.id, $0.title) })
-        _ = try? StrategyMarkdownExporter.write(project: updated, outputRoot: outputRoot, paperTitlesByID: titleMap)
-        appendUserEvent(type: "strategy_project_updated", paperID: nil, extra: ["strategy_id": updated.id.uuidString])
+        return publishStrategyProject(updated, eventPaperID: nil, eventType: "strategy_project_updated")
     }
 
-    func deleteStrategyProject(_ strategyID: UUID) {
-        strategyProjects.removeAll(where: { $0.id == strategyID })
+    @discardableResult
+    func deleteStrategyProject(_ strategyID: UUID) -> Bool {
         let fm = FileManager.default
         let token = strategyID.uuidString
+        var jsonCandidates: [URL] = []
+        var markdownCandidates: [URL] = []
         for root in dataRoots {
             let folder = root.appendingPathComponent("strategies", isDirectory: true)
-            let candidates = (try? fm.contentsOfDirectory(at: folder, includingPropertiesForKeys: nil, options: [.skipsHiddenFiles])) ?? []
-            for url in candidates where url.lastPathComponent.contains(token) && url.lastPathComponent.hasSuffix(".strategy.json") {
-                try? fm.removeItem(at: url)
+            do {
+                let candidates = try fm.contentsOfDirectory(at: folder, includingPropertiesForKeys: nil, options: [.skipsHiddenFiles])
+                jsonCandidates.append(contentsOf: candidates.filter {
+                    $0.lastPathComponent.contains(token) && $0.lastPathComponent.hasSuffix(".strategy.json")
+                })
+            } catch {
+                persistenceError = "The research project could not be deleted: \(error.localizedDescription)"
+                logger.error("[Projects] Failed to inspect project storage: \(error.localizedDescription, privacy: .private)")
+                return false
             }
 
             let mdFolder = root
                 .appendingPathComponent("obsidian", isDirectory: true)
                 .appendingPathComponent("strategies", isDirectory: true)
-            let mdCandidates = (try? fm.contentsOfDirectory(at: mdFolder, includingPropertiesForKeys: nil, options: [.skipsHiddenFiles])) ?? []
-            for url in mdCandidates where url.lastPathComponent.contains(token) && url.lastPathComponent.hasSuffix(".md") {
-                try? fm.removeItem(at: url)
+            guard fm.fileExists(atPath: mdFolder.path) else { continue }
+            do {
+                let candidates = try fm.contentsOfDirectory(
+                    at: mdFolder,
+                    includingPropertiesForKeys: nil,
+                    options: [.skipsHiddenFiles]
+                )
+                markdownCandidates.append(contentsOf: candidates.filter {
+                    $0.lastPathComponent.contains(token) && $0.lastPathComponent.hasSuffix(".md")
+                })
+            } catch {
+                persistenceError = "The research project could not be deleted because its exported notes could not be inspected: \(error.localizedDescription)"
+                logger.error("[Projects] Failed to inspect project notes: \(error.localizedDescription, privacy: .private)")
+                return false
             }
         }
+
+        do {
+            // Derived notes go first: if canonical JSON removal later fails, the project
+            // remains published and the note can be regenerated from its source of truth.
+            for url in markdownCandidates {
+                try fm.removeItem(at: url)
+            }
+            for url in jsonCandidates {
+                try fm.removeItem(at: url)
+            }
+        } catch {
+            persistenceError = "The research project could not be deleted: \(error.localizedDescription)"
+            logger.error("[Projects] Failed to delete project data: \(error.localizedDescription, privacy: .private)")
+            return false
+        }
+
+        strategyProjects.removeAll(where: { $0.id == strategyID })
+        persistenceError = nil
         appendUserEvent(type: "strategy_project_deleted", paperID: nil, extra: ["strategy_id": strategyID.uuidString])
+        return true
     }
 
     func exportQuantKnowledgeGraphSnapshot() {
@@ -1581,10 +1738,8 @@ final class AppModel: ObservableObject {
         analyticsDepsInstallOutput = nil
 
         let repoRoot = outputRoot.deletingLastPathComponent()
-        let requirements = repoRoot.appendingPathComponent("analytics/requirements.txt")
-
         Task.detached { [weak self] in
-            let result: Result<(Int32, String, String), Error> = AppModel.runPython(arguments: ["-m", "pip", "install", "-r", requirements.path], cwd: repoRoot)
+            let result = AppModel.runUVSync(cwd: repoRoot)
             await MainActor.run { [weak self] in
                 guard let self else { return }
                 self.analyticsDepsInstallInFlight = false
@@ -1598,6 +1753,47 @@ final class AppModel: ObservableObject {
                 }
             }
         }
+    }
+
+    nonisolated private static func runUVSync(cwd repoRoot: URL) -> Result<(Int32, String, String), Error> {
+        let environment = ProcessInfo.processInfo.environment
+        var candidates: [URL] = []
+        if let override = environment["LITERATURE_ATLAS_UV"], !override.isEmpty {
+            candidates.append(URL(fileURLWithPath: override, relativeTo: repoRoot).standardizedFileURL)
+        }
+        candidates.append(contentsOf: [
+            URL(fileURLWithPath: "/opt/homebrew/bin/uv"),
+            URL(fileURLWithPath: "/usr/local/bin/uv"),
+            FileManager.default.homeDirectoryForCurrentUser.appendingPathComponent(".local/bin/uv"),
+        ])
+
+        var lastError: Error?
+        for candidate in candidates where FileManager.default.isExecutableFile(atPath: candidate.path) {
+            do {
+                let pipe = Pipe()
+                let process = Process()
+                process.executableURL = candidate
+                process.arguments = ["sync", "--project", "analytics", "--extra", "dev", "--frozen"]
+                process.standardOutput = pipe
+                process.standardError = pipe
+                process.currentDirectoryURL = repoRoot
+                try process.run()
+                let data = pipe.fileHandleForReading.readDataToEndOfFile()
+                process.waitUntilExit()
+                return .success((
+                    process.terminationStatus,
+                    String(data: data, encoding: .utf8) ?? "",
+                    candidate.path
+                ))
+            } catch {
+                lastError = error
+            }
+        }
+        return .failure(lastError ?? NSError(
+            domain: "LiteratureAtlas",
+            code: 2,
+            userInfo: [NSLocalizedDescriptionKey: "uv was not found; install uv or set LITERATURE_ATLAS_UV"]
+        ))
     }
 
     nonisolated private static func runPython(arguments: [String], cwd: URL) -> Result<(Int32, String, String), Error> {
@@ -1614,46 +1810,36 @@ final class AppModel: ObservableObject {
         }
 
         let fm = FileManager.default
-        var candidates: [CandidateKind] = []
-        var seen: Set<String> = []
-        func add(_ candidate: CandidateKind) {
-            let key = candidate.label
-            guard !seen.contains(key) else { return }
-            seen.insert(key)
-            candidates.append(candidate)
-        }
-
+        let candidate: CandidateKind
         if let override = ProcessInfo.processInfo.environment["LITERATURE_ATLAS_PYTHON"],
            !override.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty {
             if override.contains("/") {
                 let resolved: URL = override.hasPrefix("/") ? URL(fileURLWithPath: override) : cwd.appendingPathComponent(override)
-                if fm.fileExists(atPath: resolved.path) {
-                    add(.direct(resolved))
+                guard fm.isExecutableFile(atPath: resolved.path) else {
+                    return .failure(NSError(
+                        domain: "LiteratureAtlas",
+                        code: 2,
+                        userInfo: [NSLocalizedDescriptionKey: "LITERATURE_ATLAS_PYTHON is not executable: \(resolved.path)"]
+                    ))
                 }
+                candidate = .direct(resolved)
             } else {
-                add(.env(override))
+                candidate = .env(override)
             }
-        }
-
-        // Prefer repo-local virtual envs (but still allow fallbacks).
-        for rel in [".venv/bin/python3", ".venv/bin/python", "venv/bin/python3", "venv/bin/python"] {
-            let url = cwd.appendingPathComponent(rel)
-            if fm.fileExists(atPath: url.path) {
-                add(.direct(url))
+        } else {
+            let managedCandidates = [
+                cwd.appendingPathComponent("analytics/.venv/bin/python3"),
+                cwd.appendingPathComponent("analytics/.venv/bin/python"),
+            ]
+            guard let managed = managedCandidates.first(where: { fm.isExecutableFile(atPath: $0.path) }) else {
+                return .failure(NSError(
+                    domain: "LiteratureAtlas",
+                    code: 2,
+                    userInfo: [NSLocalizedDescriptionKey: "The frozen analytics/.venv Python is missing; install dependencies before running analytics"]
+                ))
             }
+            candidate = .direct(managed)
         }
-
-        // Common brew/system python paths.
-        for abs in ["/opt/homebrew/bin/python3", "/usr/local/bin/python3", "/usr/bin/python3"] {
-            let url = URL(fileURLWithPath: abs)
-            if fm.fileExists(atPath: url.path) {
-                add(.direct(url))
-            }
-        }
-
-        // Fall back to PATH resolution.
-        add(.env("python3"))
-        add(.env("python"))
 
         func run(candidate: CandidateKind) throws -> (Int32, String, String) {
             let pipe = Pipe()
@@ -1681,39 +1867,18 @@ final class AppModel: ObservableObject {
             return (process.terminationStatus, output, candidate.label)
         }
 
-        var best: (Int32, String, String)?
-        var lastError: Error?
-        for cand in candidates {
-            do {
-                let (status, output, label) = try run(candidate: cand)
-                if status == 0 {
-                    return .success((status, output, label))
-                }
-                // Keep the most informative output.
-                if best == nil || output.count > (best?.1.count ?? 0) {
-                    best = (status, output, label)
-                }
-            } catch {
-                lastError = error
-                continue
-            }
+        do {
+            return .success(try run(candidate: candidate))
+        } catch {
+            return .failure(error)
         }
-
-        if let best {
-            return .success(best)
-        }
-        return .failure(lastError ?? NSError(domain: "LiteratureAtlas", code: 1))
     }
 #endif
 
-    private func saveChunkIndex() {
+    private func saveChunkIndex(_ chunks: [PaperChunk]) throws {
         let url = outputRoot.appendingPathComponent("chunks", isDirectory: true).appendingPathComponent("chunks.json")
-        do {
-            let data = try JSONEncoder().encode(paperChunks)
-            try data.write(to: url, options: .atomic)
-        } catch {
-            logger.error("Failed to save chunks index: \(error.localizedDescription, privacy: .private)")
-        }
+        let data = try JSONEncoder().encode(chunks)
+        try data.write(to: url, options: .atomic)
     }
 
     private func loadSavedClustersIfNeeded() async {
@@ -1803,18 +1968,31 @@ final class AppModel: ObservableObject {
     // MARK: - Clustering
 
     func performClustering(k: Int) {
-        Task { await runClustering(k: k) }
+        clusteringTask?.cancel()
+        let runID = UUID()
+        activeClusteringRunID = runID
+        clusteringTask = Task { await runClustering(k: k, runID: runID) }
     }
 
     func cancelClustering() {
+        clusteringTask?.cancel()
+        clusteringTask = nil
+        activeClusteringRunID = nil
         clusteringCancellationRequested = true
         isClustering = false
         ingestionLog += "\nClustering cancelled."
     }
 
-    private func runClustering(k: Int) async {
-        guard !papers.isEmpty else { return }
+    private func runClustering(k: Int, runID: UUID) async {
+        guard activeClusteringRunID == runID, !Task.isCancelled, !papers.isEmpty else { return }
         clusteringCancellationRequested = false
+
+        defer {
+            if activeClusteringRunID == runID {
+                isClustering = false
+                clusteringTask = nil
+            }
+        }
 
         let corpusVersion = currentCorpusVersion()
         let clampedK = min(max(1, k), papers.count)
@@ -1829,9 +2007,6 @@ final class AppModel: ObservableObject {
 
         isClustering = true
         clusteringProgress = 0
-        clusters.removeAll()
-        selectedClusterIDs.removeAll()
-
         let validPapers = papers.filter { !$0.embedding.isEmpty }
         if validPapers.count < 2 {
             ingestionLog += "\nNot enough embedded papers to cluster."
@@ -1854,25 +2029,17 @@ final class AppModel: ObservableObject {
             let positions = ForceLayout.compute(for: centroids)
             return (assignments, centroids, positions)
         }.value
-        guard !clusteringCancellationRequested, !Task.isCancelled else {
-            isClustering = false
+        guard activeClusteringRunID == runID, !clusteringCancellationRequested, !Task.isCancelled else {
             return
         }
         let assignments = compute.assignments
         let centroids = compute.centroids
         let positions = compute.positions
 
-        for i in validPapers.indices {
-            if let originalIndex = papers.firstIndex(where: { $0.id == validPapers[i].id }) {
-                papers[originalIndex].clusterIndex = assignments[i]
-            }
-        }
-
         var newClusters: [Cluster] = []
 
         for clusterID in 0..<kClamped {
-            guard !clusteringCancellationRequested, !Task.isCancelled else {
-                isClustering = false
+            guard activeClusteringRunID == runID, !clusteringCancellationRequested, !Task.isCancelled else {
                 return
             }
             let memberIndices = assignments.enumerated().filter { $0.element == clusterID }.map { $0.offset }
@@ -1920,9 +2087,17 @@ final class AppModel: ObservableObject {
                 newClusters[idx].layoutPosition = positions[cid]
             }
         }
+        guard activeClusteringRunID == runID, !clusteringCancellationRequested, !Task.isCancelled else {
+            return
+        }
+        selectedClusterIDs.removeAll()
+        for i in validPapers.indices {
+            if let originalIndex = papers.firstIndex(where: { $0.id == validPapers[i].id }) {
+                papers[originalIndex].clusterIndex = assignments[i]
+            }
+        }
         clusters = newClusters.sorted { $0.id < $1.id }
         ingestionLog += "\nClustering and meta-summaries complete."
-        isClustering = false
         clusteringProgress = 1
         recomputeExplorationCache()
 
@@ -1937,9 +2112,25 @@ final class AppModel: ObservableObject {
     /// - Level 1: 10–20 subtopics within each mega-topic (local clustering).
     /// - Level 2: individual papers within subtopics (paper nodes are shown at high zoom).
     func buildMultiScaleGalaxy(level0Range: ClosedRange<Int> = 5...8, level1Range: ClosedRange<Int> = 10...20) async {
+        clusteringTask?.cancel()
+        let runID = UUID()
+        activeClusteringRunID = runID
+        await runMultiScaleGalaxy(level0Range: level0Range, level1Range: level1Range, runID: runID)
+    }
+
+    private func runMultiScaleGalaxy(
+        level0Range: ClosedRange<Int>,
+        level1Range: ClosedRange<Int>,
+        runID: UUID
+    ) async {
         clusteringCancellationRequested = false
         isClustering = true
         clusteringProgress = 0
+        defer {
+            if activeClusteringRunID == runID {
+                isClustering = false
+            }
+        }
         let validPapers = papers.filter { !$0.embedding.isEmpty }
         guard !validPapers.isEmpty else {
             isClustering = false
@@ -2037,8 +2228,7 @@ final class AppModel: ObservableObject {
             return GalaxyComputeResult(megaClusters: megaInfos, subclusters: subInfos, assignmentsByID: assignmentsByID)
         }.value
 
-        guard !clusteringCancellationRequested, !Task.isCancelled else {
-            isClustering = false
+        guard activeClusteringRunID == runID, !clusteringCancellationRequested, !Task.isCancelled else {
             return
         }
 
@@ -2052,7 +2242,9 @@ final class AppModel: ObservableObject {
         }
         papers = updatedPapers
 
-        let paperByID = Dictionary(uniqueKeysWithValues: updatedPapers.map { ($0.id, $0) })
+        let paperByID = updatedPapers.reduce(into: [UUID: Paper]()) { result, paper in
+            result[paper.id] = paper
+        }
 
         var preservedNames: [Int: (name: String, metaSummary: String, tradingLens: String?)] = [:]
         for mega in megaClusters {
@@ -2152,7 +2344,6 @@ final class AppModel: ObservableObject {
         clusteringProgress = 0.85
         persistGalaxySnapshot(version: corpusVersion, megaClusters: megaClusters)
 
-        isClustering = false
         clusteringProgress = 1
         recomputeExplorationCache()
         exportObsidianVaultArtifacts(force: false)
@@ -3439,47 +3630,46 @@ final class AppModel: ObservableObject {
     // MARK: - User data & planner
 
     func updatePaperUserData(id: UUID, notes: String, tags: [String], status: ReadingStatus?) {
-        Task { await embedNotesAndPersist(id: id, notes: notes, tags: tags, status: status) }
+        let key = PaperAsyncOperation.notes(id)
+        paperAsyncTasks[key]?.cancel()
+        paperAsyncTasks[key] = Task { await embedNotesAndPersist(id: id, notes: notes, tags: tags, status: status) }
     }
 
     private func embedNotesAndPersist(id: UUID, notes: String, tags: [String], status: ReadingStatus?) async {
-        guard let idx = papers.firstIndex(where: { $0.id == id }) else { return }
-        var updatedPaper = papers[idx]
+        guard papers.contains(where: { $0.id == id }) else { return }
+        let noteEmbedding: [Float]?
+        if !notes.isEmpty {
+            var emb = normalizeEmbedding(await embedder.encode(for: notes) ?? [])
+            if emb.isEmpty { emb = normalizeEmbedding(fallbackEmbedding(for: notes)) }
+            noteEmbedding = emb
+        } else {
+            noteEmbedding = nil
+        }
+
+        guard !Task.isCancelled,
+              let currentIndex = papers.firstIndex(where: { $0.id == id }) else { return }
+        var updatedPaper = papers[currentIndex]
         updatedPaper.userNotes = notes.isEmpty ? nil : notes
         updatedPaper.userTags = tags.isEmpty ? nil : tags
         updatedPaper.readingStatus = status
         let normalizedTags = tags.map { $0.lowercased() }
         updatedPaper.isImportant = normalizedTags.contains(where: { $0 == "important" || $0 == "starred" || $0 == "fav" || $0 == "favorite" })
-        if status == .done && updatedPaper.firstReadAt == nil {
-            updatedPaper.firstReadAt = Date()
-        }
-        if updatedPaper.ingestedAt == nil {
-            updatedPaper.ingestedAt = Date()
-        }
-
-        if let content = updatedPaper.userNotes, !content.isEmpty {
-            var emb = normalizeEmbedding(await embedder.encode(for: content) ?? [])
-            if emb.isEmpty { emb = normalizeEmbedding(fallbackEmbedding(for: content)) }
-            updatedPaper.noteEmbedding = emb
-        } else {
-            updatedPaper.noteEmbedding = nil
-        }
+        if status == .done && updatedPaper.firstReadAt == nil { updatedPaper.firstReadAt = Date() }
+        if updatedPaper.ingestedAt == nil { updatedPaper.ingestedAt = Date() }
+        updatedPaper.noteEmbedding = noteEmbedding
 
         do {
             _ = try savePaperJSON(updatedPaper)
-            papers[idx] = updatedPaper
+            guard !Task.isCancelled,
+                  let publishIndex = papers.firstIndex(where: { $0.id == id }) else { return }
+            papers[publishIndex] = updatedPaper
             persistenceError = nil
         } catch {
             persistenceError = "Your changes were not saved: \(error.localizedDescription)"
             logger.error("[Persistence] Failed to save paper user data: \(error.localizedDescription, privacy: .private)")
             return
         }
-        do {
-            _ = try PaperMarkdownExporter.write(paper: updatedPaper, outputRoot: outputRoot, context: paperObsidianContextSnapshot())
-        } catch {
-            persistenceError = "Paper data was saved, but the Markdown note could not be refreshed: \(error.localizedDescription)"
-            logger.error("[Persistence] Failed to refresh paper Markdown: \(error.localizedDescription, privacy: .private)")
-        }
+        refreshPaperMarkdownAfterSave(updatedPaper)
         savePaperIndex()
         await MainActor.run {
             recomputeReadingProfile(extra: nil)
@@ -3488,7 +3678,9 @@ final class AppModel: ObservableObject {
     }
 
     func generateFlashcards(for paperID: UUID) {
-        Task { await runFlashcards(for: paperID) }
+        let key = PaperAsyncOperation.flashcards(paperID)
+        paperAsyncTasks[key]?.cancel()
+        paperAsyncTasks[key] = Task { await runFlashcards(for: paperID) }
     }
 
     private func runFlashcards(for paperID: UUID) async {
@@ -3536,23 +3728,29 @@ final class AppModel: ObservableObject {
                     }
                 }
             }
-            papers[idx].flashcards = cards.isEmpty ? nil : cards
-            if var fcs = papers[idx].flashcards {
+            guard !Task.isCancelled,
+                  let currentIndex = papers.firstIndex(where: { $0.id == paperID }) else { return }
+            var updatedPaper = papers[currentIndex]
+            updatedPaper.flashcards = cards.isEmpty ? nil : cards
+            if var fcs = updatedPaper.flashcards {
                 for i in fcs.indices {
                     fcs[i].lastReviewedAt = nil
                     fcs[i].reviewCount = 0
                 }
-                papers[idx].flashcards = fcs
+                updatedPaper.flashcards = fcs
             }
-            _ = try? savePaperJSON(papers[idx])
-            _ = try? PaperMarkdownExporter.write(paper: papers[idx], outputRoot: outputRoot, context: paperObsidianContextSnapshot())
+            _ = try savePaperJSON(updatedPaper)
+            papers[currentIndex] = updatedPaper
+            refreshPaperMarkdownAfterSave(updatedPaper)
         } catch {
             ingestionLog += "\nFlashcards failed for \(paper.title): \(error.localizedDescription)"
         }
     }
 
     func generateStudyQuestions(for paperID: UUID) {
-        Task { await runStudyQuestions(for: paperID) }
+        let key = PaperAsyncOperation.studyQuestions(paperID)
+        paperAsyncTasks[key]?.cancel()
+        paperAsyncTasks[key] = Task { await runStudyQuestions(for: paperID) }
     }
 
     private func runStudyQuestions(for paperID: UUID) async {
@@ -3576,9 +3774,13 @@ final class AppModel: ObservableObject {
                 .split(whereSeparator: { $0.isNewline })
                 .map { $0.trimmingCharacters(in: CharacterSet.whitespacesAndNewlines) }
                 .filter { !$0.isEmpty }
-            papers[idx].userQuestions = questions
-            _ = try? savePaperJSON(papers[idx])
-            _ = try? PaperMarkdownExporter.write(paper: papers[idx], outputRoot: outputRoot, context: paperObsidianContextSnapshot())
+            guard !Task.isCancelled,
+                  let currentIndex = papers.firstIndex(where: { $0.id == paperID }) else { return }
+            var updatedPaper = papers[currentIndex]
+            updatedPaper.userQuestions = questions
+            _ = try savePaperJSON(updatedPaper)
+            papers[currentIndex] = updatedPaper
+            refreshPaperMarkdownAfterSave(updatedPaper)
         } catch {
             ingestionLog += "\nQuestion generation failed for \(paper.title): \(error.localizedDescription)"
         }
@@ -3588,7 +3790,9 @@ final class AppModel: ObservableObject {
     }
 
     func generateTradingLens(for paperID: UUID) {
-        Task { await runTradingLens(for: paperID) }
+        let key = PaperAsyncOperation.tradingLens(paperID)
+        paperAsyncTasks[key]?.cancel()
+        paperAsyncTasks[key] = Task { await runTradingLens(for: paperID) }
     }
 
     func backfillTradingLensForMissingPapers(limit: Int? = nil) {
@@ -3664,11 +3868,15 @@ final class AppModel: ObservableObject {
                 summary: paper.summary,
                 takeaways: paper.takeaways
             )
-            papers[idx].tradingLens = lens
-            papers[idx].tradingScores = lens.scores
+            guard !Task.isCancelled,
+                  let currentIndex = papers.firstIndex(where: { $0.id == paperID }) else { return }
+            var updatedPaper = papers[currentIndex]
+            updatedPaper.tradingLens = lens
+            updatedPaper.tradingScores = lens.scores
             tradingLensFailures.removeValue(forKey: paperID)
-            _ = try? savePaperJSON(papers[idx])
-            _ = try? PaperMarkdownExporter.write(paper: papers[idx], outputRoot: outputRoot, context: paperObsidianContextSnapshot())
+            _ = try savePaperJSON(updatedPaper)
+            papers[currentIndex] = updatedPaper
+            refreshPaperMarkdownAfterSave(updatedPaper)
             appendUserEvent(type: "trading_lens_ready", paperID: paperID, extra: [:])
         } catch {
             ingestionLog += "\nInsight brief failed for \(paper.title): \(error.localizedDescription)"
@@ -3677,7 +3885,9 @@ final class AppModel: ObservableObject {
     }
 
     func generateStrategyBlueprint(for paperID: UUID) {
-        Task { await runStrategyBlueprint(for: paperID) }
+        let key = PaperAsyncOperation.strategyBlueprint(paperID)
+        paperAsyncTasks[key]?.cancel()
+        paperAsyncTasks[key] = Task { await runStrategyBlueprint(for: paperID) }
     }
 
     private func runStrategyBlueprint(for paperID: UUID) async {
@@ -3742,10 +3952,14 @@ final class AppModel: ObservableObject {
         do {
             let session = LanguageModelSession(instructions: instructions)
             let response = try await session.respond(to: prompt)
-            papers[idx].strategyBlueprint = response.content.trimmingCharacters(in: .whitespacesAndNewlines)
-            papers[idx].backtestAudit = nil
-            _ = try? savePaperJSON(papers[idx])
-            _ = try? PaperMarkdownExporter.write(paper: papers[idx], outputRoot: outputRoot, context: paperObsidianContextSnapshot())
+            guard !Task.isCancelled,
+                  let currentIndex = papers.firstIndex(where: { $0.id == paperID }) else { return }
+            var updatedPaper = papers[currentIndex]
+            updatedPaper.strategyBlueprint = response.content.trimmingCharacters(in: .whitespacesAndNewlines)
+            updatedPaper.backtestAudit = nil
+            _ = try savePaperJSON(updatedPaper)
+            papers[currentIndex] = updatedPaper
+            refreshPaperMarkdownAfterSave(updatedPaper)
             appendUserEvent(type: "strategy_blueprint_ready", paperID: paperID, extra: [:])
         } catch {
             ingestionLog += "\nResearch plan failed for \(paper.title): \(error.localizedDescription)"
@@ -3753,7 +3967,9 @@ final class AppModel: ObservableObject {
     }
 
     func auditBacktest(for paperID: UUID) {
-        Task { await runBacktestAudit(for: paperID) }
+        let key = PaperAsyncOperation.backtestAudit(paperID)
+        paperAsyncTasks[key]?.cancel()
+        paperAsyncTasks[key] = Task { await runBacktestAudit(for: paperID) }
     }
 
     private func runBacktestAudit(for paperID: UUID) async {
@@ -3796,9 +4012,13 @@ final class AppModel: ObservableObject {
         do {
             let session = LanguageModelSession(instructions: instructions)
             let response = try await session.respond(to: prompt)
-            papers[idx].backtestAudit = response.content.trimmingCharacters(in: .whitespacesAndNewlines)
-            _ = try? savePaperJSON(papers[idx])
-            _ = try? PaperMarkdownExporter.write(paper: papers[idx], outputRoot: outputRoot, context: paperObsidianContextSnapshot())
+            guard !Task.isCancelled,
+                  let currentIndex = papers.firstIndex(where: { $0.id == paperID }) else { return }
+            var updatedPaper = papers[currentIndex]
+            updatedPaper.backtestAudit = response.content.trimmingCharacters(in: .whitespacesAndNewlines)
+            _ = try savePaperJSON(updatedPaper)
+            papers[currentIndex] = updatedPaper
+            refreshPaperMarkdownAfterSave(updatedPaper)
             appendUserEvent(type: "backtest_audit_ready", paperID: paperID, extra: [:])
         } catch {
             ingestionLog += "\nPlan audit failed for \(paper.title): \(error.localizedDescription)"
@@ -4189,8 +4409,11 @@ final class AppModel: ObservableObject {
             }
         }
 
-        let fileName = question.replacingOccurrences(of: "/", with: "-").prefix(40)
-        let qaURL = outputRoot.appendingPathComponent("qa", isDirectory: true).appendingPathComponent("QA_\(fileName).txt")
+        let questionDigest = SHA256.hash(data: Data(question.utf8))
+            .prefix(12)
+            .map { String(format: "%02x", $0) }
+            .joined()
+        let qaURL = outputRoot.appendingPathComponent("qa", isDirectory: true).appendingPathComponent("QA_\(questionDigest).txt")
         do {
             if let data = questionAnswer.data(using: .utf8) {
                 try data.write(to: qaURL, options: .atomic)

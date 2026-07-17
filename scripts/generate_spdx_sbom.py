@@ -93,7 +93,11 @@ def build_source_document(
 ) -> dict[str, Any]:
     root = root.resolve()
     resolved_files = sorted(
-        (root / path for path in paths if (root / path).is_file()),
+        (
+            root / path
+            for path in paths
+            if (root / path).is_file() and not (root / path).is_symlink()
+        ),
         key=lambda path: path.relative_to(root).as_posix(),
     )
     files = [file_entry(root, path) for path in resolved_files]
@@ -126,9 +130,26 @@ def build_artifact_document(
             key=lambda path: path.relative_to(app).as_posix(),
         )
     ]
-    artifact_digest = hashlib.sha256(
-        "".join(item["checksums"][0]["checksumValue"] for item in files).encode("ascii")
-    ).hexdigest()
+    artifact_state = hashlib.sha256()
+    for candidate in sorted(
+        app.rglob("*"), key=lambda path: path.relative_to(app).as_posix()
+    ):
+        relative = candidate.relative_to(app).as_posix()
+        stat_result = candidate.lstat()
+        artifact_state.update(relative.encode("utf-8"))
+        artifact_state.update(b"\0")
+        artifact_state.update(oct(stat_result.st_mode & 0o7777).encode("ascii"))
+        artifact_state.update(b"\0")
+        if candidate.is_symlink():
+            artifact_state.update(b"symlink\0")
+            artifact_state.update(os.readlink(candidate).encode("utf-8"))
+        elif candidate.is_file():
+            artifact_state.update(b"file\0")
+            artifact_state.update(sha256(candidate).encode("ascii"))
+        elif candidate.is_dir():
+            artifact_state.update(b"directory")
+        artifact_state.update(b"\0")
+    artifact_digest = artifact_state.hexdigest()
     document = base_document(
         app.name,
         f"{REPOSITORY}/sbom/artifact/{artifact_digest}",
@@ -185,11 +206,25 @@ def source_inventory_revision(root: pathlib.Path, paths: Iterable[pathlib.Path])
     digest = hashlib.sha256()
     for relative in sorted(paths, key=lambda path: path.as_posix()):
         absolute = root / relative
-        if not absolute.is_file():
-            continue
         digest.update(relative.as_posix().encode("utf-8"))
         digest.update(b"\0")
-        digest.update(sha256(absolute).encode("ascii"))
+        try:
+            stat_result = absolute.lstat()
+        except FileNotFoundError:
+            digest.update(b"missing\0")
+            continue
+        digest.update(oct(stat_result.st_mode & 0o7777).encode("ascii"))
+        digest.update(b"\0")
+        if absolute.is_symlink():
+            digest.update(b"symlink\0")
+            digest.update(os.readlink(absolute).encode("utf-8"))
+        elif absolute.is_file():
+            digest.update(b"file\0")
+            digest.update(sha256(absolute).encode("ascii"))
+        elif absolute.is_dir():
+            digest.update(b"directory")
+        else:
+            digest.update(b"other")
         digest.update(b"\0")
     return f"tracked-source-sha256-{digest.hexdigest()}"
 
@@ -197,7 +232,11 @@ def source_inventory_revision(root: pathlib.Path, paths: Iterable[pathlib.Path])
 def reproducible_created_at() -> str:
     raw_epoch = os.environ.get("SOURCE_DATE_EPOCH")
     if raw_epoch is None:
-        return "2026-07-16T00:00:00Z"
+        return (
+            datetime.datetime.now(tz=datetime.timezone.utc)
+            .isoformat(timespec="seconds")
+            .replace("+00:00", "Z")
+        )
     try:
         epoch = int(raw_epoch)
     except ValueError as error:

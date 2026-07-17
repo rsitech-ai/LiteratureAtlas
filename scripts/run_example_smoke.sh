@@ -3,7 +3,7 @@ set -euo pipefail
 
 usage() {
   cat <<'EOF'
-Usage: scripts/run_example_smoke.sh --source DIR [--count N] [--seed S]
+Usage: scripts/run_example_smoke.sh --source DIR [--count N] [--seed S] [--keep-workspace]
 
 Runs an end-to-end smoke flow on a random sample of PDFs:
 1) Select N random PDFs from an explicitly supplied authorized source folder
@@ -21,6 +21,7 @@ EOF
 COUNT=10
 SEED=""
 SOURCE_DIR=""
+KEEP_WORKSPACE=false
 
 while [[ $# -gt 0 ]]; do
   case "$1" in
@@ -35,6 +36,10 @@ while [[ $# -gt 0 ]]; do
     --source)
       SOURCE_DIR="${2:-}"
       shift 2
+      ;;
+    --keep-workspace)
+      KEEP_WORKSPACE=true
+      shift
       ;;
     -h|--help)
       usage
@@ -73,6 +78,12 @@ if [[ ! -d "${SOURCE_PATH}" ]]; then
 fi
 
 SMOKE_ROOT="$(mktemp -d "${TMPDIR:-/tmp}/literatureatlas_smoke.XXXXXX")"
+cleanup() {
+  if [[ "${KEEP_WORKSPACE}" = false ]]; then
+    rm -rf "${SMOKE_ROOT}"
+  fi
+}
+trap cleanup EXIT
 SMOKE_BASE="${SMOKE_ROOT}/base"
 SMOKE_INPUT="${SMOKE_ROOT}/input"
 SMOKE_OUTPUT="${SMOKE_BASE}/Output"
@@ -170,6 +181,10 @@ echo "[smoke] topic thresholds: min_topic_size=${MIN_TOPIC_SIZE}, min_primary_to
 )
 
 echo "[smoke] complete"
-echo "[smoke] sampled input: ${SMOKE_INPUT}"
-echo "[smoke] output root: ${SMOKE_OUTPUT}"
-echo "[smoke] reports: ${SMOKE_OUTPUT}/reports"
+if [[ "${KEEP_WORKSPACE}" = true ]]; then
+  echo "[smoke] sampled input: ${SMOKE_INPUT}"
+  echo "[smoke] output root: ${SMOKE_OUTPUT}"
+  echo "[smoke] reports: ${SMOKE_OUTPUT}/reports"
+else
+  echo "[smoke] temporary sampled PDFs and outputs will be removed"
+fi
