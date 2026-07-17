@@ -32,11 +32,12 @@ Key outputs
 
 ## Dependencies
 ```bash
-pip install -r analytics/requirements.txt
-# or with uv:
-# uv venv && uv pip install -r analytics/requirements.txt
+# from the repository root; installs the exact audited lockfile
+uv sync --project analytics --extra dev --frozen
 ```
-- duckdb>=1.0.0, numpy>=1.26, pandas>=2.0, scikit-learn>=1.5, pyarrow>=14.0.0
+- Runtime and development dependency versions are resolved in `analytics/uv.lock`.
+- DuckDB follows the 1.4 LTS line and is pinned to its audited patch release.
+- Audit the synchronized environment with `uv run --project analytics --extra dev --frozen pip-audit --local`.
 
 ## Script options (rebuild_analytics.py)
 - `--base / --root` : repo root (default: script parent).

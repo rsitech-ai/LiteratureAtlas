@@ -163,16 +163,49 @@ def _optional_text(value: Any, default: str | None = None) -> str | None:
     return value if isinstance(value, str) else default
 
 
+def _optional_float(value: Any) -> float | None:
+    if isinstance(value, bool) or not isinstance(value, (int, float)):
+        return None
+    normalized = float(value)
+    return normalized if math.isfinite(normalized) else None
+
+
 def _string_list(value: Any) -> list[str]:
     if not isinstance(value, list):
         return []
     return [item for item in value if isinstance(item, str)]
 
 
-def _dict_list(value: Any) -> list[dict[str, Any]] | None:
+def _normalized_claims(value: Any, source_path: pathlib.Path) -> list[dict[str, Any]] | None:
     if not isinstance(value, list):
         return None
-    return [item for item in value if isinstance(item, dict)]
+    claims: list[dict[str, Any]] = []
+    for index, item in enumerate(value):
+        if not isinstance(item, dict):
+            _logger.warning("Skipping claim %d in %s because it is not an object", index, source_path)
+            continue
+        statement = item.get("statement")
+        if not isinstance(statement, str) or not statement.strip():
+            _logger.warning("Skipping claim %d in %s because it is missing a text statement", index, source_path)
+            continue
+
+        normalized = dict(item)
+        normalized["statement"] = statement.strip()
+        normalized["assumptions"] = _string_list(item.get("assumptions"))
+        if "year" in item:
+            year = _optional_int(item.get("year"))
+            if year is None:
+                normalized.pop("year", None)
+            else:
+                normalized["year"] = year
+        if "strength" in item:
+            strength = _optional_float(item.get("strength"))
+            if strength is None:
+                normalized.pop("strength", None)
+            else:
+                normalized["strength"] = strength
+        claims.append(normalized)
+    return claims
 
 
 def load_papers(papers_dir: pathlib.Path) -> tuple[list[PaperRow], list[list[float]], list[dict[str, Any]]]:
@@ -316,7 +349,7 @@ def load_papers(papers_dir: pathlib.Path) -> tuple[list[PaperRow], list[list[flo
                 primary_cluster_k10=primary_k10,
                 primary_cluster_k50=primary_k50,
                 tags=_string_list(data.get("userTags") or data.get("keywords")),
-                claims=_dict_list(data.get("claims")),
+                claims=_normalized_claims(data.get("claims"), path),
                 method_pipeline=data.get("methodPipeline") if isinstance(data.get("methodPipeline"), dict) else None,
                 assumptions=_string_list(data.get("assumptions")),
                 page_count=_optional_int(data.get("pageCount")),
@@ -367,7 +400,51 @@ def load_chunks(chunks_path: pathlib.Path) -> list[dict[str, Any]]:
     data = _read_json_file(chunks_path)
     if not isinstance(data, list):
         return []
-    return [chunk for chunk in data if isinstance(chunk, dict) and chunk.get("embedding")]
+    chunks: list[dict[str, Any]] = []
+    for index, chunk in enumerate(data):
+        if not isinstance(chunk, dict):
+            _logger.warning("Skipping chunk %d in %s because it is not an object", index, chunks_path)
+            continue
+        paper_id = chunk.get("paperID") or chunk.get("paper_id")
+        if not isinstance(paper_id, str) or not paper_id.strip():
+            _logger.warning("Skipping chunk %d in %s because it is missing a valid paper id", index, chunks_path)
+            continue
+        embedding = chunk.get("embedding")
+        if (
+            not isinstance(embedding, list)
+            or not embedding
+            or any(isinstance(value, bool) or not isinstance(value, (int, float)) for value in embedding)
+        ):
+            _logger.warning("Skipping chunk %d in %s because it has an invalid embedding", index, chunks_path)
+            continue
+        numeric_embedding = [float(value) for value in embedding]
+        if not all(math.isfinite(value) for value in numeric_embedding):
+            _logger.warning("Skipping chunk %d in %s because its embedding is non-finite", index, chunks_path)
+            continue
+
+        raw_order = chunk.get("order", 0)
+        order = _optional_int(raw_order)
+        if order is None:
+            _logger.warning("Skipping chunk %d in %s because it has an invalid order", index, chunks_path)
+            continue
+        text = chunk.get("text", "")
+        if not isinstance(text, str):
+            _logger.warning("Skipping chunk %d in %s because its text is not a string", index, chunks_path)
+            continue
+
+        normalized = dict(chunk)
+        normalized["paperID"] = paper_id.strip()
+        normalized["embedding"] = numeric_embedding
+        normalized["order"] = order
+        normalized["text"] = text
+        if "pageHint" in chunk:
+            page_hint = _optional_int(chunk.get("pageHint"))
+            if page_hint is None:
+                normalized.pop("pageHint", None)
+            else:
+                normalized["pageHint"] = page_hint
+        chunks.append(normalized)
+    return chunks
 
 
 def load_user_events(output_root: pathlib.Path) -> list[dict[str, Any]]:
@@ -642,9 +719,23 @@ def whiten_embeddings(embeddings: np.ndarray, max_components: int = 128) -> tupl
         return embeddings, None
     if embeddings.shape[0] == 1:
         return np.zeros((1, 1), dtype=np.float32), None
-    k = min(max_components, embeddings.shape[0], embeddings.shape[1])
-    pca = PCA(n_components=k, whiten=True, random_state=0)
-    Z = pca.fit_transform(embeddings)
+    centered = embeddings - embeddings.mean(axis=0, keepdims=True)
+    if not np.any(centered):
+        return np.zeros((embeddings.shape[0], 1), dtype=np.float32), None
+    k = min(max_components, embeddings.shape[0] - 1, embeddings.shape[1])
+    if k <= 0:
+        return np.zeros((embeddings.shape[0], 1), dtype=np.float32), None
+
+    pca = PCA(n_components=k, whiten=True, random_state=0).fit(embeddings)
+    variances = np.asarray(pca.explained_variance_)
+    max_variance = float(np.max(variances)) if variances.size else 0.0
+    tolerance = np.finfo(variances.dtype).eps * max(embeddings.shape) * max_variance
+    effective_rank = int(np.count_nonzero(variances > tolerance))
+    if effective_rank == 0:
+        return np.zeros((embeddings.shape[0], 1), dtype=np.float32), None
+    if effective_rank < k:
+        pca = PCA(n_components=effective_rank, whiten=True, random_state=0).fit(embeddings)
+    Z = pca.transform(embeddings)
     return Z.astype(np.float32), pca
 
 
@@ -1116,7 +1207,9 @@ def compute_factor_loadings(
     if tfidf_mat is not None and tfidf_mat.shape[0] >= 3 and tfidf_mat.shape[1] >= 4:
         nmf = NMF(
             n_components=min(n_factors, tfidf_mat.shape[1], tfidf_mat.shape[0]),
-            init="nndsvda",
+            # Randomized NNDSVD zero filling avoids degenerate reconstruction-error
+            # arithmetic for rank-deficient tag corpora while remaining deterministic.
+            init="nndsvdar",
             random_state=0,
             max_iter=300,
         )
@@ -1224,27 +1317,32 @@ def factor_exposures_from_reads(
 
 
 def build_knn(embeddings: np.ndarray, paper_ids: list[str], k: int = 8) -> list[dict[str, Any]]:
-    # Normalize to unit vectors for cosine similarity.
-    norms = np.linalg.norm(embeddings, axis=1, keepdims=True)
-    norms[norms == 0] = 1.0
-    X = embeddings / norms
-    sims = X @ X.T
-    np.fill_diagonal(sims, -np.inf)
-
     n = len(paper_ids)
+    if embeddings.shape[0] != n:
+        raise ValueError("embedding row count must match paper_ids")
     k_eff = max(0, min(k, n - 1))
+    if k_eff == 0:
+        return [{"paper_id": pid, "neighbors": []} for pid in paper_ids]
 
-    neighbors: list[dict[str, Any]] = []
-    for i, pid in enumerate(paper_ids):
-        row = sims[i]
-        if k_eff == 0:
-            top = []
-        else:
-            idx = np.argpartition(-row, k_eff)[:k_eff]
-            ordered = idx[np.argsort(-row[idx])]
-            top = [{"paper_id": paper_ids[j], "score": float(row[j])} for j in ordered if not math.isnan(row[j])]
-        neighbors.append({"paper_id": pid, "neighbors": top})
-    return neighbors
+    model = NearestNeighbors(n_neighbors=k_eff + 1, metric="cosine", algorithm="brute")
+    model.fit(embeddings)
+    distances, indices = model.kneighbors(embeddings, return_distance=True)
+
+    result: list[dict[str, Any]] = []
+    for row_index, pid in enumerate(paper_ids):
+        top: list[dict[str, Any]] = []
+        for distance, neighbor_index_raw in zip(distances[row_index], indices[row_index], strict=True):
+            neighbor_index = int(neighbor_index_raw)
+            if neighbor_index == row_index:
+                continue
+            similarity = 1.0 - float(distance)
+            if not math.isfinite(similarity):
+                continue
+            top.append({"paper_id": paper_ids[neighbor_index], "score": similarity})
+            if len(top) >= k_eff:
+                break
+        result.append({"paper_id": pid, "neighbors": top})
+    return result
 
 
 def cluster_stability_and_boundary(
@@ -1564,22 +1662,20 @@ def combinational_novelty(df_papers: pd.DataFrame) -> dict[str, float]:
     vocab: list[str] = sorted({t for s in tag_sets for t in s})
     if not vocab:
         return {row.paper_id: 0.0 for _, row in df_papers.iterrows()}
-    idx = {t: i for i, t in enumerate(vocab)}
     n = len(tag_sets)
-    freq = np.zeros(len(vocab), dtype=np.float64)
-    pair_freq = np.zeros((len(vocab), len(vocab)), dtype=np.float64)
+    freq: Counter[str] = Counter()
+    pair_freq: Counter[tuple[str, str]] = Counter()
 
     for s in tag_sets:
         for t in s:
-            freq[idx[t]] += 1
+            freq[t] += 1
         for a in s:
             for b in s:
                 if a == b:
                     continue
-                pair_freq[idx[a], idx[b]] += 1
+                pair_freq[(a, b)] += 1
 
-    p = (freq + 1) / (n + 2)  # Laplace smoothing
-    p_pair = (pair_freq + 1) / (n + 2)
+    p = {tag: (freq[tag] + 1) / (n + 2) for tag in vocab}  # Laplace smoothing
 
     scores: dict[str, float] = {}
     eps = 1e-9
@@ -1589,14 +1685,14 @@ def combinational_novelty(df_papers: pd.DataFrame) -> dict[str, float]:
             continue
         log_p0 = 0.0
         for t in tags:
-            log_p0 += math.log(p[idx[t]])
+            log_p0 += math.log(p[t])
         # empirical combo via average pairwise probability
         pairs = [(a, b) for a in tags for b in tags if a != b]
         if pairs:
-            vals = [p_pair[idx[a], idx[b]] for a, b in pairs]
+            vals = [(pair_freq[(a, b)] + 1) / (n + 2) for a, b in pairs]
             p_emp = sum(vals) / len(vals)
         else:
-            p_emp = min(p[idx[t]] for t in tags)
+            p_emp = min(p[t] for t in tags)
         n_comb = -math.log((p_emp + eps) / (math.exp(log_p0) + eps))
         scores[row.paper_id] = float(n_comb)
     return scores
@@ -1764,7 +1860,7 @@ def drift_contribution(
             continue
         align = float(np.dot(v, drift_vec) / (norm_v * norm_d))
         attention = influence_map.get(pid, 1.0)
-        contrib[pid] = align * norm_v * attention
+        contrib[pid] = float(align * norm_v * attention)
     return contrib
 
 
@@ -3642,11 +3738,18 @@ def claim_similarity_edges(
     Nearest-neighbor queries avoid materializing the dense all-pairs similarity
     matrix. At most ``max_neighbors`` candidates are considered per claim.
     """
-    if len(claims) < 2 or max_neighbors <= 0:
+    if max_neighbors <= 0:
         return []
-    texts = [c.get("statement", "") or "" for c in claims]
-    years = [c.get("year") for c in claims]
-    paper_ids = [c.get("paper_id") for c in claims]
+    valid_claims = [
+        claim
+        for claim in claims
+        if isinstance(claim, dict) and isinstance(claim.get("statement"), str) and claim["statement"].strip()
+    ]
+    if len(valid_claims) < 2:
+        return []
+    texts = [claim["statement"].strip() for claim in valid_claims]
+    years = [_optional_int(claim.get("year")) for claim in valid_claims]
+    paper_ids = [claim.get("paper_id") for claim in valid_claims]
     tfidf = TfidfVectorizer(max_features=1500, ngram_range=(1, 2))
     try:
         mat = tfidf.fit_transform(texts)
@@ -3892,10 +3995,13 @@ def persist_duckdb(
     embeddings: np.ndarray,
     chunks: list[dict[str, Any]],
     extra_tables: dict[str, pd.DataFrame] | None = None,
+    *,
+    parquet_dir: pathlib.Path | None = None,
 ):
+    db_path.parent.mkdir(parents=True, exist_ok=True)
     con = duckdb.connect(str(db_path))
     try:
-        _persist_duckdb_connection(con, db_path, df_papers, embeddings, chunks, extra_tables)
+        _persist_duckdb_connection(con, db_path, df_papers, embeddings, chunks, extra_tables, parquet_dir)
     finally:
         con.close()
 
@@ -3907,6 +4013,7 @@ def _persist_duckdb_connection(
     embeddings: np.ndarray,
     chunks: list[dict[str, Any]],
     extra_tables: dict[str, pd.DataFrame] | None,
+    parquet_dir: pathlib.Path | None,
 ) -> None:
     # Papers (metadata only)
     con.register("df_papers", df_papers)
@@ -3975,7 +4082,7 @@ def _persist_duckdb_connection(
     con.execute("CREATE OR REPLACE TABLE methods AS SELECT * FROM df_methods")
 
     # Export quick Parquet snapshots for notebooks / Swift reloads.
-    out_dir = db_path.parent / "analytics"
+    out_dir = parquet_dir if parquet_dir is not None else db_path.parent / "analytics"
     out_dir.mkdir(parents=True, exist_ok=True)
     con.execute("COPY papers TO ? (FORMAT PARQUET, CODEC 'ZSTD')", [str(out_dir / "papers.parquet")])
     con.execute(
@@ -4465,7 +4572,14 @@ def main():
         if stress_rows:
             extra_tables["stress_tests"] = pd.DataFrame(stress_rows)
 
-    persist_duckdb(db_path, df_papers, embeddings, chunks, extra_tables=extra_tables)
+    persist_duckdb(
+        db_path,
+        df_papers,
+        embeddings,
+        chunks,
+        extra_tables=extra_tables,
+        parquet_dir=paths["analytics_dir"],
+    )
 
     summary = {
         "generated_at": dt.datetime.now(dt.timezone.utc).strftime("%Y-%m-%dT%H:%M:%SZ"),

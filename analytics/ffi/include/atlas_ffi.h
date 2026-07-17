@@ -30,7 +30,9 @@ uint32_t atlas_query_index_v2(void* index_ptr, const float* query_ptr, uint32_t 
 // out_ptr must hold n_nodes floats.
 uint32_t atlas_betweenness(uint32_t n_nodes, uint32_t n_edges, const AtlasEdge* edges_ptr, float* out_ptr);
 
-// Connected components; out_ptr must hold n_nodes u32 ids; returns component count.
+// Connected components over finite, non-negative-weight edges. Connectivity depends on edge
+// presence, so zero-weight edges connect their endpoints. out_ptr must hold n_nodes u32 ids;
+// returns component count.
 uint32_t atlas_connected_components(uint32_t n_nodes, uint32_t n_edges, const AtlasEdge* edges_ptr, uint32_t* out_ptr);
 
 #ifdef __cplusplus
