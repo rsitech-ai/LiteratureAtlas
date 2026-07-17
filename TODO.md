@@ -1,29 +1,28 @@
 # TODO
 
 ## Tasks
-- [x] Baseline inventory and current-doc map (DoD: targets, dependencies, services, flows, external gates, and official sources are recorded in the audit report)
-- [x] Static architecture/correctness/security review (DoD: all production Swift/Python/Rust/release/workflow paths are reviewed and every material finding has file/line evidence)
-- [x] Fresh local quality matrix (DoD: relevant format, lint, build, test, dependency, release-policy, SBOM, and warning gates pass or have exact blockers)
-- [x] Native macOS E2E matrix (DoD: a freshly built app exercises all reachable primary surfaces, reversible edge paths, relaunch persistence, and focused logs with evidence)
-- [x] Fix reproduced repository-owned defects (DoD: each fix has focused failing proof before and passing proof after, plus parent-workflow verification)
-- [x] Performance/accessibility/polish pass (DoD: release-relevant launch, interaction, resizing, motion, contrast, keyboard, labels/help, and log behavior are verified or explicitly blocked)
-- [x] Audit and security reports (DoD: July 17 reports contain commands, sources, scenario results, findings/fixes, remaining risks, and the weakest truthful readiness label)
-- [x] Memory update (DoD: `MEMORY.md` contains any new durable knowledge and no task-history noise)
-- [x] Independent review and final local ship gate (DoD: no unresolved blocker/high/important finding; full diff and fresh verification matrix are clean)
-- [x] Publish reviewed PR (DoD: intentional commits are pushed, PR is reviewed, hosted checks pass, actionable feedback is resolved, and the approved head is merged)
-- [x] Verify exact merged `main` (DoD: local `main`, `origin/main`, PR merge tree, and required post-merge commands agree)
+- [x] Swift source access and persistence integrity (DoD: iPad/macOS bookmarks survive relaunch; pin/rename/review writes are transactional and surface failures; focused tests pass)
+- [x] Swift cancellation and model-degraded operation (DoD: expensive clustering/layout work cooperatively stops and the corpus remains readable when generation is unavailable; focused tests pass)
+- [x] Analytics input/freshness integrity (DoD: duplicate/malformed/non-finite/stale analytics fail safely with actionable UI, current data loads, and no trapping dictionaries remain)
+- [x] Python analytics correctness and scalability (DoD: rank-deficient PCA, nested claims, malformed chunks, custom DB paths, separability errors, and kNN scale have red-green regressions)
+- [x] Rust FFI graph contract (DoD: zero-weight edge presence is consistent with the public non-negative contract and strict Rust gates pass)
+- [x] SwiftUI correctness and accessibility (DoD: stable identities, bounded layouts/charts, correct year semantics, action labels/help, native commands, and no render-time filesystem scans on audited surfaces)
+- [x] Runtime performance and logs (DoD: Release idle sample and full interaction log scan show no reproduced app-owned invalid-frame, huge-layer, duplicate-ID, crash, or persistent high-idle-CPU defect)
+- [x] Release artifact and supply-chain hardening (DoD: exact read-only entitlement and privacy reasons are verified, dependency audit is frozen in CI, supported versions are tested, and release tests pass)
+- [x] Documentation and dead-code reconciliation (DoD: privacy/release/SBOM statements match behavior and every confirmed unreferenced production helper is removed or documented as intentional)
+- [x] Full end-to-end verification (DoD: Swift/Python/Rust/release/security/build gates, macOS app relaunch/interaction, iPad build, and final diff review are green)
+- [x] Memory update (DoD: `MEMORY.md` contains only new durable facts and no secrets/task-history noise)
 
 ## In progress
 - None.
 
 ## Done
-- [x] HQ session bootstrap completed; repository instructions, memory, previous plan/TODO, and Git baseline reviewed.
-- [x] Clean `bde3e9f` baseline preserved on `feat/andrzej_full_audit_2026_07_17`.
-- [x] Isolated native E2E, focused regression fixes, dependency SBOM refresh, and audit/security reports completed without modifying the 3,919-paper user corpus.
-- [x] PR #8 passed all nine hosted checks; both inline review findings were fixed, regression-tested, independently re-reviewed as SHIP, and resolved.
-- [x] GitHub merged reviewed head `a5c1cc8199fd61b19a8a957c24eeaece38e06552` as `6802f6e24e8e78e77b5a54cb4b58ee14c57f5926`; its merge tree exactly matched the reviewed head and local `main` matched `origin/main` before this closeout record.
+- [x] HQ session bootstrap, repository instructions, durable memory, historical plan/TODO, and exact Git baseline reviewed.
+- [x] Dedicated branch `feat/andrzej_fix_full_quality_audit` created from clean `cd7bb74` main.
+- [x] Improve-mode product contract established: preserve `Output/`, verify real macOS runtime, build-check iPadOS, and keep external release gates blocked.
+- [x] All repository-owned remediation, full verification, runtime proof, documentation, memory, and final review completed on the feature branch.
 
-## External / owner-controlled blockers to revalidate
+## External / owner-controlled blockers
 - Approved production app icon/brand provenance and legal chain of title.
 - Developer ID private-key authorization, notarization upload, quarantine/hardware acceptance, tag, and public binary release.
 - Owner-controlled GitHub repository protection, private reporting, and security settings.

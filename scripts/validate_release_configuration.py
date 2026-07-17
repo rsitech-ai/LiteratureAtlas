@@ -192,19 +192,23 @@ def validate(root: Path) -> dict[str, Any]:
     compiler_source = read_text(
         root / "Sources/LiteratureAtlas/Services/DocumentCompilerProvider.swift"
     )
+    remote_compiler_absent = (
+        "api.openai.com" not in compiler_source
+        and "OPENAI_API_KEY" not in compiler_source
+        and "OpenAIDocumentCompilerProvider" not in compiler_source
+    )
     self_contained_ok = (
         "#if os(macOS) && !DISTRIBUTED_APP_BUILD" in app_model
         and "#if os(macOS) && !DISTRIBUTED_APP_BUILD" in analytics_view
         and "#if DISTRIBUTED_APP_BUILD\n    nonisolated(unsafe) private static let handle"
         in ffi_source
-        and "#if !DISTRIBUTED_APP_BUILD\n@available(macOS 26, iOS 26, *)\nactor OpenAIDocumentCompilerProvider"
-        in compiler_source
+        and remote_compiler_absent
     )
     add_gate(
         gates,
         "distributed_app_self_contained",
         self_contained_ok,
-        "Distributed compilation excludes external Python, relative FFI loading, and dormant remote compilation",
+        "Distributed compilation excludes external Python and relative FFI loading; document compilation has no remote provider",
     )
     privacy_safe_diagnostics = (
         "privacy: .public"

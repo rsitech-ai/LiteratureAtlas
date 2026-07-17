@@ -171,10 +171,11 @@ plutil -insert CFBundleDisplayName -string NoRuntime "$TMP/NoRuntime.app/Content
 plutil -insert CFBundleShortVersionString -string 1.0.0 "$TMP/NoRuntime.app/Contents/Info.plist"
 plutil -insert CFBundleVersion -string 1 "$TMP/NoRuntime.app/Contents/Info.plist"
 plutil -insert LSMinimumSystemVersion -string 26.0 "$TMP/NoRuntime.app/Contents/Info.plist"
-plutil -create xml1 "$TMP/NoRuntime.app/Contents/Resources/PrivacyInfo.xcprivacy"
+ditto "$ROOT/Resources/macOS/PrivacyInfo.xcprivacy" "$TMP/NoRuntime.app/Contents/Resources/PrivacyInfo.xcprivacy"
 plutil -create xml1 "$TMP/NoRuntime.entitlements"
 /usr/libexec/PlistBuddy -c 'Add :com.apple.security.app-sandbox bool true' "$TMP/NoRuntime.entitlements"
 /usr/libexec/PlistBuddy -c 'Add :com.apple.security.files.bookmarks.app-scope bool true' "$TMP/NoRuntime.entitlements"
+/usr/libexec/PlistBuddy -c 'Add :com.apple.security.files.user-selected.read-only bool true' "$TMP/NoRuntime.entitlements"
 codesign --force --sign - --entitlements "$TMP/NoRuntime.entitlements" "$TMP/NoRuntime.app" >/dev/null 2>&1
 expect_failure "verification rejects an app without hardened runtime" \
     "$ROOT/script/verify_distribution.sh" --app "$TMP/NoRuntime.app" --mode community
@@ -190,10 +191,56 @@ plutil -insert CFBundleDisplayName -string Expected "$TMP/Expected.app/Contents/
 plutil -insert CFBundleShortVersionString -string 1.0.0 "$TMP/Expected.app/Contents/Info.plist"
 plutil -insert CFBundleVersion -string 1 "$TMP/Expected.app/Contents/Info.plist"
 plutil -insert LSMinimumSystemVersion -string 26.0 "$TMP/Expected.app/Contents/Info.plist"
-plutil -create xml1 "$TMP/Expected.app/Contents/Resources/PrivacyInfo.xcprivacy"
+ditto "$ROOT/Resources/macOS/PrivacyInfo.xcprivacy" "$TMP/Expected.app/Contents/Resources/PrivacyInfo.xcprivacy"
 codesign --force --sign - --options runtime --entitlements "$TMP/NoRuntime.entitlements" "$TMP/Expected.app" >/dev/null 2>&1
 expect_success "valid runtime-signed community fixture passes without a DMG" \
     "$ROOT/script/verify_distribution.sh" --app "$TMP/Expected.app" --mode community
+
+mkdir -p "$TMP/MissingReadOnly"
+ditto "$TMP/Expected.app" "$TMP/MissingReadOnly/Expected.app"
+plutil -create xml1 "$TMP/MissingReadOnly.entitlements"
+/usr/libexec/PlistBuddy -c 'Add :com.apple.security.app-sandbox bool true' "$TMP/MissingReadOnly.entitlements"
+/usr/libexec/PlistBuddy -c 'Add :com.apple.security.files.bookmarks.app-scope bool true' "$TMP/MissingReadOnly.entitlements"
+codesign --force --sign - --options runtime --entitlements "$TMP/MissingReadOnly.entitlements" "$TMP/MissingReadOnly/Expected.app" >/dev/null 2>&1
+expect_failure "verification rejects an app without read-only user-selected file access" \
+    "$ROOT/script/verify_distribution.sh" --app "$TMP/MissingReadOnly/Expected.app" --mode community
+assert_stderr_contains "missing read-only entitlement names the defect" "read-only user-selected file entitlement is missing"
+
+mkdir -p "$TMP/ReadWrite"
+ditto "$TMP/Expected.app" "$TMP/ReadWrite/Expected.app"
+cp "$TMP/NoRuntime.entitlements" "$TMP/ReadWrite.entitlements"
+/usr/libexec/PlistBuddy -c 'Add :com.apple.security.files.user-selected.read-write bool true' "$TMP/ReadWrite.entitlements"
+codesign --force --sign - --options runtime --entitlements "$TMP/ReadWrite.entitlements" "$TMP/ReadWrite/Expected.app" >/dev/null 2>&1
+expect_failure "verification rejects read-write user-selected file access" \
+    "$ROOT/script/verify_distribution.sh" --app "$TMP/ReadWrite/Expected.app" --mode community
+assert_stderr_contains "read-write entitlement names the defect" "read-write user-selected file entitlement must not ship"
+
+mkdir -p "$TMP/InvalidPrivacy"
+ditto "$TMP/Expected.app" "$TMP/InvalidPrivacy/Expected.app"
+printf 'not a property list\n' >"$TMP/InvalidPrivacy/Expected.app/Contents/Resources/PrivacyInfo.xcprivacy"
+codesign --force --sign - --options runtime --entitlements "$TMP/NoRuntime.entitlements" "$TMP/InvalidPrivacy/Expected.app" >/dev/null 2>&1
+expect_failure "verification rejects malformed privacy-manifest syntax" \
+    "$ROOT/script/verify_distribution.sh" --app "$TMP/InvalidPrivacy/Expected.app" --mode community
+assert_stderr_contains "malformed privacy manifest names the defect" "privacy manifest is not a valid property list"
+
+mkdir -p "$TMP/MissingPrivacyReason"
+ditto "$TMP/Expected.app" "$TMP/MissingPrivacyReason/Expected.app"
+/usr/libexec/PlistBuddy -c 'Delete :NSPrivacyAccessedAPITypes:0:NSPrivacyAccessedAPITypeReasons:1' \
+    "$TMP/MissingPrivacyReason/Expected.app/Contents/Resources/PrivacyInfo.xcprivacy"
+codesign --force --sign - --options runtime --entitlements "$TMP/NoRuntime.entitlements" "$TMP/MissingPrivacyReason/Expected.app" >/dev/null 2>&1
+expect_failure "verification rejects a privacy manifest missing C617.1" \
+    "$ROOT/script/verify_distribution.sh" --app "$TMP/MissingPrivacyReason/Expected.app" --mode community
+assert_stderr_contains "missing privacy reason names the defect" "privacy manifest is missing required file-timestamp reason: C617.1"
+
+mkdir -p "$TMP/MissingGrantedFileReason"
+ditto "$TMP/Expected.app" "$TMP/MissingGrantedFileReason/Expected.app"
+/usr/libexec/PlistBuddy -c 'Delete :NSPrivacyAccessedAPITypes:0:NSPrivacyAccessedAPITypeReasons:0' \
+    "$TMP/MissingGrantedFileReason/Expected.app/Contents/Resources/PrivacyInfo.xcprivacy"
+codesign --force --sign - --options runtime --entitlements "$TMP/NoRuntime.entitlements" "$TMP/MissingGrantedFileReason/Expected.app" >/dev/null 2>&1
+expect_failure "verification rejects a privacy manifest missing 3B52.1" \
+    "$ROOT/script/verify_distribution.sh" --app "$TMP/MissingGrantedFileReason/Expected.app" --mode community
+assert_stderr_contains "missing granted-file reason names the defect" "privacy manifest is missing required file-timestamp reason: 3B52.1"
+
 mkdir -p "$TMP/WrongDMG"
 touch "$TMP/WrongDMG/Not-The-App"
 hdiutil create -quiet -fs HFS+ -format UDZO -volname Wrong -srcfolder "$TMP/WrongDMG" "$TMP/Wrong.dmg"
@@ -250,10 +297,12 @@ for workflow in dependency-review.yml license-compliance.yml codeql.yml; do
 done
 
 if grep -F 'python-version: "3.12.10"' "$ROOT/.github/workflows/ci.yml" >/dev/null \
-    && ! grep -F '3.12.13' "$ROOT/.github/workflows/ci.yml" >/dev/null; then
-    pass "CI pins an available macOS arm64 Python version"
+    && grep -F 'os: macos-26' "$ROOT/.github/workflows/ci.yml" >/dev/null \
+    && grep -F 'python-version: "3.12.13"' "$ROOT/.github/workflows/ci.yml" >/dev/null \
+    && grep -F 'os: ubuntu-24.04' "$ROOT/.github/workflows/ci.yml" >/dev/null; then
+    pass "CI pins supported Python versions for macOS and Linux"
 else
-    fail "CI pins an available macOS arm64 Python version"
+    fail "CI pins supported Python versions for macOS and Linux"
 fi
 
 if grep -F 'echo "$RUNNER_TEMP/xcodegen/xcodegen/bin" >> "$GITHUB_PATH"' "$ROOT/.github/workflows/ci.yml" >/dev/null \
