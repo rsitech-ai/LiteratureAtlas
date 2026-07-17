@@ -8,6 +8,7 @@ struct MarkdownExtractionResult: Equatable {
     let checksum: String
     let modifiedAt: Date?
     let keywords: [String]
+    let year: Int?
 }
 
 struct MarkdownProcessor {
@@ -24,6 +25,7 @@ struct MarkdownProcessor {
         let title = inferTitle(frontmatter: parsed.frontmatter, bodyLines: bodyLines, fallback: url.deletingPathExtension().lastPathComponent)
         let text = sections.map(\.text).joined(separator: "\n\n").trimmingCharacters(in: .whitespacesAndNewlines)
         let keywords = inferKeywords(from: title + "\n" + text)
+        let year = inferYear(frontmatter: parsed.frontmatter)
 
         return MarkdownExtractionResult(
             title: title,
@@ -31,8 +33,16 @@ struct MarkdownProcessor {
             sections: sections,
             checksum: checksum,
             modifiedAt: modifiedAt,
-            keywords: keywords
+            keywords: keywords,
+            year: year
         )
+    }
+
+    private func inferYear(frontmatter: [String: String]) -> Int? {
+        guard let raw = frontmatter["year"]?.trimmingCharacters(in: .whitespacesAndNewlines),
+              let year = Int(raw) else { return nil }
+        let currentYear = Calendar.current.component(.year, from: Date())
+        return (1900...(currentYear + 1)).contains(year) ? year : nil
     }
 
     private func splitFrontmatter(from raw: String) -> (frontmatter: [String: String], body: String, bodyStartLine: Int) {
@@ -149,7 +159,7 @@ struct MarkdownProcessor {
             currentLines.append(rawLine)
         }
 
-        flush(endLine: lines.count)
+        flush(endLine: lines.count + lineOffset)
         return sections
     }
 

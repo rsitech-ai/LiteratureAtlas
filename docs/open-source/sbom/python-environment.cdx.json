@@ -1,4 +1,6 @@
 {
+  "$schema": "http://cyclonedx.org/schema/bom-1.6.schema.json",
+  "bomFormat": "CycloneDX",
   "components": [
     {
       "bom-ref": "Pygments==2.20.0",
@@ -133,7 +135,45 @@
       "version": "1.5.2"
     },
     {
-      "bom-ref": "numpy==2.3.5",
+      "bom-ref": "narwhals==2.24.0",
+      "description": "Extremely lightweight compatibility layer between dataframe libraries",
+      "externalReferences": [
+        {
+          "comment": "from packaging metadata Project-URL: Documentation",
+          "type": "documentation",
+          "url": "https://narwhals-dev.github.io/narwhals/"
+        },
+        {
+          "comment": "from packaging metadata Project-URL: Bug Tracker",
+          "type": "issue-tracker",
+          "url": "https://github.com/narwhals-dev/narwhals/issues"
+        },
+        {
+          "comment": "from packaging metadata Project-URL: Repository",
+          "type": "vcs",
+          "url": "https://github.com/narwhals-dev/narwhals"
+        },
+        {
+          "comment": "from packaging metadata Project-URL: Homepage",
+          "type": "website",
+          "url": "https://github.com/narwhals-dev/narwhals"
+        }
+      ],
+      "licenses": [
+        {
+          "license": {
+            "acknowledgement": "declared",
+            "id": "MIT"
+          }
+        }
+      ],
+      "name": "narwhals",
+      "purl": "pkg:pypi/narwhals@2.24.0",
+      "type": "library",
+      "version": "2.24.0"
+    },
+    {
+      "bom-ref": "numpy==2.5.1",
       "description": "Fundamental package for array computing in Python",
       "externalReferences": [
         {
@@ -169,16 +209,14 @@
       ],
       "licenses": [
         {
-          "license": {
-            "acknowledgement": "declared",
-            "name": "License :: OSI Approved :: BSD License"
-          }
+          "acknowledgement": "declared",
+          "expression": "BSD-3-Clause AND 0BSD AND MIT AND Zlib AND CC0-1.0"
         }
       ],
       "name": "numpy",
-      "purl": "pkg:pypi/numpy@2.3.5",
+      "purl": "pkg:pypi/numpy@2.5.1",
       "type": "library",
-      "version": "2.3.5"
+      "version": "2.5.1"
     },
     {
       "bom-ref": "packaging==26.2",
@@ -447,7 +485,7 @@
       "version": "0.15.21"
     },
     {
-      "bom-ref": "scikit-learn==1.8.0",
+      "bom-ref": "scikit-learn==1.9.0",
       "description": "A set of python modules for machine learning and data mining",
       "externalReferences": [
         {
@@ -485,12 +523,12 @@
         }
       ],
       "name": "scikit-learn",
-      "purl": "pkg:pypi/scikit-learn@1.8.0",
+      "purl": "pkg:pypi/scikit-learn@1.9.0",
       "type": "library",
-      "version": "1.8.0"
+      "version": "1.9.0"
     },
     {
-      "bom-ref": "scipy==1.16.3",
+      "bom-ref": "scipy==1.18.0",
       "description": "Fundamental algorithms for scientific computing in Python",
       "externalReferences": [
         {
@@ -528,9 +566,9 @@
         }
       ],
       "name": "scipy",
-      "purl": "pkg:pypi/scipy@1.16.3",
+      "purl": "pkg:pypi/scipy@1.18.0",
       "type": "library",
-      "version": "1.16.3"
+      "version": "1.18.0"
     },
     {
       "bom-ref": "six==1.17.0",
@@ -635,7 +673,7 @@
     },
     {
       "dependsOn": [
-        "numpy==2.3.5",
+        "numpy==2.5.1",
         "pandas==2.3.3",
         "pyarrow==25.0.0"
       ],
@@ -648,19 +686,28 @@
       "ref": "joblib==1.5.2"
     },
     {
-      "ref": "numpy==2.3.5"
+      "dependsOn": [
+        "duckdb==1.4.3",
+        "packaging==26.2",
+        "pandas==2.3.3",
+        "pyarrow==25.0.0"
+      ],
+      "ref": "narwhals==2.24.0"
+    },
+    {
+      "ref": "numpy==2.5.1"
     },
     {
       "ref": "packaging==26.2"
     },
     {
       "dependsOn": [
-        "numpy==2.3.5",
+        "numpy==2.5.1",
         "pyarrow==25.0.0",
         "pytest==9.1.1",
         "python-dateutil==2.9.0.post0",
         "pytz==2025.2",
-        "scipy==1.16.3",
+        "scipy==1.18.0",
         "tzdata==2025.2"
       ],
       "ref": "pandas==2.3.3"
@@ -695,12 +742,13 @@
     {
       "dependsOn": [
         "duckdb==1.4.3",
-        "numpy==2.3.5",
+        "numpy==2.5.1",
         "pandas==2.3.3",
         "pyarrow==25.0.0",
         "pytest==9.1.1",
         "ruff==0.15.21",
-        "scikit-learn==1.8.0"
+        "scikit-learn==1.9.0",
+        "scipy==1.18.0"
       ],
       "ref": "root-component"
     },
@@ -710,24 +758,25 @@
     {
       "dependsOn": [
         "joblib==1.5.2",
-        "numpy==2.3.5",
+        "narwhals==2.24.0",
+        "numpy==2.5.1",
         "pandas==2.3.3",
         "pyarrow==25.0.0",
         "pytest==9.1.1",
         "ruff==0.15.21",
-        "scipy==1.16.3",
+        "scipy==1.18.0",
         "threadpoolctl==3.6.0"
       ],
-      "ref": "scikit-learn==1.8.0"
+      "ref": "scikit-learn==1.9.0"
     },
     {
       "dependsOn": [
-        "numpy==2.3.5",
+        "numpy==2.5.1",
         "pytest==9.1.1",
         "ruff==0.15.21",
         "threadpoolctl==3.6.0"
       ],
-      "ref": "scipy==1.16.3"
+      "ref": "scipy==1.18.0"
     },
     {
       "ref": "six==1.17.0"
@@ -743,6 +792,14 @@
     "component": {
       "bom-ref": "root-component",
       "description": "Local analytics pipeline for LiteratureAtlas",
+      "licenses": [
+        {
+          "license": {
+            "acknowledgement": "declared",
+            "id": "MIT"
+          }
+        }
+      ],
       "name": "literature-atlas-analytics",
       "type": "application",
       "version": "0.1.0"
@@ -856,8 +913,6 @@
       ]
     }
   },
-  "version": 1,
-  "$schema": "http://cyclonedx.org/schema/bom-1.6.schema.json",
-  "bomFormat": "CycloneDX",
-  "specVersion": "1.6"
+  "specVersion": "1.6",
+  "version": 1
 }

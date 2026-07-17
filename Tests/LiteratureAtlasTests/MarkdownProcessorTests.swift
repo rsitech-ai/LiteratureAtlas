@@ -13,6 +13,7 @@ final class MarkdownProcessorTests: XCTestCase {
         let markdown = """
         ---
         title: Atlas Corpus
+        year: 2026
         ---
         # Intro
         Alpha evidence line.
@@ -24,14 +25,15 @@ final class MarkdownProcessorTests: XCTestCase {
         let result = try MarkdownProcessor().extract(from: fileURL, documentID: documentID)
 
         XCTAssertEqual(result.title, "Atlas Corpus")
+        XCTAssertEqual(result.year, 2026)
         XCTAssertEqual(result.sections.count, 2)
         XCTAssertEqual(result.sections[0].anchor.sourceKind, .markdown)
-        XCTAssertEqual(result.sections[0].anchor.lineStart, 4)
-        XCTAssertEqual(result.sections[0].anchor.lineEnd, 5)
+        XCTAssertEqual(result.sections[0].anchor.lineStart, 5)
+        XCTAssertEqual(result.sections[0].anchor.lineEnd, 6)
         XCTAssertEqual(result.sections[0].anchor.headingPath ?? [], ["Intro"])
         XCTAssertEqual(result.sections[1].anchor.headingPath ?? [], ["Intro", "Methods"])
-        XCTAssertEqual(result.sections[1].anchor.lineStart, 6)
-        XCTAssertEqual(result.sections[1].anchor.lineEnd, 6)
+        XCTAssertEqual(result.sections[1].anchor.lineStart, 7)
+        XCTAssertEqual(result.sections[1].anchor.lineEnd, 8)
         XCTAssertTrue(result.text.contains("Alpha evidence line."))
         XCTAssertTrue(result.keywords.contains("atlas"))
     }

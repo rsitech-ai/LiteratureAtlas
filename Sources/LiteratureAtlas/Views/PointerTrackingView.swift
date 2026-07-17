@@ -52,12 +52,17 @@ final class TrackingNSView: NSView {
     override func mouseMoved(with event: NSEvent) {
         super.mouseMoved(with: event)
         let location = convert(event.locationInWindow, from: nil)
-        onMove?(CGPoint(x: location.x, y: location.y))
+        let point = CGPoint(x: location.x, y: location.y)
+        DispatchQueue.main.async { [weak self] in
+            self?.onMove?(point)
+        }
     }
 
     override func mouseExited(with event: NSEvent) {
         super.mouseExited(with: event)
-        onExit?()
+        DispatchQueue.main.async { [weak self] in
+            self?.onExit?()
+        }
     }
 
     override func hitTest(_ point: NSPoint) -> NSView? {

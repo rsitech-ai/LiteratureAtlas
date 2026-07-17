@@ -70,8 +70,9 @@ struct StrategyProjectDetailView: View {
             }
             .confirmationDialog("Delete this research project?", isPresented: $showDeleteConfirm) {
                 Button("Delete", role: .destructive) {
-                    model.deleteStrategyProject(strategyID)
-                    dismiss()
+                    if model.deleteStrategyProject(strategyID) {
+                        dismiss()
+                    }
                 }
             }
             .sheet(isPresented: $showPaperPicker) {
@@ -98,7 +99,7 @@ struct StrategyProjectDetailView: View {
 
     private func save() {
         guard let draft else { return }
-        model.updateStrategyProject(draft)
+        guard model.updateStrategyProject(draft) else { return }
         self.draft = model.strategyProjects.first(where: { $0.id == strategyID }) ?? draft
     }
 

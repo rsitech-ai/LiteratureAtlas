@@ -22,10 +22,11 @@ void* atlas_build_index(uint32_t dim, uint32_t n, const float* data_ptr);
 // Free index allocated by atlas_build_index.
 void atlas_free_index(void* index_ptr);
 
-// Query top-k neighbors. Returns number of results written to out_ptr.
-uint32_t atlas_query_index(void* index_ptr, const float* query_ptr, uint32_t k, AtlasSearchResult* out_ptr);
+// Query top-k neighbors. query_len must match the index dimension.
+// Returns number of results written to out_ptr, or zero for invalid inputs.
+uint32_t atlas_query_index_v2(void* index_ptr, const float* query_ptr, uint32_t query_len, uint32_t k, AtlasSearchResult* out_ptr);
 
-// Betweenness centrality on an undirected weighted graph (edge weight interpreted as non-negative cost).
+// Betweenness centrality on an undirected weighted graph (edge weight interpreted as positive cost).
 // out_ptr must hold n_nodes floats.
 uint32_t atlas_betweenness(uint32_t n_nodes, uint32_t n_edges, const AtlasEdge* edges_ptr, float* out_ptr);
 

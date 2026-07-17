@@ -149,14 +149,53 @@ def _read_json_file(path: pathlib.Path) -> Any | None:
         return None
 
 
+def _optional_int(value: Any) -> int | None:
+    if isinstance(value, bool):
+        return None
+    if isinstance(value, int):
+        return value
+    if isinstance(value, float) and math.isfinite(value) and value.is_integer():
+        return int(value)
+    return None
+
+
+def _optional_text(value: Any, default: str | None = None) -> str | None:
+    return value if isinstance(value, str) else default
+
+
+def _string_list(value: Any) -> list[str]:
+    if not isinstance(value, list):
+        return []
+    return [item for item in value if isinstance(item, str)]
+
+
+def _dict_list(value: Any) -> list[dict[str, Any]] | None:
+    if not isinstance(value, list):
+        return None
+    return [item for item in value if isinstance(item, dict)]
+
+
 def load_papers(papers_dir: pathlib.Path) -> tuple[list[PaperRow], list[list[float]], list[dict[str, Any]]]:
     rows: list[PaperRow] = []
     embeddings: list[list[float]] = []
     trading_rows: list[dict[str, Any]] = []
-    candidate_paths = sorted(papers_dir.glob("*.paper.json"))
+    candidate_paths = list(papers_dir.glob("*.paper.json"))
     documents_dir = papers_dir.parent / "documents"
     if documents_dir.exists():
-        candidate_paths.extend(sorted(documents_dir.glob("*.document.json")))
+        candidate_paths.extend(documents_dir.glob("*.document.json"))
+
+    def candidate_rank(path: pathlib.Path) -> tuple[int, int, str]:
+        # Canonical paper exports always outrank compatibility document exports.
+        # Within the same source kind, use the freshest successful write and a
+        # lexical tie-break so duplicate resolution never depends on directory order.
+        source_priority = 0 if path.parent == papers_dir else 1
+        try:
+            modified_ns = path.stat().st_mtime_ns
+        except OSError:
+            modified_ns = 0
+        return (source_priority, -modified_ns, path.as_posix())
+
+    candidate_paths.sort(key=candidate_rank)
 
     valid_candidates: list[tuple[pathlib.Path, dict[str, Any], str, list[float]]] = []
     candidate_ids: set[str] = set()
@@ -189,6 +228,10 @@ def load_papers(papers_dir: pathlib.Path) -> tuple[list[PaperRow], list[list[flo
         candidate_ids.add(paper_id)
         valid_candidates.append((path, data, paper_id, numeric_embedding))
 
+    # Duplicate choice uses freshness above; output order remains lexical and stable for
+    # downstream tables, snapshots, and tests regardless of filesystem timestamp variance.
+    valid_candidates.sort(key=lambda item: item[0].as_posix())
+
     if not valid_candidates:
         return rows, embeddings, trading_rows
 
@@ -204,8 +247,8 @@ def load_papers(papers_dir: pathlib.Path) -> tuple[list[PaperRow], list[list[flo
                 canonical_dimension,
             )
             continue
-        year = data.get("year")
-        cluster_id = data.get("clusterIndex")
+        year = _optional_int(data.get("year"))
+        cluster_id = _optional_int(data.get("clusterIndex"))
 
         tl = data.get("trading_lens") or {}
         if not isinstance(tl, dict):
@@ -214,22 +257,11 @@ def load_papers(papers_dir: pathlib.Path) -> tuple[list[PaperRow], list[list[flo
         if not isinstance(scores, dict):
             scores = {}
 
-        trading_tags = tl.get("trading_tags") or []
-        asset_classes = tl.get("asset_classes") or []
-        horizons = tl.get("horizons") or []
-        signal_archetypes = tl.get("signal_archetypes") or []
-        risk_flags = tl.get("risk_flags") or []
-
-        if not isinstance(trading_tags, list):
-            trading_tags = []
-        if not isinstance(asset_classes, list):
-            asset_classes = []
-        if not isinstance(horizons, list):
-            horizons = []
-        if not isinstance(signal_archetypes, list):
-            signal_archetypes = []
-        if not isinstance(risk_flags, list):
-            risk_flags = []
+        trading_tags = _string_list(tl.get("trading_tags"))
+        asset_classes = _string_list(tl.get("asset_classes"))
+        horizons = _string_list(tl.get("horizons"))
+        signal_archetypes = _string_list(tl.get("signal_archetypes"))
+        risk_flags = _string_list(tl.get("risk_flags"))
 
         novelty = scores.get("novelty")
         usability = scores.get("usability")
@@ -238,9 +270,10 @@ def load_papers(papers_dir: pathlib.Path) -> tuple[list[PaperRow], list[list[flo
 
         def _f(x):
             try:
-                return float(x)
+                value = float(x)
             except Exception:
                 return None
+            return value if math.isfinite(value) else None
 
         novelty_f = _f(novelty)
         usability_f = _f(usability)
@@ -254,35 +287,39 @@ def load_papers(papers_dir: pathlib.Path) -> tuple[list[PaperRow], list[list[flo
 
         has_blueprint = bool(data.get("strategy_blueprint"))
         has_audit = bool(data.get("backtest_audit"))
-        citation_anchor_count = len(data.get("citationAnchors") or [])
-        compiled_artifact_count = len(data.get("compiledArtifacts") or [])
+        citation_anchors = data.get("citationAnchors")
+        compiled_artifacts = data.get("compiledArtifacts")
+        citation_anchor_count = len(citation_anchors) if isinstance(citation_anchors, list) else 0
+        compiled_artifact_count = len(compiled_artifacts) if isinstance(compiled_artifacts, list) else 0
 
         # Future multi-scale fields
-        primary_k10 = data.get("primary_cluster_k10") or cluster_id
-        primary_k50 = data.get("primary_cluster_k50")
+        primary_k10 = _optional_int(data.get("primary_cluster_k10"))
+        if primary_k10 is None:
+            primary_k10 = cluster_id
+        primary_k50 = _optional_int(data.get("primary_cluster_k50"))
         rows.append(
             PaperRow(
                 paper_id=paper_id,
-                source_kind=data.get("sourceKind"),
-                title=data.get("title", ""),
-                original_filename=data.get("originalFilename", path.name),
-                file_path=data.get("filePath", str(path)),
-                version=data.get("version"),
+                source_kind=_optional_text(data.get("sourceKind")),
+                title=_optional_text(data.get("title"), "") or "",
+                original_filename=_optional_text(data.get("originalFilename"), path.name) or path.name,
+                file_path=_optional_text(data.get("filePath"), str(path)) or str(path),
+                version=_optional_int(data.get("version")),
                 year=year,
-                first_read_at=data.get("firstReadAt"),
-                ingested_at=data.get("ingestedAt"),
-                summary=data.get("summary", ""),
-                intro_summary=data.get("introSummary"),
-                method_summary=data.get("methodSummary"),
-                results_summary=data.get("resultsSummary"),
+                first_read_at=_optional_text(data.get("firstReadAt")),
+                ingested_at=_optional_text(data.get("ingestedAt")),
+                summary=_optional_text(data.get("summary"), "") or "",
+                intro_summary=_optional_text(data.get("introSummary")),
+                method_summary=_optional_text(data.get("methodSummary")),
+                results_summary=_optional_text(data.get("resultsSummary")),
                 cluster_id=cluster_id,
                 primary_cluster_k10=primary_k10,
                 primary_cluster_k50=primary_k50,
-                tags=data.get("userTags") or data.get("keywords"),
-                claims=data.get("claims"),
-                method_pipeline=data.get("methodPipeline"),
-                assumptions=data.get("assumptions"),
-                page_count=data.get("pageCount"),
+                tags=_string_list(data.get("userTags") or data.get("keywords")),
+                claims=_dict_list(data.get("claims")),
+                method_pipeline=data.get("methodPipeline") if isinstance(data.get("methodPipeline"), dict) else None,
+                assumptions=_string_list(data.get("assumptions")),
+                page_count=_optional_int(data.get("pageCount")),
                 trading_tags=trading_tags,
                 asset_classes=asset_classes,
                 horizons=horizons,
@@ -596,13 +633,15 @@ def summarize_trading_lens(trading_rows: list[dict[str, Any]]) -> dict[str, Any]
 # ---------- Embedding transforms ----------
 
 
-def whiten_embeddings(embeddings: np.ndarray, max_components: int = 128) -> tuple[np.ndarray, PCA]:
+def whiten_embeddings(embeddings: np.ndarray, max_components: int = 128) -> tuple[np.ndarray, PCA | None]:
     """
     PCA-whiten embeddings to make distances more isotropic.
     Returns (Z, pca_model) where Z has shape (n, k) with k<=max_components.
     """
     if embeddings.size == 0:
         return embeddings, None
+    if embeddings.shape[0] == 1:
+        return np.zeros((1, 1), dtype=np.float32), None
     k = min(max_components, embeddings.shape[0], embeddings.shape[1])
     pca = PCA(n_components=k, whiten=True, random_state=0)
     Z = pca.fit_transform(embeddings)
@@ -1052,9 +1091,13 @@ def compute_factor_loadings(
     # ----- Dense semantic components (PCA/SVD) -----
     X_emb = embeddings - embeddings.mean(axis=0, keepdims=True)
     n_components = max(1, min(n_factors, X_emb.shape[1], len(paper_ids)))
-    svd = TruncatedSVD(n_components=n_components, random_state=0)
-    dense_scores = svd.fit_transform(X_emb)
-    dense_comps = svd.components_
+    if len(paper_ids) == 1:
+        dense_scores = np.zeros((1, 1), dtype=np.float32)
+        dense_comps = np.zeros((1, X_emb.shape[1]), dtype=np.float32)
+    else:
+        svd = TruncatedSVD(n_components=n_components, random_state=0)
+        dense_scores = svd.fit_transform(X_emb)
+        dense_comps = svd.components_
 
     # ----- Tag-driven components (TF-IDF + NMF for labels) -----
     tag_texts = [t if isinstance(t, str) else "" for t in tag_texts]
@@ -3167,7 +3210,7 @@ def workflow_coverage_and_blindspots(
     notes_count: dict[str, int] = {}
     rec_fb: dict[str, int] = {}
     opened_ts: dict[str, list[str]] = {}
-    questions: list[str] = []
+    questions_asked = 0
     for evt in user_events or []:
         et = evt.get("event_type")
         pid = evt.get("paper_id")
@@ -3181,9 +3224,7 @@ def workflow_coverage_and_blindspots(
         if et in {"rec_helpful", "rec_not_helpful"} and pid:
             rec_fb[pid] = rec_fb.get(pid, 0) + (1 if et == "rec_helpful" else -1)
         if et in {"qa_question"}:
-            q = evt.get("q")
-            if isinstance(q, str) and q.strip():
-                questions.append(q.strip())
+            questions_asked += 1
 
     # Paper-level read score
     read_score: dict[str, float] = {}
@@ -3256,7 +3297,7 @@ def workflow_coverage_and_blindspots(
         "paper_read_scores": [{"paper_id": pid, "read_score": float(sc)} for pid, sc in read_score.items() if sc > 0],
         "cluster_coverage": per_cluster[:600],
         "blindspots": blindspots[:max_blindspots],
-        "questions_asked": len(questions),
+        "questions_asked": questions_asked,
     }
 
 
@@ -3265,103 +3306,70 @@ def qa_gap_analytics(
     df_papers: pd.DataFrame,
     max_questions: int = 80,
 ) -> dict[str, Any]:
-    """
-    Per-question evidence density / breadth from user_events.
-    Uses retrieval metrics if app logged them; otherwise falls back to TF-IDF vs paper summaries.
-    """
+    """Privacy-preserving per-question evidence density from retrieval events."""
     if not user_events:
         return {"available": False, "reason": "no user_events"}
 
-    questions: dict[str, dict[str, Any]] = {}
+    questions: list[dict[str, Any]] = []
+    active: dict[str, Any] | None = None
     for evt in user_events:
         et = evt.get("event_type")
-        q = evt.get("q")
-        if not isinstance(q, str) or not q.strip():
-            continue
-        qq = q.strip()
-        st = questions.setdefault(qq, {"asked": 0, "answered": 0, "retrieval": []})
         if et == "qa_question":
-            st["asked"] += 1
-        if et == "qa_answer_ready":
-            st["answered"] += 1
-        if et in {"qa_retrieval"}:
-            st["retrieval"].append(evt)
+            length = evt.get("question_length")
+            active = {
+                "sequence": len(questions) + 1,
+                "question_length": int(length) if isinstance(length, int) and not isinstance(length, bool) else None,
+                "answered": 0,
+                "retrieval": None,
+            }
+            questions.append(active)
+        elif et == "qa_retrieval" and active is not None:
+            active["retrieval"] = evt
+        elif et == "qa_answer_ready" and active is not None:
+            active["answered"] = 1
+            active = None
 
     if not questions:
         return {"available": False, "reason": "no qa_question events"}
 
-    # Build TF-IDF over paper titles+summaries for fallback
-    docs = [(str(r.title or "") + "\n" + str(r.summary or "")) for _, r in df_papers.iterrows()]
-    tfidf = TfidfVectorizer(max_features=8000, ngram_range=(1, 2))
-    mat = normalize(tfidf.fit_transform(docs)) if docs else None
-    cluster_by_pid = {
-        str(r.paper_id): (int(r.cluster_id) if r.cluster_id is not None and not pd.isna(r.cluster_id) else None)
-        for _, r in df_papers.iterrows()
-    }
-
     per_q: list[dict[str, Any]] = []
-    for q, st in questions.items():
-        retrieval = st.get("retrieval") or []
-        if retrieval:
-            # Use most recent logged retrieval payload
-            last = retrieval[-1]
-            top = last.get("top_scores") or []
-            top = [float(x) for x in top if isinstance(x, (int, float))][:6]
-            margin = float(top[0] - top[1]) if len(top) >= 2 else float(top[0]) if top else 0.0
-            breadth = (
-                float(last.get("support_breadth", 0.0))
-                if isinstance(last.get("support_breadth"), (int, float))
-                else 0.0
-            )
-            per_q.append(
-                {
-                    "question": q,
-                    "asked": int(st["asked"]),
-                    "answered": int(st["answered"]),
-                    "top_score": float(top[0]) if top else 0.0,
-                    "margin": margin,
-                    "support_breadth": breadth,
-                    "unanswered": int(st["answered"]) == 0,
-                }
-            )
-        elif mat is not None:
-            qv = normalize(tfidf.transform([q]))
-            sims = (mat @ qv.T).toarray().reshape(-1)
-            order = np.argsort(-sims)[:6]
-            top_scores = sims[order]
-            margin = (
-                float(top_scores[0] - top_scores[1])
-                if len(top_scores) >= 2
-                else float(top_scores[0])
-                if len(top_scores) >= 1
-                else 0.0
-            )
-            # Breadth: entropy over clusters among top papers
-            cids = [cluster_by_pid.get(str(df_papers.iloc[int(i)].paper_id)) for i in order]
-            counts: dict[int, int] = {}
-            for cid in cids:
-                if cid is None:
-                    continue
-                counts[int(cid)] = counts.get(int(cid), 0) + 1
-            total = sum(counts.values())
-            if total <= 1:
-                breadth = 0.0
-            else:
-                p = np.array([v / total for v in counts.values()], dtype=np.float64)
-                breadth = float(-(p * np.log(p + 1e-12)).sum() / np.log(max(2, len(counts))))
-            per_q.append(
-                {
-                    "question": q,
-                    "asked": int(st["asked"]),
-                    "answered": int(st["answered"]),
-                    "top_score": float(top_scores[0]) if len(top_scores) else 0.0,
-                    "margin": margin,
-                    "support_breadth": float(breadth),
-                    "unanswered": int(st["answered"]) == 0,
-                }
-            )
+    for st in questions:
+        retrieval = st.get("retrieval") if isinstance(st.get("retrieval"), dict) else {}
+        top = retrieval.get("top_scores") or []
+        top = [float(x) for x in top if isinstance(x, (int, float)) and math.isfinite(float(x))][:6]
+        logged_margin = retrieval.get("margin")
+        margin = (
+            float(logged_margin)
+            if isinstance(logged_margin, (int, float)) and math.isfinite(float(logged_margin))
+            else float(top[0] - top[1])
+            if len(top) >= 2
+            else float(top[0])
+            if top
+            else 0.0
+        )
+        logged_breadth = retrieval.get("support_breadth")
+        breadth = (
+            float(logged_breadth)
+            if isinstance(logged_breadth, (int, float)) and math.isfinite(float(logged_breadth))
+            else 0.0
+        )
+        length = st.get("question_length")
+        label = f"Private question {st['sequence']}"
+        if isinstance(length, int):
+            label += f" ({length} chars)"
+        per_q.append(
+            {
+                "question": label,
+                "asked": 1,
+                "answered": int(st["answered"]),
+                "top_score": float(top[0]) if top else 0.0,
+                "margin": margin,
+                "support_breadth": breadth,
+                "unanswered": int(st["answered"]) == 0,
+            }
+        )
 
-    per_q.sort(key=lambda x: (not x["unanswered"], -x["asked"], x["top_score"]))
+    per_q.sort(key=lambda x: (not x["unanswered"], x["top_score"]))
     return {"available": True, "questions": per_q[:max_questions]}
 
 
@@ -3624,25 +3632,45 @@ def _claim_sign(text: str) -> int:
 
 
 def claim_similarity_edges(
-    claims: list[dict[str, Any]], threshold: float = 0.22, time_decay: float = 0.15
+    claims: list[dict[str, Any]],
+    threshold: float = 0.22,
+    time_decay: float = 0.15,
+    max_neighbors: int = 25,
 ) -> list[dict[str, Any]]:
-    """Build directed edges from older -> newer similar claims using TF-IDF cosine with sign and temporal decay."""
-    if not claims:
+    """Build bounded older-to-newer TF-IDF similarity edges.
+
+    Nearest-neighbor queries avoid materializing the dense all-pairs similarity
+    matrix. At most ``max_neighbors`` candidates are considered per claim.
+    """
+    if len(claims) < 2 or max_neighbors <= 0:
         return []
     texts = [c.get("statement", "") or "" for c in claims]
     years = [c.get("year") for c in claims]
     paper_ids = [c.get("paper_id") for c in claims]
     tfidf = TfidfVectorizer(max_features=1500, ngram_range=(1, 2))
-    mat = tfidf.fit_transform(texts)
+    try:
+        mat = tfidf.fit_transform(texts)
+    except ValueError as error:
+        if "empty vocabulary" in str(error):
+            return []
+        raise
     mat = normalize(mat)
-    sims = mat @ mat.T
+    neighbor_count = min(len(claims), max_neighbors + 1)
+    neighbors = NearestNeighbors(n_neighbors=neighbor_count, metric="cosine", algorithm="brute")
+    neighbors.fit(mat)
+    distances, indices = neighbors.kneighbors(mat, return_distance=True)
     edges: list[dict[str, Any]] = []
-    for i in range(sims.shape[0]):
-        for j in range(sims.shape[1]):
+    for i, (row_distances, row_indices) in enumerate(zip(distances, indices, strict=True)):
+        candidates_seen = 0
+        for distance, j_raw in zip(row_distances, row_indices, strict=True):
+            j = int(j_raw)
             if i == j:
                 continue
-            sim = sims[i, j]
-            if sim < threshold or math.isnan(sim):
+            if candidates_seen >= max_neighbors:
+                break
+            candidates_seen += 1
+            similarity = 1.0 - float(distance)
+            if similarity < threshold or not math.isfinite(similarity):
                 continue
             yi = years[i]
             yj = years[j]
@@ -3655,7 +3683,7 @@ def claim_similarity_edges(
                 {
                     "src": paper_ids[j],
                     "dst": paper_ids[i],
-                    "weight": float(sim * decay * abs(sign)),
+                    "weight": float(similarity * decay * abs(sign)),
                     "sign": int(sign),
                     "from_year": yj,
                     "to_year": yi,
@@ -3866,9 +3894,21 @@ def persist_duckdb(
     extra_tables: dict[str, pd.DataFrame] | None = None,
 ):
     con = duckdb.connect(str(db_path))
+    try:
+        _persist_duckdb_connection(con, db_path, df_papers, embeddings, chunks, extra_tables)
+    finally:
+        con.close()
 
+
+def _persist_duckdb_connection(
+    con: duckdb.DuckDBPyConnection,
+    db_path: pathlib.Path,
+    df_papers: pd.DataFrame,
+    embeddings: np.ndarray,
+    chunks: list[dict[str, Any]],
+    extra_tables: dict[str, pd.DataFrame] | None,
+) -> None:
     # Papers (metadata only)
-    con.execute("CREATE OR REPLACE TABLE papers AS SELECT * FROM df_papers").execute() if False else None
     con.register("df_papers", df_papers)
     con.execute("CREATE OR REPLACE TABLE papers AS SELECT * FROM df_papers")
 
@@ -3937,11 +3977,14 @@ def persist_duckdb(
     # Export quick Parquet snapshots for notebooks / Swift reloads.
     out_dir = db_path.parent / "analytics"
     out_dir.mkdir(parents=True, exist_ok=True)
-    con.execute(f"COPY papers TO '{out_dir / 'papers.parquet'}' (FORMAT PARQUET, CODEC 'ZSTD')")
-    con.execute(f"COPY paper_embeddings TO '{out_dir / 'paper_embeddings.parquet'}' (FORMAT PARQUET, CODEC 'ZSTD')")
-    con.execute(f"COPY paper_chunks TO '{out_dir / 'paper_chunks.parquet'}' (FORMAT PARQUET, CODEC 'ZSTD')")
-    con.execute(f"COPY claims TO '{out_dir / 'claims.parquet'}' (FORMAT PARQUET, CODEC 'ZSTD')")
-    con.execute(f"COPY methods TO '{out_dir / 'methods.parquet'}' (FORMAT PARQUET, CODEC 'ZSTD')")
+    con.execute("COPY papers TO ? (FORMAT PARQUET, CODEC 'ZSTD')", [str(out_dir / "papers.parquet")])
+    con.execute(
+        "COPY paper_embeddings TO ? (FORMAT PARQUET, CODEC 'ZSTD')",
+        [str(out_dir / "paper_embeddings.parquet")],
+    )
+    con.execute("COPY paper_chunks TO ? (FORMAT PARQUET, CODEC 'ZSTD')", [str(out_dir / "paper_chunks.parquet")])
+    con.execute("COPY claims TO ? (FORMAT PARQUET, CODEC 'ZSTD')", [str(out_dir / "claims.parquet")])
+    con.execute("COPY methods TO ? (FORMAT PARQUET, CODEC 'ZSTD')", [str(out_dir / "methods.parquet")])
 
     # Optional extra tables (refs, in_corpus_cites, etc.)
     if extra_tables:
@@ -3950,11 +3993,12 @@ def persist_duckdb(
                 continue
             if getattr(df, "shape", (0, 0))[1] == 0:
                 continue
+            if not re.fullmatch(r"[A-Za-z_][A-Za-z0-9_]*", name):
+                raise ValueError(f"Invalid DuckDB table name: {name!r}")
             view = f"df_{name}"
             con.register(view, df)
             con.execute(f"CREATE OR REPLACE TABLE {name} AS SELECT * FROM {view}")
-            con.execute(f"COPY {name} TO '{out_dir / f'{name}.parquet'}' (FORMAT PARQUET, CODEC 'ZSTD')")
-    con.close()
+            con.execute(f"COPY {name} TO ? (FORMAT PARQUET, CODEC 'ZSTD')", [str(out_dir / f"{name}.parquet")])
 
 
 def write_embeddings_whitened_parquet(
@@ -3979,7 +4023,8 @@ def write_embeddings_whitened_parquet(
 def write_summary(analytics_dir: pathlib.Path, summary: dict[str, Any]):
     out_path = analytics_dir / "analytics.json"
     analytics_dir.mkdir(parents=True, exist_ok=True)
-    out_path.write_text(json.dumps(summary, indent=2))
+    encoded = json.dumps(summary, indent=2, allow_nan=False)
+    out_path.write_text(encoded)
     _logger.info("Wrote summary to %s", out_path)
 
 
@@ -4175,7 +4220,7 @@ def main():
     # Counterfactual scenarios (year cutoffs)
     counterfactuals = []
     for cutoff in args.counterfactual_cutoffs:
-        mask = df_papers.year.fillna(0) >= cutoff
+        mask = pd.to_numeric(df_papers.year, errors="coerce").ge(cutoff)
         kept = df_papers[mask]
         kept_ids = set(kept.paper_id)
         cent_vals = [c["weighted_degree"] for c in centrality if c["paper_id"] in kept_ids]

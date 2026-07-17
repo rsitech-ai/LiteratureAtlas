@@ -297,41 +297,6 @@
     },
     {
       "author": "The Rust Project Developers",
-      "bom-ref": "registry+https://github.com/rust-lang/crates.io-index#bitflags@1.3.2",
-      "description": "A macro to generate structures which behave like bitflags. ",
-      "externalReferences": [
-        {
-          "type": "documentation",
-          "url": "https://docs.rs/bitflags"
-        },
-        {
-          "type": "website",
-          "url": "https://github.com/bitflags/bitflags"
-        },
-        {
-          "type": "vcs",
-          "url": "https://github.com/bitflags/bitflags"
-        }
-      ],
-      "hashes": [
-        {
-          "alg": "SHA-256",
-          "content": "bef38d45163c2f1dde094a7dfd33ccf595c92905c8f8f4fdc18d06fb1037718a"
-        }
-      ],
-      "licenses": [
-        {
-          "expression": "MIT OR Apache-2.0"
-        }
-      ],
-      "name": "bitflags",
-      "purl": "pkg:cargo/bitflags@1.3.2",
-      "scope": "required",
-      "type": "library",
-      "version": "1.3.2"
-    },
-    {
-      "author": "The Rust Project Developers",
       "bom-ref": "registry+https://github.com/rust-lang/crates.io-index#bitflags@2.10.0",
       "description": "A macro to generate structures which behave like bitflags. ",
       "externalReferences": [
@@ -453,6 +418,41 @@
       "scope": "required",
       "type": "library",
       "version": "1.0.4"
+    },
+    {
+      "author": "Zicklag <zicklag@katharostech.com>",
+      "bom-ref": "registry+https://github.com/rust-lang/crates.io-index#cfg_aliases@0.2.2",
+      "description": "A tiny utility to help save you a lot of effort with long winded `#[cfg()]` checks.",
+      "externalReferences": [
+        {
+          "type": "documentation",
+          "url": "https://docs.rs/cfg_aliases"
+        },
+        {
+          "type": "website",
+          "url": "https://github.com/katharostech/cfg_aliases"
+        },
+        {
+          "type": "vcs",
+          "url": "https://github.com/katharostech/cfg_aliases"
+        }
+      ],
+      "hashes": [
+        {
+          "alg": "SHA-256",
+          "content": "f079e83a288787bcd14a6aea84cee5c87a67c5a3e660c30f557a3d24761b3527"
+        }
+      ],
+      "licenses": [
+        {
+          "expression": "MIT"
+        }
+      ],
+      "name": "cfg_aliases",
+      "purl": "pkg:cargo/cfg_aliases@0.2.2",
+      "scope": "excluded",
+      "type": "library",
+      "version": "0.2.2"
     },
     {
       "bom-ref": "registry+https://github.com/rust-lang/crates.io-index#colorchoice@1.0.4",
@@ -912,7 +912,7 @@
     },
     {
       "author": "jeanpierre.both@gmail.com",
-      "bom-ref": "registry+https://github.com/rust-lang/crates.io-index#hnsw_rs@0.3.3",
+      "bom-ref": "registry+https://github.com/rust-lang/crates.io-index#hnsw_rs@0.3.4",
       "description": "Ann based on Hierarchical Navigable Small World Graphs from Yu.A. Malkov and D.A Yashunin",
       "externalReferences": [
         {
@@ -927,7 +927,7 @@
       "hashes": [
         {
           "alg": "SHA-256",
-          "content": "22884c1debedfe585612f1f6da7bfe257f557639143cac270a8ac2f8702de750"
+          "content": "43a5258f079b97bf2e8311ff9579e903c899dcbac0d9a138d62e9a066778bd07"
         }
       ],
       "licenses": [
@@ -936,10 +936,10 @@
         }
       ],
       "name": "hnsw_rs",
-      "purl": "pkg:cargo/hnsw_rs@0.3.3",
+      "purl": "pkg:cargo/hnsw_rs@0.3.4",
       "scope": "required",
       "type": "library",
-      "version": "0.3.3"
+      "version": "0.3.4"
     },
     {
       "bom-ref": "registry+https://github.com/rust-lang/crates.io-index#indexmap@2.12.1",
@@ -1206,35 +1206,8 @@
       "version": "2.7.6"
     },
     {
-      "author": "Gilad Naaman <gilad.naaman@gmail.com>",
-      "bom-ref": "registry+https://github.com/rust-lang/crates.io-index#memoffset@0.7.1",
-      "description": "offset_of functionality for Rust structs.",
-      "externalReferences": [
-        {
-          "type": "vcs",
-          "url": "https://github.com/Gilnaa/memoffset"
-        }
-      ],
-      "hashes": [
-        {
-          "alg": "SHA-256",
-          "content": "5de893c32cde5f383baa4c04c5d6dbdd735cfd4a794b0debdb2bb1b421da5ff4"
-        }
-      ],
-      "licenses": [
-        {
-          "expression": "MIT"
-        }
-      ],
-      "name": "memoffset",
-      "purl": "pkg:cargo/memoffset@0.7.1",
-      "scope": "required",
-      "type": "library",
-      "version": "0.7.1"
-    },
-    {
       "author": "Stephan van Schaik <stephan@synkhronix.com>",
-      "bom-ref": "registry+https://github.com/rust-lang/crates.io-index#mmap-rs@0.6.1",
+      "bom-ref": "registry+https://github.com/rust-lang/crates.io-index#mmap-rs@0.7.0",
       "description": "A cross-platform and safe Rust API to create and manage memory mappings in the virtual address space of the calling process.",
       "externalReferences": [
         {
@@ -1249,7 +1222,7 @@
       "hashes": [
         {
           "alg": "SHA-256",
-          "content": "86968d85441db75203c34deefd0c88032f275aaa85cee19a1dcfff6ae9df56da"
+          "content": "4ecce9d566cb9234ae3db9e249c8b55665feaaf32b0859ff1e27e310d2beb3d8"
         }
       ],
       "licenses": [
@@ -1258,14 +1231,14 @@
         }
       ],
       "name": "mmap-rs",
-      "purl": "pkg:cargo/mmap-rs@0.6.1",
+      "purl": "pkg:cargo/mmap-rs@0.7.0",
       "scope": "required",
       "type": "library",
-      "version": "0.6.1"
+      "version": "0.7.0"
     },
     {
       "author": "The nix-rust Project Developers",
-      "bom-ref": "registry+https://github.com/rust-lang/crates.io-index#nix@0.26.4",
+      "bom-ref": "registry+https://github.com/rust-lang/crates.io-index#nix@0.30.1",
       "description": "Rust friendly bindings to *nix APIs",
       "externalReferences": [
         {
@@ -1276,7 +1249,7 @@
       "hashes": [
         {
           "alg": "SHA-256",
-          "content": "598beaf3cc6fdd9a5dfb1630c2800c7acd31df7aaf0f565796fba2b53ca1af1b"
+          "content": "74523f3a35e05aba87a1d978330aef40f67b0304ac79c1c00b294c9830543db6"
         }
       ],
       "licenses": [
@@ -1285,10 +1258,10 @@
         }
       ],
       "name": "nix",
-      "purl": "pkg:cargo/nix@0.26.4",
+      "purl": "pkg:cargo/nix@0.30.1",
       "scope": "required",
       "type": "library",
-      "version": "0.26.4"
+      "version": "0.30.1"
     },
     {
       "author": "The Rust Project Developers",
@@ -1409,37 +1382,6 @@
       "scope": "required",
       "type": "library",
       "version": "0.9.12"
-    },
-    {
-      "author": "Josef Brandl <mail@josefbrandl.de>",
-      "bom-ref": "registry+https://github.com/rust-lang/crates.io-index#pin-utils@0.1.0",
-      "description": "Utilities for pinning ",
-      "externalReferences": [
-        {
-          "type": "documentation",
-          "url": "https://docs.rs/pin-utils"
-        },
-        {
-          "type": "vcs",
-          "url": "https://github.com/rust-lang-nursery/pin-utils"
-        }
-      ],
-      "hashes": [
-        {
-          "alg": "SHA-256",
-          "content": "8b870d8c151b6f2fb93e84a13146138f05d02ed11c7e7c54f8826aaaf7c9f184"
-        }
-      ],
-      "licenses": [
-        {
-          "expression": "MIT OR Apache-2.0"
-        }
-      ],
-      "name": "pin-utils",
-      "purl": "pkg:cargo/pin-utils@0.1.0",
-      "scope": "required",
-      "type": "library",
-      "version": "0.1.0"
     },
     {
       "author": "The CryptoCorrosion Contributors",
@@ -2004,7 +1946,7 @@
     },
     {
       "author": "Johannes Lundberg <johalun0@gmail.com>, Ivan Temchenko <ivan.temchenko@yandex.ua>, Fabian Freyer <fabian.freyer@physik.tu-berlin.de>",
-      "bom-ref": "registry+https://github.com/rust-lang/crates.io-index#sysctl@0.5.5",
+      "bom-ref": "registry+https://github.com/rust-lang/crates.io-index#sysctl@0.6.0",
       "description": "Simplified interface to libc::sysctl",
       "externalReferences": [
         {
@@ -2019,7 +1961,7 @@
       "hashes": [
         {
           "alg": "SHA-256",
-          "content": "ec7dddc5f0fee506baf8b9fdb989e242f17e4b11c61dfbb0635b705217199eea"
+          "content": "01198a2debb237c62b6826ec7081082d951f46dbb64b0e8c7649a452230d1dfc"
         }
       ],
       "licenses": [
@@ -2028,10 +1970,10 @@
         }
       ],
       "name": "sysctl",
-      "purl": "pkg:cargo/sysctl@0.5.5",
+      "purl": "pkg:cargo/sysctl@0.6.0",
       "scope": "required",
       "type": "library",
-      "version": "0.5.5"
+      "version": "0.6.0"
     },
     {
       "author": "David Tolnay <dtolnay@gmail.com>",
@@ -2059,6 +2001,33 @@
       "scope": "required",
       "type": "library",
       "version": "1.0.69"
+    },
+    {
+      "author": "David Tolnay <dtolnay@gmail.com>",
+      "bom-ref": "registry+https://github.com/rust-lang/crates.io-index#thiserror-impl@2.0.18",
+      "description": "Implementation detail of the `thiserror` crate",
+      "externalReferences": [
+        {
+          "type": "vcs",
+          "url": "https://github.com/dtolnay/thiserror"
+        }
+      ],
+      "hashes": [
+        {
+          "alg": "SHA-256",
+          "content": "ebc4ee7f67670e9b64d05fa4253e753e016c6c95ff35b89b7941d6b856dec1d5"
+        }
+      ],
+      "licenses": [
+        {
+          "expression": "MIT OR Apache-2.0"
+        }
+      ],
+      "name": "thiserror-impl",
+      "purl": "pkg:cargo/thiserror-impl@2.0.18",
+      "scope": "required",
+      "type": "library",
+      "version": "2.0.18"
     },
     {
       "author": "David Tolnay <dtolnay@gmail.com>",
@@ -2090,6 +2059,37 @@
       "scope": "required",
       "type": "library",
       "version": "1.0.69"
+    },
+    {
+      "author": "David Tolnay <dtolnay@gmail.com>",
+      "bom-ref": "registry+https://github.com/rust-lang/crates.io-index#thiserror@2.0.18",
+      "description": "derive(Error)",
+      "externalReferences": [
+        {
+          "type": "documentation",
+          "url": "https://docs.rs/thiserror"
+        },
+        {
+          "type": "vcs",
+          "url": "https://github.com/dtolnay/thiserror"
+        }
+      ],
+      "hashes": [
+        {
+          "alg": "SHA-256",
+          "content": "4288b5bcbc7920c07a1149a35cf9590a2aa808e0bc1eafaade0b80947865fbc4"
+        }
+      ],
+      "licenses": [
+        {
+          "expression": "MIT OR Apache-2.0"
+        }
+      ],
+      "name": "thiserror",
+      "purl": "pkg:cargo/thiserror@2.0.18",
+      "scope": "required",
+      "type": "library",
+      "version": "2.0.18"
     },
     {
       "author": "David Tolnay <dtolnay@gmail.com>",
@@ -2184,7 +2184,7 @@
   "dependencies": [
     {
       "dependsOn": [
-        "registry+https://github.com/rust-lang/crates.io-index#hnsw_rs@0.3.3"
+        "registry+https://github.com/rust-lang/crates.io-index#hnsw_rs@0.3.4"
       ],
       "ref": "path+file:///workspace/LiteratureAtlas/analytics/ffi#atlas_ffi@0.1.0"
     },
@@ -2247,9 +2247,6 @@
       "ref": "registry+https://github.com/rust-lang/crates.io-index#bincode@1.3.3"
     },
     {
-      "ref": "registry+https://github.com/rust-lang/crates.io-index#bitflags@1.3.2"
-    },
-    {
       "ref": "registry+https://github.com/rust-lang/crates.io-index#bitflags@2.10.0"
     },
     {
@@ -2260,6 +2257,9 @@
     },
     {
       "ref": "registry+https://github.com/rust-lang/crates.io-index#cfg-if@1.0.4"
+    },
+    {
+      "ref": "registry+https://github.com/rust-lang/crates.io-index#cfg_aliases@0.2.2"
     },
     {
       "ref": "registry+https://github.com/rust-lang/crates.io-index#colorchoice@1.0.4"
@@ -2361,7 +2361,7 @@
         "registry+https://github.com/rust-lang/crates.io-index#indexmap@2.12.1",
         "registry+https://github.com/rust-lang/crates.io-index#lazy_static@1.5.0",
         "registry+https://github.com/rust-lang/crates.io-index#log@0.4.29",
-        "registry+https://github.com/rust-lang/crates.io-index#mmap-rs@0.6.1",
+        "registry+https://github.com/rust-lang/crates.io-index#mmap-rs@0.7.0",
         "registry+https://github.com/rust-lang/crates.io-index#num-traits@0.2.19",
         "registry+https://github.com/rust-lang/crates.io-index#num_cpus@1.17.0",
         "registry+https://github.com/rust-lang/crates.io-index#parking_lot@0.12.5",
@@ -2369,7 +2369,7 @@
         "registry+https://github.com/rust-lang/crates.io-index#rayon@1.11.0",
         "registry+https://github.com/rust-lang/crates.io-index#serde@1.0.228"
       ],
-      "ref": "registry+https://github.com/rust-lang/crates.io-index#hnsw_rs@0.3.3"
+      "ref": "registry+https://github.com/rust-lang/crates.io-index#hnsw_rs@0.3.4"
     },
     {
       "dependsOn": [
@@ -2414,31 +2414,24 @@
     },
     {
       "dependsOn": [
-        "registry+https://github.com/rust-lang/crates.io-index#autocfg@1.5.0"
-      ],
-      "ref": "registry+https://github.com/rust-lang/crates.io-index#memoffset@0.7.1"
-    },
-    {
-      "dependsOn": [
-        "registry+https://github.com/rust-lang/crates.io-index#bitflags@1.3.2",
+        "registry+https://github.com/rust-lang/crates.io-index#bitflags@2.10.0",
         "registry+https://github.com/rust-lang/crates.io-index#combine@4.6.7",
         "registry+https://github.com/rust-lang/crates.io-index#libc@0.2.178",
         "registry+https://github.com/rust-lang/crates.io-index#mach2@0.4.3",
-        "registry+https://github.com/rust-lang/crates.io-index#nix@0.26.4",
-        "registry+https://github.com/rust-lang/crates.io-index#sysctl@0.5.5",
-        "registry+https://github.com/rust-lang/crates.io-index#thiserror@1.0.69"
+        "registry+https://github.com/rust-lang/crates.io-index#nix@0.30.1",
+        "registry+https://github.com/rust-lang/crates.io-index#sysctl@0.6.0",
+        "registry+https://github.com/rust-lang/crates.io-index#thiserror@2.0.18"
       ],
-      "ref": "registry+https://github.com/rust-lang/crates.io-index#mmap-rs@0.6.1"
+      "ref": "registry+https://github.com/rust-lang/crates.io-index#mmap-rs@0.7.0"
     },
     {
       "dependsOn": [
-        "registry+https://github.com/rust-lang/crates.io-index#bitflags@1.3.2",
+        "registry+https://github.com/rust-lang/crates.io-index#bitflags@2.10.0",
         "registry+https://github.com/rust-lang/crates.io-index#cfg-if@1.0.4",
-        "registry+https://github.com/rust-lang/crates.io-index#libc@0.2.178",
-        "registry+https://github.com/rust-lang/crates.io-index#memoffset@0.7.1",
-        "registry+https://github.com/rust-lang/crates.io-index#pin-utils@0.1.0"
+        "registry+https://github.com/rust-lang/crates.io-index#cfg_aliases@0.2.2",
+        "registry+https://github.com/rust-lang/crates.io-index#libc@0.2.178"
       ],
-      "ref": "registry+https://github.com/rust-lang/crates.io-index#nix@0.26.4"
+      "ref": "registry+https://github.com/rust-lang/crates.io-index#nix@0.30.1"
     },
     {
       "dependsOn": [
@@ -2466,9 +2459,6 @@
         "registry+https://github.com/rust-lang/crates.io-index#smallvec@1.15.1"
       ],
       "ref": "registry+https://github.com/rust-lang/crates.io-index#parking_lot_core@0.9.12"
-    },
-    {
-      "ref": "registry+https://github.com/rust-lang/crates.io-index#pin-utils@0.1.0"
     },
     {
       "dependsOn": [
@@ -2582,7 +2572,7 @@
         "registry+https://github.com/rust-lang/crates.io-index#libc@0.2.178",
         "registry+https://github.com/rust-lang/crates.io-index#thiserror@1.0.69"
       ],
-      "ref": "registry+https://github.com/rust-lang/crates.io-index#sysctl@0.5.5"
+      "ref": "registry+https://github.com/rust-lang/crates.io-index#sysctl@0.6.0"
     },
     {
       "dependsOn": [
@@ -2594,9 +2584,23 @@
     },
     {
       "dependsOn": [
+        "registry+https://github.com/rust-lang/crates.io-index#proc-macro2@1.0.103",
+        "registry+https://github.com/rust-lang/crates.io-index#quote@1.0.42",
+        "registry+https://github.com/rust-lang/crates.io-index#syn@2.0.111"
+      ],
+      "ref": "registry+https://github.com/rust-lang/crates.io-index#thiserror-impl@2.0.18"
+    },
+    {
+      "dependsOn": [
         "registry+https://github.com/rust-lang/crates.io-index#thiserror-impl@1.0.69"
       ],
       "ref": "registry+https://github.com/rust-lang/crates.io-index#thiserror@1.0.69"
+    },
+    {
+      "dependsOn": [
+        "registry+https://github.com/rust-lang/crates.io-index#thiserror-impl@2.0.18"
+      ],
+      "ref": "registry+https://github.com/rust-lang/crates.io-index#thiserror@2.0.18"
     },
     {
       "ref": "registry+https://github.com/rust-lang/crates.io-index#unicode-ident@1.0.22"
@@ -2620,6 +2624,11 @@
           "version": "0.1.0"
         }
       ],
+      "licenses": [
+        {
+          "expression": "MIT"
+        }
+      ],
       "name": "atlas_ffi",
       "purl": "pkg:cargo/atlas_ffi@0.1.0?download_url=file://.",
       "scope": "required",
@@ -2632,7 +2641,7 @@
         "value": "aarch64-apple-darwin"
       }
     ],
-    "timestamp": "2026-07-15T20:39:38.000000000Z",
+    "timestamp": "2026-07-17T00:00:00.000000000Z",
     "tools": [
       {
         "name": "cargo-cyclonedx",
