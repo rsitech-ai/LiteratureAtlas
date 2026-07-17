@@ -167,7 +167,7 @@ def _safe_int(value: Any) -> int | None:
     if isinstance(value, int):
         return value
     if isinstance(value, float):
-        if math.isnan(value):
+        if not math.isfinite(value) or not value.is_integer():
             return None
         return int(value)
     if isinstance(value, str):
@@ -176,7 +176,7 @@ def _safe_int(value: Any) -> int | None:
             return None
         try:
             return int(stripped)
-        except ValueError:
+        except (ValueError, OverflowError):
             return None
     return None
 
@@ -189,6 +189,10 @@ def _stringify(value: Any) -> str:
     if isinstance(value, (int, float, bool)):
         return str(value)
     return ""
+
+
+def _reject_json_constant(value: str) -> None:
+    raise ValueError(f"non-finite JSON number {value}")
 
 
 def _extract_tokens_from_paper(data: dict[str, Any]) -> set[str]:
@@ -262,25 +266,47 @@ def load_papers(output_root: Path) -> list[PaperRecord]:
     parquet_lookup = _load_cluster_lookup_from_parquet(output_root)
 
     papers: list[PaperRecord] = []
+    seen_ids: set[str] = set()
+    embedding_dimension: int | None = None
     for path in sorted(papers_dir.glob("*.paper.json")):
         try:
-            data = json.loads(path.read_text(encoding="utf-8"))
-        except Exception:
-            continue
+            data = json.loads(
+                path.read_text(encoding="utf-8"),
+                parse_constant=_reject_json_constant,
+            )
+        except Exception as exc:
+            raise ValueError(f"Invalid paper JSON in {path}: {exc}") from exc
+        if not isinstance(data, dict):
+            raise ValueError(f"Paper JSON must be an object: {path}")
 
         paper_id = _normalize_uuid(data.get("id"))
         if not paper_id:
-            continue
+            raise ValueError(f"Paper JSON has an invalid id: {path}")
+        if paper_id in seen_ids:
+            raise ValueError(f"Duplicate paper id {paper_id}: {path}")
+        seen_ids.add(paper_id)
 
         embedding_arr: np.ndarray | None = None
         embedding = data.get("embedding")
+        if embedding is not None and not isinstance(embedding, list):
+            raise ValueError(f"Paper embedding must be a list: {path}")
         if isinstance(embedding, list) and embedding:
             try:
                 embedding_arr = np.asarray(embedding, dtype=np.float32)
-                if embedding_arr.ndim != 1 or embedding_arr.size < 2:
-                    embedding_arr = None
-            except Exception:
-                embedding_arr = None
+            except Exception as exc:
+                raise ValueError(f"Paper embedding is not numeric: {path}") from exc
+            if embedding_arr.ndim != 1 or embedding_arr.size < 2:
+                raise ValueError(
+                    f"Paper embedding must be a one-dimensional vector with at least 2 values: {path}"
+                )
+            if not np.isfinite(embedding_arr).all():
+                raise ValueError(f"Paper embedding contains a non-finite value: {path}")
+            if embedding_dimension is None:
+                embedding_dimension = int(embedding_arr.size)
+            elif embedding_arr.size != embedding_dimension:
+                raise ValueError(
+                    f"Paper embedding dimension {embedding_arr.size} does not match {embedding_dimension}: {path}"
+                )
 
         explicit_cluster = _safe_int(data.get("clusterIndex"))
         if explicit_cluster is None:

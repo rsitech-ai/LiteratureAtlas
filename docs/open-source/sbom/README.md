@@ -1,18 +1,20 @@
 # SBOM evidence
 
-These inventories cover the current source ecosystems and exact local app
-evidence built from commit `647911aa3093a9df56f48a048a002e5db458794a`.
-They are not an attestation for a future Developer ID-signed artifact.
+The source and dependency inventories cover the current audited worktree. The
+two app inventories are exact historical local evidence built from commit
+`647911aa3093a9df56f48a048a002e5db458794a`; they are not an attestation for a
+future Developer ID-signed artifact.
 
 | File | Scope | Generator | Records |
 |---|---|---|---|
-| `source.spdx.json` | Tracked/unignored repository source excluding Git, generated outputs, and this SBOM directory | `scripts/generate_spdx_sbom.py`, SPDX 2.3 JSON | 1 package, 246 regular files |
+| `source.spdx.json` | Tracked/unignored repository source excluding Git, generated outputs, and this SBOM directory | `scripts/generate_spdx_sbom.py`, SPDX 2.3 JSON | 1 package, 248 regular files |
 | `community-app.spdx.json` | Exact ad-hoc signed `LiteratureAtlasCommunity.app` built from `647911a` | `scripts/generate_spdx_sbom.py`, SPDX 2.3 JSON | 1 package, 40 regular files |
 | `official-unsigned-app.spdx.json` | Exact signature-free official pre-sign app built from `647911a` | `scripts/generate_spdx_sbom.py`, SPDX 2.3 JSON | 1 package, 39 regular files |
-| `python-environment.cdx.json` | Locked analytics Python 3.12 environment | cyclonedx-bom 7.2.1, CycloneDX 1.6 | 18 components; 0 missing licenses |
-| `rust-source.cdx.json` | Rust FFI for `aarch64-apple-darwin` | cargo-cyclonedx 0.5.9, CycloneDX 1.5 | 72 components including the project root; 0 missing licenses |
+| `python-environment.cdx.json` | Locked analytics Python 3.12 environment | cyclonedx-bom 7.2.1, CycloneDX 1.6 | 19 dependency components plus the project root; 0 missing licenses |
+| `rust-source.cdx.json` | Rust FFI for `aarch64-apple-darwin` | cargo-cyclonedx 0.5.9, CycloneDX 1.5 | 72 dependency components plus the project root; 0 missing licenses |
 
-The repository generator hashes every regular file with SHA-256, records one
+The repository generator hashes every regular file with SHA-256, binds paths,
+file modes, types, and symlink targets into the source namespace, records one
 package-to-file `CONTAINS` relationship per file, excludes its own output from
 the source inventory, converts numeric `SOURCE_DATE_EPOCH` to an SPDX timestamp,
 and writes atomically. The Rust CycloneDX file is sanitized so no developer
@@ -34,9 +36,28 @@ SOURCE_DATE_EPOCH="$(git show -s --format=%ct "$SOURCE_COMMIT")" \
   --version 1.0.0+647911a-unsigned \
   --output docs/open-source/sbom/official-unsigned-app.spdx.json
 
-scripts/generate_spdx_sbom.py \
+SOURCE_DATE_EPOCH=1784246400 scripts/generate_spdx_sbom.py \
   --source-root . \
   --output docs/open-source/sbom/source.spdx.json
+
+uv tool run --from cyclonedx-bom==7.2.1 \
+  cyclonedx-py environment analytics/.venv/bin/python \
+  --pyproject analytics/pyproject.toml --mc-type application \
+  --sv 1.6 --output-reproducible --of JSON -o /tmp/python-environment.raw.json
+scripts/generate_spdx_sbom.py \
+  --sanitize-cyclonedx /tmp/python-environment.raw.json \
+  --workspace-root . \
+  --output docs/open-source/sbom/python-environment.cdx.json
+
+# With cargo-cyclonedx 0.5.9 installed on PATH:
+SOURCE_DATE_EPOCH=1784246400 cargo cyclonedx \
+  --manifest-path analytics/ffi/Cargo.toml --format json --all \
+  --target aarch64-apple-darwin --spec-version 1.5 \
+  --override-filename LiteratureAtlas-rust-source.cdx
+scripts/generate_spdx_sbom.py \
+  --sanitize-cyclonedx analytics/ffi/LiteratureAtlas-rust-source.cdx.json \
+  --workspace-root . \
+  --output docs/open-source/sbom/rust-source.cdx.json
 ```
 
 An official release must generate a new SBOM from the exact Developer ID-signed
@@ -48,7 +69,7 @@ Current SHA-256 values:
 ```text
 1c8dc2d061b7b7dfe58695a4bff38df8fa89548eada54d0d60c86a4a43105c68  community-app.spdx.json
 65657374f17e19d5f82fc69567396e062d0a4ee8361bf5bf010ae91a0c1e0132  official-unsigned-app.spdx.json
-b50fc7e87ee4cc0d2a859c1100bb1e570157005423dbbced3d30b17679dc0182  source.spdx.json
-4376c231aabcf7968ce054b7c9b3eb4a0cc08f6335e41d3b5622c03477e06e86  python-environment.cdx.json
-204900d5f3865ef0c8065479e31d378770422f425e7fee68ba74faf7e0448906  rust-source.cdx.json
+362da8206daa8332411d37c86f6f401be106a3e902762475f59d72257f40be3b  source.spdx.json
+d7943ff10cf724feb301131fd39e1b60be057dad70f696e9187be9e6b3dc81a8  python-environment.cdx.json
+651d595003f87f5883d42bd59ca3e3a5426dddd5c5f035e3e1af9cb9608d861d  rust-source.cdx.json
 ```

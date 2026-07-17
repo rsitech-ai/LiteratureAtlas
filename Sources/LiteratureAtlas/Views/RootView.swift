@@ -66,7 +66,10 @@ struct RootView: View {
             get: { nav.selectedTab },
             set: { tab in
                 guard let tab else { return }
-                nav.select(tab, collapseSidebar: horizontalSizeClass == .compact)
+                let collapseSidebar = horizontalSizeClass == .compact
+                DispatchQueue.main.async {
+                    nav.select(tab, collapseSidebar: collapseSidebar)
+                }
             }
         )
     }

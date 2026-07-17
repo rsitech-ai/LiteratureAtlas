@@ -35,11 +35,17 @@ if [ "$dry_run" = true ]; then
     exit 0
 fi
 
-case "$(release_source_revision)" in
+approved_source_revision=$(release_source_revision)
+case "$approved_source_revision" in
     *-dirty) release_die "official builds require a clean source tree" ;;
 esac
 
 app=$(release_build_presign_app "$product_name" "$bundle_id" "$version" "$build_number" "$output" false)
+final_source_revision=$(release_source_revision)
+if [ "$final_source_revision" != "$approved_source_revision" ]; then
+    rm -rf "$app" "$app.dSYM"
+    release_die "source tree changed during the official build; discarded the mixed-source candidate"
+fi
 release_require_command codesign
 codesign --remove-signature "$app"
 if signature_details=$(codesign -dv "$app" 2>&1); then

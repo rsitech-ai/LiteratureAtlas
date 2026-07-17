@@ -32,7 +32,7 @@ enum AtlasFFI {
     typealias BuildFn = @convention(c) (UInt32, UInt32, UnsafePointer<Float>?) -> UnsafeMutableRawPointer?
     typealias FreeFn = @convention(c) (UnsafeMutableRawPointer?) -> Void
     // Use opaque out pointer to avoid ObjC representability issues.
-    typealias QueryFn = @convention(c) (UnsafeMutableRawPointer?, UnsafePointer<Float>?, UInt32, UnsafeMutableRawPointer?) -> UInt32
+    typealias QueryFn = @convention(c) (UnsafeMutableRawPointer?, UnsafePointer<Float>?, UInt32, UInt32, UnsafeMutableRawPointer?) -> UInt32
 
     static func isAvailable() -> Bool {
         #if ATLAS_FFI_LINKED
@@ -45,11 +45,13 @@ enum AtlasFFI {
     static func buildIndex(vectors: [[Float]]) -> UnsafeMutableRawPointer? {
         guard let first = vectors.first, !first.isEmpty else { return nil }
         let dimCount = first.count
-        guard vectors.allSatisfy({ $0.count == dimCount }) else { return nil }
-        let dim = UInt32(dimCount)
-        let n = UInt32(vectors.count)
+        guard vectors.allSatisfy({ $0.count == dimCount }),
+              let dim = UInt32(exactly: dimCount),
+              let n = UInt32(exactly: vectors.count) else { return nil }
+        let (valueCount, overflow) = dimCount.multipliedReportingOverflow(by: vectors.count)
+        guard !overflow else { return nil }
         var flat: [Float] = []
-        flat.reserveCapacity(dimCount * vectors.count)
+        flat.reserveCapacity(valueCount)
         for v in vectors { flat.append(contentsOf: v) }
 
         #if ATLAS_FFI_LINKED
@@ -65,21 +67,28 @@ enum AtlasFFI {
     }
 
     static func query(index: UnsafeMutableRawPointer?, query: [Float], k: Int) -> [AtlasSearchResult] {
-        guard index != nil, k > 0, !query.isEmpty else { return [] }
+        guard index != nil,
+              k > 0,
+              !query.isEmpty,
+              let queryCount = UInt32(exactly: query.count),
+              let resultCount = UInt32(exactly: k) else { return [] }
         #if ATLAS_FFI_LINKED
         var results = [AtlasFFIClib.AtlasSearchResult](repeating: AtlasFFIClib.AtlasSearchResult(index: 0, distance: 0), count: k)
         let wrote = query.withUnsafeBufferPointer { qbuf -> UInt32 in
             results.withUnsafeMutableBufferPointer { outBuf -> UInt32 in
-                atlas_query_index(index, qbuf.baseAddress, UInt32(k), outBuf.baseAddress)
+                atlas_query_index_v2(index, qbuf.baseAddress, queryCount, resultCount, outBuf.baseAddress)
             }
         }
         return Array(results.prefix(Int(wrote))).map { AtlasSearchResult(index: $0.index, distance: $0.distance) }
         #else
-        guard let qfn: QueryFn = symbol("atlas_query_index", as: QueryFn.self) else { return [] }
+        // The length-aware ABI is deliberately versioned. An older cached dylib may still
+        // export atlas_query_index with four arguments; resolving that symbol as QueryFn
+        // would invoke undefined behavior instead of falling back to the Swift index.
+        guard let qfn: QueryFn = symbol("atlas_query_index_v2", as: QueryFn.self) else { return [] }
         var results = [AtlasSearchResult](repeating: AtlasSearchResult(index: 0, distance: .infinity), count: k)
         let wrote = query.withUnsafeBufferPointer { qbuf -> UInt32 in
             results.withUnsafeMutableBytes { outBuf -> UInt32 in
-                qfn(index, qbuf.baseAddress, UInt32(k), outBuf.baseAddress)
+                qfn(index, qbuf.baseAddress, queryCount, resultCount, outBuf.baseAddress)
             }
         }
         return Array(results.prefix(Int(wrote)))

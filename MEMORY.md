@@ -2,7 +2,7 @@
 
 ## Repo overview (languages/frameworks)
 - **Swift 6 + SwiftUI** — macOS/iOS app for PDF research atlas (`Sources/LiteratureAtlas/`)
-- **Python 3.10+** — Analytics pipeline with DuckDB (`analytics/`)
+- **Python 3.12+** — Analytics pipeline with DuckDB (`analytics/`)
 - **Rust** — FFI library for HNSW/graph algorithms (`analytics/ffi/`)
 
 ## Commands
@@ -23,9 +23,9 @@
 - Rust: `cargo clippy --locked --manifest-path analytics/ffi/Cargo.toml --all-targets --all-features -- -D warnings`
 
 ### Tests
-- Swift: `swift test -Xswiftc -warnings-as-errors` (59 XCTest cases, typically 1 opt-in smoke skipped, plus 4 Swift Testing bookmark cases; requires macOS 26+)
-- Python: `analytics/.venv/bin/python -m pytest analytics/tests -v` (24 tests)
-- Rust FFI: `cargo test --locked --manifest-path analytics/ffi/Cargo.toml` (5 tests)
+- Swift: `swift test -Xswiftc -warnings-as-errors` (68 XCTest cases, typically 1 opt-in smoke skipped, plus 4 Swift Testing bookmark cases; requires macOS 26+)
+- Python: `analytics/.venv/bin/python -m pytest analytics/tests -v` (38 tests)
+- Rust FFI: `cargo test --locked --manifest-path analytics/ffi/Cargo.toml` (6 tests)
 - Release configuration: `python3 scripts/validate_release_configuration.py` (fails closed until approved AppIcon artwork is committed)
 - Known-blocker CI gate: `python3 scripts/validate_release_configuration.py --allow-blocker app_icon_artwork` (fails on every other gate)
 - Release script policy: `scripts/tests/test_release_scripts.sh`
@@ -46,6 +46,10 @@
 - **Output directory**: All artifacts under `Output/` (papers, chunks, clusters, analytics, reports, obsidian)
 - **Paper JSON naming**: `savePaperJSON` writes id-suffixed filenames (`<title> [<UUID>].paper.json`) to prevent silent overwrites from duplicate inferred titles; legacy title-only files are migrated/removed only when they match the same paper id/filePath.
 - **Rust FFI**: Dynamically loaded via `dlopen` in Swift; graceful fallback to pure-Swift implementations
+- **Rust FFI ABI**: HNSW query calls use the versioned `atlas_query_index_v2` symbol, carry the query length across C/Swift/Rust, validate length/null/finite boundaries, and contain Rust panics before the foreign boundary. Versioning makes a cached legacy four-argument dylib fail lookup and use the Swift fallback instead of invoking an incompatible ABI.
+- **Ingestion transaction**: Build paper/chunk candidates without mutating `AppModel`; persist the next canonical chunk index and paper JSON before publishing either to memory. A failed canonical write publishes neither object and rolls the chunk index back.
+- **Managed Python boundary**: Contributor analytics uses only an explicit `LITERATURE_ATLAS_PYTHON` override or the frozen `analytics/.venv` interpreter. A missing or nonzero managed interpreter fails closed and is never replayed under brew/system/PATH Python.
+- **Saved-paper loading**: Deduplicate canonical candidates by freshness before deriving the deterministic modal embedding dimension; stale duplicates must not mutate global embedding shape.
 - **Swift services**: `AppModel.swift` orchestrates; services in `Services/` (PDFProcessor, EmbeddingService, LLMActors, ClaimGraph, AnalyticsStore, etc.)
 - **Analytics app sync**: `rebuildAnalyticsViaPython` and `rebuildAnalyticsWithCutoffs` now run output/topic health checks after successful rebuild and expose status/log in `AnalyticsView`; manual health-check trigger available in Analytics backend card.
 - **App bundle paths**: Use `AppPaths` for repo-relative roots. Proper `.app` launches do not reliably inherit the repo current working directory, so app code should not derive `Output/` or `Prompts/` directly from `FileManager.default.currentDirectoryPath`.
@@ -56,6 +60,7 @@
 - **Knowledge Universe map**: The primary map experience is general-purpose corpus exploration and opens by default as `Universe` / `Knowledge Universe`; trading-specific filtering and ranking belong in `TradingLensView`, not the main map.
 - **Knowledge Universe interaction**: Map taps select/inspect nodes in the right panel; deeper navigation is explicit from inspector actions. Paper graph nodes use adaptive labels, hover/selection expansion, canvas pan/zoom, and per-node drag offsets.
 - **Sidebar navigation**: The root sidebar uses selection-backed `NavigationLink` rows plus explicit split-view visibility state so compact iPad navigation reveals detail. Any navigation change requires both `AppNavigationTests` and a live macOS click smoke across all six destinations because passive selection rows previously regressed on macOS.
+- **Sidebar accessibility**: Defer sidebar selection publication to the next main run-loop turn. Synchronous publication from the `List(selection:)` binding produces SwiftUI runtime faults under accessibility activation.
 - **Claim graph performance**: Full claim relation inference is corpus-scale and must not run during SwiftUI `body` evaluation or app launch. Use bounded previews for UI cards and keep full graph export off the main actor.
 - **Bridge analysis performance**: `BridgingSection` must not call `influencePath`, `claimPathBetweenClusters`, or other claim graph builders from `body`; bridge search is explicit/on-demand so sidebar navigation stays responsive.
 - **Swift Charts plot geometry**: Hover/tracking overlays must use guarded plot-frame dimensions/coordinates from `ChartPlotGeometry.swift`. Filled `AreaMark`s over signed/negative analytics values can produce oversized CoreAnimation paint layers; prefer bounded line charts or explicit safe domains.
@@ -72,12 +77,12 @@
 - Rust FFI must be built before `swift build` (Package.swift links against it)
 - Python analytics requires `Output/papers/*.paper.json` to exist (run Swift ingestion first)
 - Analytics rebuild writes Parquet via pandas and requires `pyarrow` (in `analytics/requirements.txt` and `analytics/pyproject.toml`)
-- Contributor analytics commands use `analytics/.venv`; stale/incomplete environments should be replaced with a frozen `uv sync`.
+- Contributor analytics commands use `analytics/.venv`; stale/incomplete environments should be replaced with a frozen `uv sync`. On this host `uv` is installed at `/Users/s1kor/.local/bin/uv` and is not guaranteed to be on non-interactive `PATH`.
 - Topic reliability audit prefers explicit cluster IDs when coverage is high, otherwise falls back to deterministic KMeans over embeddings
 - Ingestion smoke testing is opt-in via `LITERATURE_ATLAS_INGEST_SMOKE_*`; `scripts/run_example_smoke.sh` requires an explicit `--source` corpus.
 - Sandboxed folder ingestion must start the selected folder's security-scoped access before file existence checks or enumeration; per-file scope alone is insufficient.
 - `scripts/run_example_smoke.sh` computes sample-friendly topic thresholds (`min_topic_size=max(3,floor(N/3))`, `min_primary_topic_size=ceil(0.4*N)`) to avoid flaky false negatives on random `--count 10` runs
-- `scipy` is optional; `linear_sum_assignment` may be `None`
+- SciPy is a direct analytics dependency because `linear_sum_assignment` is used for cluster alignment. The July 2026 lock requires Python 3.12+ and selects NumPy 2.5.1, SciPy 1.18.0, and scikit-learn 1.9.0; older SciPy 1.15.3 failed to load on the audited macOS host.
 - There is currently no `analytics/rust/Cargo.toml`; do not run or document Rust CLI commands unless that manifest is restored.
 
 ## Decision log
@@ -108,3 +113,6 @@
 - 2026-07-16: Direct release builds use a validated generated xcconfig to bind product/bundle/version/build/source revision, reject control-character injection, retain dSYMs, fail on Swift warnings, and use diagnostic-only Xcode output. Distribution verification mounts and exactly compares DMG app contents before accepting them.
 - 2026-07-16: Real sandboxed community-app testing must include folder-picker selection, bookmark creation, actual file enumeration/ingest, truthful counters/output artifacts, all six sidebar destinations, and relaunch persistence; unit/build proof alone missed two bookmark lifetime defects.
 - 2026-07-16: GitHub `macos-26` arm64 supports Python 3.12.10 but not 3.12.13 in `actions/setup-python`; the verified XcodeGen 2.45.4 archive extracts its binary under `xcodegen/bin` inside the chosen extraction directory.
+- 2026-07-17: Hardened analytics and runtime boundaries: strict finite JSON/input normalization, parameterized DuckDB paths, bounded claim-neighbor construction, checksum-based ingest skipping, transactional project persistence, task/run identity guards, panic-contained length-aware Rust FFI, and warning-free single-paper analytics (`docs/audits/release-audit-2026-07-17.md`).
+- 2026-07-17: A frozen Python sync must be import-tested, not inferred from lock success; the previous compatible-looking SciPy 1.15.3 wheel failed at `dlopen` on macOS 26, so the scientific stack floors and lock were refreshed (`analytics/pyproject.toml`, `analytics/uv.lock`).
+- 2026-07-17: Canonical paper/chunk and strategy-project persistence now commits before in-memory publication; derived Markdown failures remain visible without misreporting a successful canonical generation as failed (`Sources/LiteratureAtlas/App/AppModel.swift`).

@@ -26,6 +26,10 @@ from typing import Iterable
 OUTPUT_ROOT = "Output"
 
 
+class ArtifactReadError(RuntimeError):
+    pass
+
+
 @dataclass(frozen=True)
 class Finding:
     kind: str
@@ -39,8 +43,20 @@ def _read_text(path: str) -> str:
 
 
 def _read_json(path: str) -> dict:
-    with open(path, "r", encoding="utf-8") as f:
-        return json.load(f)
+    try:
+        with open(path, "r", encoding="utf-8") as f:
+            data = json.load(
+                f, parse_constant=lambda value: _raise_non_finite(path, value)
+            )
+    except (OSError, json.JSONDecodeError, ValueError) as exc:
+        raise ArtifactReadError(f"Invalid JSON in {path}: {exc}") from exc
+    if not isinstance(data, dict):
+        raise ArtifactReadError(f"Invalid JSON in {path}: expected an object")
+    return data
+
+
+def _raise_non_finite(path: str, value: str) -> None:
+    raise ValueError(f"non-finite number {value} in {path}")
 
 
 def _has_placeholder(text: str) -> bool:
@@ -330,10 +346,14 @@ def main() -> int:
         return 2
 
     findings: list[Finding] = []
-    findings.extend(audit_paper_json())
-    findings.extend(audit_paper_obsidian_linkage())
-    findings.extend(audit_trading_lens_json())
-    findings.extend(audit_obsidian_notes())
+    try:
+        findings.extend(audit_paper_json())
+        findings.extend(audit_paper_obsidian_linkage())
+        findings.extend(audit_trading_lens_json())
+        findings.extend(audit_obsidian_notes())
+    except ArtifactReadError as exc:
+        print(f"Audit input error: {exc}", file=sys.stderr)
+        return 2
 
     print(_summarize(findings))
     report = _write_report(findings)
