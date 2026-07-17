@@ -489,7 +489,7 @@ final class AppModel: ObservableObject {
             if Task.isCancelled { break }
 
             let existingPaper = papers.first(where: { $0.filePath == sourceURL.path })
-            if shouldSkipSource(sourceURL: sourceURL, existingPaper: existingPaper) {
+            if await shouldSkipSource(sourceURL: sourceURL, existingPaper: existingPaper) {
                 ingestionLog += "\n  Skipped: up to date."
                 ingestionProgress = Double(index + 1) / Double(max(sourceFiles.count, 1))
                 ingestionSkippedCount += 1
@@ -814,14 +814,24 @@ final class AppModel: ObservableObject {
         return url
     }
 
-    private func shouldSkipSource(sourceURL: URL, existingPaper: Paper?) -> Bool {
+    private func shouldSkipSource(sourceURL: URL, existingPaper: Paper?) async -> Bool {
         let fm = FileManager.default
         guard let existingPaper else { return false }
         guard !existingPaper.summary.isEmpty, !existingPaper.embedding.isEmpty else { return false }
 
         if let expectedChecksum = existingPaper.sourceChecksum, !expectedChecksum.isEmpty {
-            guard let data = try? Data(contentsOf: sourceURL, options: .mappedIfSafe) else { return false }
-            let currentChecksum = SHA256.hash(data: data).map { String(format: "%02x", $0) }.joined()
+            let checksumTask = Task.detached(priority: .utility) { () -> String? in
+                guard !Task.isCancelled,
+                      let data = try? Data(contentsOf: sourceURL, options: .mappedIfSafe) else { return nil }
+                let checksum = SHA256.hash(data: data).map { String(format: "%02x", $0) }.joined()
+                return Task.isCancelled ? nil : checksum
+            }
+            let currentChecksum = await withTaskCancellationHandler {
+                await checksumTask.value
+            } onCancel: {
+                checksumTask.cancel()
+            }
+            guard !Task.isCancelled, let currentChecksum else { return false }
             if currentChecksum == expectedChecksum {
                 ingestionLog += "\n  Validated existing record checksum; skipping."
                 return true
@@ -957,8 +967,8 @@ final class AppModel: ObservableObject {
         await loadSavedPapersIfNeeded()
     }
 
-    func testShouldSkipSource(sourceURL: URL, existingPaper: Paper?) -> Bool {
-        shouldSkipSource(sourceURL: sourceURL, existingPaper: existingPaper)
+    func testShouldSkipSource(sourceURL: URL, existingPaper: Paper?) async -> Bool {
+        await shouldSkipSource(sourceURL: sourceURL, existingPaper: existingPaper)
     }
 
 #if os(macOS)

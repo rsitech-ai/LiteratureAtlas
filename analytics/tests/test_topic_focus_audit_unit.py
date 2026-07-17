@@ -1,6 +1,7 @@
 import argparse
 import importlib.util
 import json
+import os
 import sys
 import tempfile
 import unittest
@@ -172,6 +173,31 @@ class TopicFocusAuditUnitTests(unittest.TestCase):
         self.assertIsNone(self.mod._safe_int(float("-inf")))
         self.assertIsNone(self.mod._safe_int(2020.5))
         self.assertEqual(self.mod._safe_int(2020.0), 2020)
+
+    def test_load_papers_uses_freshest_export_for_duplicate_id(self):
+        with tempfile.TemporaryDirectory() as tmpdir:
+            output_root = Path(tmpdir) / "Output"
+            papers_dir = output_root / "papers"
+            papers_dir.mkdir(parents=True)
+            paper_id = str(uuid.uuid4())
+            stale = {
+                "id": paper_id,
+                "title": "Stale title",
+                "embedding": [0.1, 0.2],
+                "year": 2024,
+            }
+            fresh = {**stale, "title": "Fresh title"}
+            stale_path = papers_dir / "A.paper.json"
+            fresh_path = papers_dir / "Z.paper.json"
+            stale_path.write_text(json.dumps(stale), encoding="utf-8")
+            fresh_path.write_text(json.dumps(fresh), encoding="utf-8")
+            os.utime(stale_path, ns=(1_000_000_000, 1_000_000_000))
+            os.utime(fresh_path, ns=(2_000_000_000, 2_000_000_000))
+
+            papers = self.mod.load_papers(output_root)
+
+            self.assertEqual(len(papers), 1)
+            self.assertEqual(papers[0].title, "Fresh title")
 
 
 if __name__ == "__main__":

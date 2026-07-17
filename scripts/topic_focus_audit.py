@@ -268,7 +268,15 @@ def load_papers(output_root: Path) -> list[PaperRecord]:
     papers: list[PaperRecord] = []
     seen_ids: set[str] = set()
     embedding_dimension: int | None = None
-    for path in sorted(papers_dir.glob("*.paper.json")):
+
+    def candidate_rank(path: Path) -> tuple[int, str]:
+        try:
+            modified_ns = path.stat().st_mtime_ns
+        except OSError:
+            modified_ns = 0
+        return (-modified_ns, path.as_posix())
+
+    for path in sorted(papers_dir.glob("*.paper.json"), key=candidate_rank):
         try:
             data = json.loads(
                 path.read_text(encoding="utf-8"),
@@ -283,7 +291,9 @@ def load_papers(output_root: Path) -> list[PaperRecord]:
         if not paper_id:
             raise ValueError(f"Paper JSON has an invalid id: {path}")
         if paper_id in seen_ids:
-            raise ValueError(f"Duplicate paper id {paper_id}: {path}")
+            # Title changes can leave a stale id-suffixed export beside the new one.
+            # The app and analytics rebuild resolve the same state by freshness.
+            continue
         seen_ids.add(paper_id)
 
         embedding_arr: np.ndarray | None = None
