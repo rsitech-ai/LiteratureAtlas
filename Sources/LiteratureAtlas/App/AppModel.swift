@@ -820,17 +820,7 @@ final class AppModel: ObservableObject {
         guard !existingPaper.summary.isEmpty, !existingPaper.embedding.isEmpty else { return false }
 
         if let expectedChecksum = existingPaper.sourceChecksum, !expectedChecksum.isEmpty {
-            let checksumTask = Task.detached(priority: .utility) { () -> String? in
-                guard !Task.isCancelled,
-                      let data = try? Data(contentsOf: sourceURL, options: .mappedIfSafe) else { return nil }
-                let checksum = SHA256.hash(data: data).map { String(format: "%02x", $0) }.joined()
-                return Task.isCancelled ? nil : checksum
-            }
-            let currentChecksum = await withTaskCancellationHandler {
-                await checksumTask.value
-            } onCancel: {
-                checksumTask.cancel()
-            }
+            let currentChecksum = await sourceChecksum(for: sourceURL)
             guard !Task.isCancelled, let currentChecksum else { return false }
             if currentChecksum == expectedChecksum {
                 ingestionLog += "\n  Validated existing record checksum; skipping."
@@ -847,6 +837,32 @@ final class AppModel: ObservableObject {
             return true
         }
         return false
+    }
+
+    private func sourceChecksum(for sourceURL: URL, chunkSize: Int = 1_048_576) async -> String? {
+        let checksumTask = Task.detached(priority: .utility) {
+            try? Self.computeSourceChecksum(for: sourceURL, chunkSize: chunkSize)
+        }
+        return await withTaskCancellationHandler {
+            await checksumTask.value
+        } onCancel: {
+            checksumTask.cancel()
+        }
+    }
+
+    private nonisolated static func computeSourceChecksum(for sourceURL: URL, chunkSize: Int) throws -> String {
+        precondition(chunkSize > 0)
+        let handle = try FileHandle(forReadingFrom: sourceURL)
+        defer { try? handle.close() }
+
+        var hasher = SHA256()
+        while true {
+            try Task.checkCancellation()
+            guard let data = try handle.read(upToCount: chunkSize), !data.isEmpty else { break }
+            hasher.update(data: data)
+        }
+        try Task.checkCancellation()
+        return hasher.finalize().map { String(format: "%02x", $0) }.joined()
     }
 
     private func buildChunks(for sections: [DocumentSection], paperID: UUID) async -> [PaperChunk] {
@@ -969,6 +985,10 @@ final class AppModel: ObservableObject {
 
     func testShouldSkipSource(sourceURL: URL, existingPaper: Paper?) async -> Bool {
         await shouldSkipSource(sourceURL: sourceURL, existingPaper: existingPaper)
+    }
+
+    func testSourceChecksum(sourceURL: URL, chunkSize: Int) async -> String? {
+        await sourceChecksum(for: sourceURL, chunkSize: chunkSize)
     }
 
 #if os(macOS)

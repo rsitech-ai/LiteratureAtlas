@@ -123,9 +123,9 @@ or destructive user-data action was performed.
     paper IDs by freshness. The audit now applies the same deterministic rule,
     with a regression proving that the newest export wins.
 25. PR review found that ingest skip validation hashed the full source document
-    synchronously on `AppModel`'s main actor. Checksum I/O and SHA-256 work now run
-    in a cancellable utility task, while only the resulting state publication
-    returns to the main actor.
+    synchronously on `AppModel`'s main actor. Checksum I/O and incremental SHA-256
+    work now run in a utility task that checks cancellation between bounded file
+    reads, while only the resulting state publication returns to the main actor.
 
 ## Native scenario matrix
 
@@ -160,7 +160,7 @@ without an app intent integration, and did not affect launch or interaction.
 
 ## Verification evidence
 
-- Swift package: 68 XCTest cases passed, one explicitly opt-in corpus smoke
+- Swift package: 69 XCTest cases passed, one explicitly opt-in corpus smoke
   skipped, and four Swift Testing bookmark tests passed with warnings as errors.
 - Python: frozen lock sync/import passed; Ruff format/lint passed; 39 tests
   passed; installed-environment audit found no known vulnerability.
