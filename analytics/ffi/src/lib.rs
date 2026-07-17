@@ -50,6 +50,21 @@ fn build_adjacency(n_nodes: usize, edges: &[AtlasEdge]) -> Vec<Vec<(usize, f64)>
     adjacency
 }
 
+fn build_topology(n_nodes: usize, edges: &[AtlasEdge]) -> Vec<Vec<usize>> {
+    let mut adjacency = vec![Vec::new(); n_nodes];
+    for edge in edges {
+        let src = edge.src as usize;
+        let dst = edge.dst as usize;
+        let weight = edge.weight as f64;
+        if src >= n_nodes || dst >= n_nodes || !weight.is_finite() || weight < 0.0 {
+            continue;
+        }
+        adjacency[src].push(dst);
+        adjacency[dst].push(src);
+    }
+    adjacency
+}
+
 #[derive(Copy, Clone, Debug)]
 struct HeapState {
     cost: f64,
@@ -309,7 +324,7 @@ pub unsafe extern "C" fn atlas_connected_components(
             return 0;
         }
 
-        let adjacency = build_adjacency(nn, edges);
+        let adjacency = build_topology(nn, edges);
 
         let mut component_ids: Vec<u32> = vec![u32::MAX; nn];
         let mut visited: Vec<bool> = vec![false; nn];
@@ -325,7 +340,7 @@ pub unsafe extern "C" fn atlas_connected_components(
             component_ids[start] = component_count;
 
             while let Some(v) = stack.pop() {
-                for &(w, _) in &adjacency[v] {
+                for &w in &adjacency[v] {
                     if !visited[w] {
                         visited[w] = true;
                         component_ids[w] = component_count;
@@ -377,6 +392,23 @@ mod tests {
         assert_eq!(out[0], out[1]);
         assert_eq!(out[2], out[3]);
         assert_ne!(out[0], out[2]);
+    }
+
+    #[test]
+    fn connected_components_treats_zero_weight_edge_as_topology() {
+        let edges = [AtlasEdge {
+            src: 0,
+            dst: 1,
+            weight: 0.0,
+        }];
+        let mut out = vec![u32::MAX; 2];
+
+        let components = unsafe {
+            atlas_connected_components(2, edges.len() as u32, edges.as_ptr(), out.as_mut_ptr())
+        };
+
+        assert_eq!(components, 1);
+        assert_eq!(out[0], out[1]);
     }
 
     #[test]

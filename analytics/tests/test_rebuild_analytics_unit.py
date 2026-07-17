@@ -4,15 +4,20 @@ import tempfile
 import unittest
 import warnings
 from pathlib import Path
+from unittest.mock import patch
 
 import duckdb
 import numpy as np
 import pandas as pd
 
+import analytics.rebuild_analytics as rebuild_analytics
 from analytics.rebuild_analytics import (
+    build_knn,
     claim_similarity_edges,
     cluster_stability_multi_seed_kmeans,
+    combinational_novelty,
     compute_factor_loadings,
+    drift_contribution,
     load_chunks,
     load_papers,
     load_user_events,
@@ -50,6 +55,14 @@ class RebuildAnalyticsUnitTests(unittest.TestCase):
 
         self.assertEqual(claim_similarity_edges(claims), [])
 
+    def test_claim_similarity_edges_skips_non_text_statements(self):
+        claims = [
+            {"statement": ["not", "text"], "year": 2020, "paper_id": "p1"},
+            {"statement": "valid claim text", "year": 2021, "paper_id": "p2"},
+        ]
+
+        self.assertEqual(claim_similarity_edges(claims), [])
+
     def test_compute_factor_loadings_single_sample_emits_no_runtime_warning(self):
         with warnings.catch_warnings(record=True) as captured:
             warnings.simplefilter("always")
@@ -62,6 +75,28 @@ class RebuildAnalyticsUnitTests(unittest.TestCase):
 
         self.assertFalse(captured)
         self.assertEqual(len(loadings), 1)
+        self.assertTrue(np.isfinite(np.asarray(factors)).all())
+
+    def test_compute_factor_loadings_rank_deficient_tags_emit_no_runtime_warning(self):
+        embeddings = np.array(
+            [[1.0 + index * 0.01, index * 0.02, 0.5] for index in range(12)],
+            dtype=np.float32,
+        )
+        tag_texts = [
+            f"topic-{index // 6} evaluation method-{index % 2} Stable evaluation protocol" for index in range(12)
+        ]
+
+        with warnings.catch_warnings(record=True) as captured:
+            warnings.simplefilter("always")
+            factors, loadings, _ = compute_factor_loadings(
+                embeddings,
+                [f"p{index}" for index in range(12)],
+                tag_texts,
+                n_factors=8,
+            )
+
+        self.assertFalse(captured)
+        self.assertEqual(len(loadings), 12)
         self.assertTrue(np.isfinite(np.asarray(factors)).all())
 
     def test_qa_gap_analytics_uses_private_retrieval_events_without_raw_question(self):
@@ -88,6 +123,110 @@ class RebuildAnalyticsUnitTests(unittest.TestCase):
 
         self.assertIsNone(model)
         np.testing.assert_array_equal(transformed, np.zeros((1, 1), dtype=np.float32))
+
+    def test_whiten_embeddings_drops_components_outside_effective_rank(self):
+        embeddings = np.array(
+            [
+                [1.0, 1.0, 1.0],
+                [2.0, 2.0, 2.0],
+                [3.0, 3.0, 3.0],
+            ],
+            dtype=np.float32,
+        )
+
+        transformed, _ = whiten_embeddings(embeddings)
+
+        self.assertEqual(transformed.shape, (3, 1))
+        self.assertTrue(np.isfinite(transformed).all())
+
+    def test_whiten_embeddings_handles_zero_rank_without_warning_or_artificial_separation(self):
+        embeddings = np.ones((4, 3), dtype=np.float32)
+
+        with warnings.catch_warnings(record=True) as captured:
+            warnings.simplefilter("always")
+            transformed, model = whiten_embeddings(embeddings)
+
+        self.assertFalse(captured)
+        self.assertIsNone(model)
+        self.assertTrue(np.isfinite(transformed).all())
+        self.assertEqual(len(np.unique(transformed, axis=0)), 1)
+
+    def test_drift_contribution_returns_json_serializable_floats(self):
+        papers = pd.DataFrame(
+            {
+                "paper_id": ["p0", "p1"],
+                "cluster_id": [0, 0],
+                "year": [2020, 2020],
+            }
+        )
+        embeddings = np.array([[0.0, 0.0], [1.0, 1.0]], dtype=np.float32)
+        drift_vectors = {(0, 2020): np.array([1.0, 0.0], dtype=np.float32)}
+
+        result = drift_contribution(papers, embeddings, drift_vectors, {})
+
+        json.dumps(result, allow_nan=False)
+        self.assertTrue(all(type(value) is float for value in result.values()))
+
+    def test_build_knn_uses_bounded_neighbor_queries(self):
+        real_nearest_neighbors = rebuild_analytics.NearestNeighbors
+        observed: dict[str, object] = {}
+
+        class RecordingNearestNeighbors:
+            def __init__(self, *args, **kwargs):
+                observed["n_neighbors"] = kwargs.get("n_neighbors")
+                observed["metric"] = kwargs.get("metric")
+                self._delegate = real_nearest_neighbors(*args, **kwargs)
+
+            def fit(self, values):
+                self._delegate.fit(values)
+                return self
+
+            def kneighbors(self, *args, **kwargs):
+                observed["queried"] = True
+                return self._delegate.kneighbors(*args, **kwargs)
+
+        embeddings = np.array(
+            [
+                [1.0, 0.0],
+                [0.9, 0.1],
+                [0.0, 1.0],
+                [0.1, 0.9],
+            ],
+            dtype=np.float32,
+        )
+
+        with patch.object(rebuild_analytics, "NearestNeighbors", RecordingNearestNeighbors):
+            neighbors = build_knn(embeddings, ["p0", "p1", "p2", "p3"], k=2)
+
+        self.assertEqual(observed["n_neighbors"], 3)
+        self.assertEqual(observed["metric"], "cosine")
+        self.assertTrue(observed["queried"])
+        self.assertTrue(all(len(row["neighbors"]) == 2 for row in neighbors))
+
+    def test_combinational_novelty_does_not_allocate_vocab_squared_matrix(self):
+        df_papers = pd.DataFrame(
+            [
+                {
+                    "paper_id": f"p{index}",
+                    "tags": [f"tag-{index}", "shared"],
+                    "assumptions": [f"assumption-{index}"],
+                    "method_pipeline": None,
+                }
+                for index in range(20)
+            ]
+        )
+        real_zeros = np.zeros
+
+        def reject_dense_square(shape, *args, **kwargs):
+            if isinstance(shape, tuple) and len(shape) == 2:
+                raise AssertionError(f"unexpected dense matrix allocation: {shape}")
+            return real_zeros(shape, *args, **kwargs)
+
+        with patch.object(rebuild_analytics.np, "zeros", side_effect=reject_dense_square):
+            scores = combinational_novelty(df_papers)
+
+        self.assertEqual(set(scores), set(df_papers.paper_id))
+        self.assertTrue(all(np.isfinite(score) for score in scores.values()))
 
     def test_paper_layout_quality_small_n_does_not_crash(self):
         n = 9
@@ -279,6 +418,40 @@ class RebuildAnalyticsUnitTests(unittest.TestCase):
             self.assertIsNone(rows[0].page_count)
             self.assertIsNone(trading_rows[0]["cluster_id"])
 
+    def test_load_papers_normalizes_nested_claim_fields(self):
+        with tempfile.TemporaryDirectory() as tmp:
+            papers_dir = Path(tmp)
+            payload = {
+                "id": "paper-1",
+                "embedding": [0.1, 0.2, 0.3],
+                "claims": [
+                    {
+                        "id": "valid",
+                        "statement": "  A valid claim.  ",
+                        "assumptions": ["stationarity", 42],
+                        "year": 2024.0,
+                        "strength": 0.8,
+                    },
+                    {"id": "invalid", "statement": ["not", "text"]},
+                ],
+            }
+            (papers_dir / "claims.paper.json").write_text(json.dumps(payload), encoding="utf-8")
+
+            rows, _, _ = load_papers(papers_dir)
+
+            self.assertEqual(
+                rows[0].claims,
+                [
+                    {
+                        "id": "valid",
+                        "statement": "A valid claim.",
+                        "assumptions": ["stationarity"],
+                        "year": 2024,
+                        "strength": 0.8,
+                    }
+                ],
+            )
+
     def test_load_chunks_handles_malformed_and_non_dict_entries(self):
         with tempfile.TemporaryDirectory() as tmp:
             chunks_path = Path(tmp) / "chunks.json"
@@ -300,6 +473,35 @@ class RebuildAnalyticsUnitTests(unittest.TestCase):
             chunks = load_chunks(chunks_path)
             self.assertEqual(len(chunks), 1)
             self.assertEqual(chunks[0]["paperID"], "p1")
+
+    def test_load_chunks_rejects_invalid_nested_fields_and_normalizes_valid_values(self):
+        with tempfile.TemporaryDirectory() as tmp:
+            chunks_path = Path(tmp) / "chunks.json"
+            chunks_path.write_text(
+                json.dumps(
+                    [
+                        {
+                            "id": "valid",
+                            "paperID": "p1",
+                            "embedding": [0.1, 2],
+                            "order": 1.0,
+                            "pageHint": 3.0,
+                            "text": "chunk text",
+                        },
+                        {"paperID": "p2", "embedding": ["not-numeric"], "order": 0},
+                        {"paperID": "p3", "embedding": [0.2], "order": "not-an-int"},
+                        {"paperID": "", "embedding": [0.3], "order": 0},
+                    ]
+                ),
+                encoding="utf-8",
+            )
+
+            chunks = load_chunks(chunks_path)
+
+            self.assertEqual(len(chunks), 1)
+            self.assertEqual(chunks[0]["embedding"], [0.1, 2.0])
+            self.assertEqual(chunks[0]["order"], 1)
+            self.assertEqual(chunks[0]["pageHint"], 3)
 
     def test_load_user_events_logs_malformed_lines(self):
         with tempfile.TemporaryDirectory() as tmp:
@@ -393,6 +595,34 @@ class RebuildAnalyticsUnitTests(unittest.TestCase):
             persist_duckdb(db_path, df_papers, embeddings, chunks=[])
 
             self.assertTrue((quoted_root / "analytics" / "papers.parquet").is_file())
+
+    def test_persist_duckdb_can_anchor_parquet_output_independently_of_db_path(self):
+        with tempfile.TemporaryDirectory() as tmp:
+            root = Path(tmp)
+            db_path = root / "custom" / "atlas.duckdb"
+            analytics_dir = root / "Output" / "analytics"
+            df_papers = pd.DataFrame(
+                [
+                    {
+                        "paper_id": "p1",
+                        "claims": None,
+                        "method_pipeline": None,
+                    }
+                ]
+            )
+            embeddings = np.array([[0.1, 0.2, 0.3]], dtype=np.float32)
+
+            persist_duckdb(
+                db_path,
+                df_papers,
+                embeddings,
+                chunks=[],
+                parquet_dir=analytics_dir,
+            )
+
+            self.assertTrue(db_path.is_file())
+            self.assertTrue((analytics_dir / "papers.parquet").is_file())
+            self.assertFalse((db_path.parent / "analytics" / "papers.parquet").exists())
 
     def test_write_summary_rejects_non_finite_numbers(self):
         with tempfile.TemporaryDirectory() as tmp:
