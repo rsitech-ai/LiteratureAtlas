@@ -18,6 +18,10 @@ extension View {
                 Color.clear.preference(key: ViewWidthPreferenceKey.self, value: proxy.size.width)
             }
         )
-        .onPreferenceChange(ViewWidthPreferenceKey.self, perform: action)
+        .onPreferenceChange(ViewWidthPreferenceKey.self) { width in
+            DispatchQueue.main.async {
+                action(width)
+            }
+        }
     }
 }

@@ -1,63 +1,70 @@
 # Plan
 
 ## Context
-- Convert the same-day release-hardened LiteratureAtlas version at baseline commit `c7f4215` from a Mac App Store-oriented macOS target into a Developer ID-signed, notarized, direct-download product while hardening the already-public repository for truthful open-source operation.
-- Approved design: `docs/superpowers/specs/2026-07-15-developer-id-open-source-design.md`.
-- Implementation plan: `docs/superpowers/plans/2026-07-15-developer-id-open-source.md`.
+- Re-audit the exact `bde3e9f` `main` baseline end to end on 2026-07-17, fix every reproducible repository-owned defect, then publish the audited delta through a reviewed PR and merge only after local and hosted gates are green.
+- The previous release/open-source pass is historical evidence, not proof for this run.
 
 ## Assumptions
-- The official first direct-download artifact is macOS 26 on Apple Silicon.
-- The iPad App Store target remains available but is not a shipping deliverable for this task.
-- GitHub `main` remains public and MIT-licensed until an explicit, rights-backed owner decision changes future licensing.
+- The primary runtime target is the native macOS 26+ `LiteratureAtlas` app built from `project.yml`/`LiteratureAtlas.xcodeproj`; the iPad target is build-verified but not the direct-download runtime target.
+- Repository-provided local fixtures and generated test data may be used. No private corpus, Apple credential, notarization upload, public release, or irreversible UI action is authorized.
+- Existing external blockers (approved app icon provenance, Developer ID key authorization, notarization, legal chain of title, and owner-controlled GitHub settings) remain blockers unless current evidence disproves them.
 
 ## Constraints
-- PR creation, feature-branch push, review fixes, merge, and the resulting `main` push are now owner-authorized after all validation and review gates pass.
-- No notarization upload, public binary release, tag, announcement, credential mutation, repository visibility change, history rewrite, or legal identity claim in this pass.
-- No private credentials or user data in Git, CI, reports, artifacts, or command arguments.
-- Preserve all committed release work and existing MIT grants.
+- Preserve user data under `Output/`, the active Python environment, and prior release evidence.
+- Use a fresh `feat/andrzej_full_audit_2026_07_17` branch; commit only intentional audit/fix files.
+- Use current official documentation for Apple platform/release claims and primary project dependencies.
+- Runtime claims require a freshly built `.app`, real native interaction, persistence/relaunch proof, and focused log inspection.
 
 ## Options considered
-1. Extend the legacy hand-built SwiftPM bundle.
-2. Reuse the deterministic Xcode macOS target and add separate community, Developer ID, DMG, notarization, and verification layers.
-3. Replace the project with a new installer/packaging system.
+1. Re-run the previous command matrix and report parity.
+2. Reconstruct the product and integration flow from source, compare it with current official documentation, run static/dynamic/security/performance checks, execute a fresh native scenario matrix, fix reproduced issues, and then harden a PR.
+3. Perform a clean-room architecture rewrite before verification.
 
-Chosen: 2 because it retains the strongest existing runtime, privacy, and archive evidence while keeping signing secrets outside the project.
+Chosen: 2 because it can reveal stale assumptions and runtime regressions while keeping fixes evidence-driven and reviewable; option 1 is too shallow and option 3 is unjustified without findings.
 
 ## Execution plan
-1. Repair baseline developer gates.
-2. Add shared distributed-build runtime behavior and tests.
-3. Implement community/official build, signing, DMG, notarization, and verification scripts.
-4. Complete open-source licensing, governance, security, support, and developer documentation.
-5. Harden GitHub CI and supply-chain controls.
-6. Generate secret, IP, dependency, SBOM, provenance, and publication evidence.
-7. Clean obsolete generated releases/worktrees only after Git and ancestry proof.
-8. Audit the full implementation, official-document assumptions, and runtime behavior beyond tests.
-9. Reproduce the community package from a fresh clone and complete a native macOS interaction/log sweep.
-10. Request independent review, resolve all critical/important findings, and rerun the full matrix.
-11. Push, create the PR, inspect GitHub checks/review, merge, and verify the exact merged `main` revision.
+1. Inventory repository state, targets, dependencies, generated configuration, workflows, services, tests, release scripts, and known blockers.
+2. Verify current primary documentation for Swift/SwiftUI/macOS release behavior and the Python/Rust dependencies actually used.
+3. Run independent static architecture, correctness, security, dead-code, configuration, and supply-chain review workstreams.
+4. Establish a fresh baseline with format/lint/build/test/release-policy/SBOM/dependency checks and capture exact warnings or failures.
+5. Build and launch the macOS bundle, execute the full interaction/state matrix with reversible fixtures, inspect logs/process behavior, and verify relaunch persistence.
+6. Reproduce and fix each repository-owned issue with a focused failing test or deterministic proof, then rerun the parent workflow.
+7. Write the July 17 audit/security reports and update durable memory only with verified stable knowledge.
+8. Run the complete fresh verification matrix, inspect the full diff against `origin/main`, and obtain independent review.
+9. Commit intentional changes, push the branch, open a ready PR, inspect all hosted checks and review feedback, resolve findings, merge, and verify exact local/remote `main` parity.
 
 ## Test plan
-- Follow the complete command matrix in `docs/superpowers/plans/2026-07-15-developer-id-open-source.md`.
-- Behavior changes use red-green-refactor tests; configuration and documentation use deterministic validators and clean-checkout smokes.
+- Swift: warning-as-error package tests, release builds for macOS/iPadOS, generated-project parity, and targeted regression tests for any Swift fix.
+- Python: Ruff format/check, pytest, dependency audit, deterministic script validators, and boundary/invalid-input tests for any Python fix.
+- Rust: `cargo fmt --check`, strict Clippy, tests, release build, audit, and FFI header/Swift boundary inspection.
+- Release/supply chain: release-policy tests, release validator with only the documented icon blocker allowed, SBOM reproduction, workflow checks, secrets/license/document-link checks where locally available.
+- Runtime: bundled app launch/process proof; six-destination navigation; settings/menus/toolbars/context/help/keyboard; folder ingest cancel and authorized-fixture success; search/filter/detail/export/recovery states; resize/light-dark/reduce-motion/accessibility sanity; quit/relaunch persistence; focused crash/error/warning log scan.
 
 ## Risks and rollback
-- Direct build weakens the proven App Store boundary -> share the distributed-build path abstraction and keep platform-specific signing outside source behavior.
-- Python/Rust removal breaks user-visible features -> compile out only checkout-only controls, retain native fallback, and document declared exceptions.
-- Legal ownership is uncertain -> keep MIT effective and block relicense/publication claims.
-- Apple or GitHub credentials/settings are unavailable -> finish local reversible work and record exact external blockers.
+- Runtime audit mutates local app data -> use isolated fixture/output locations where supported and preserve existing `Output/`; remove only audit-created disposable data through recoverable paths.
+- Official documentation or hosted CI has changed -> record the current source/version and treat incompatibilities as findings rather than weakening gates.
+- Broad fixes obscure causality -> one coherent fix at a time with focused proof and reviewable commits.
+- External Apple/GitHub gates cannot be completed locally -> report `blocked:external` precisely and do not claim upload/notarization/App Store approval readiness.
 
 ## Memory impact
-- Record the adopted release baseline, Developer ID/direct-distribution build commands, official/community separation, public repository state, and any durable packaging pitfalls.
+- Record only newly verified durable commands, architecture boundaries, runtime pitfalls, or release facts; do not duplicate the task report.
 
 ## Notes / Results
-- Changes: Added a shared distributed runtime boundary; persistent read-only source bookmarks held through async ingest; credential-free community and signature-free official pre-sign builds; exact DMG comparison; source/identity-bound verification; staged Developer ID signing; hash-bound atomic notary evidence; privacy-minimized diagnostics; pinned credential-free CI; REUSE metadata; contributor/governance/security policies; IP/secret/license reports; and deterministic source/community/pre-sign SBOMs.
-- Tests run: Swift 59 passed with one opt-in corpus smoke skipped plus 4 bookmark lifetime tests; Python 24 passed; Rust 5 passed with strict Clippy and no known vulnerability; macOS/iOS Release builds, community relocation/navigation/real sandbox ingest/relaunch/DMG, release scripts, actionlint, zizmor, REUSE 3.3, pip-audit, OSV, CFF, JSON, and documentation-link checks passed. A fresh clone at `a8f2f2a` repeated the locked dependency restore, full language/release suite, and warning-free macOS/iOS Release builds. The release validator has only the explicit approved-AppIcon blocker.
-- Tradeoffs: Native-only Apple Silicon first distribution; Python and Rust acceleration remain contributor tooling. Existing MIT stays effective because MPL/CC relicensing authority is unconfirmed. Signing/notarization/publication remain external owner gates.
-- 2026-07-16 audit/merge pass: Codex Security is explicitly deferred. This pass still includes code-level security, privacy, dependency, workflow, and signing-configuration review but will not claim a Codex Security result.
-- 2026-07-16 runtime findings: exact artifact testing caught and fixed display-name/source-revision precedence, generated-xcconfig injection, bookmark-creation scope, and async bookmark-enumeration lifetime defects before PR creation. Verified local artifact evidence embeds commit `647911a`; later documentation commits do not replace that explicit mapping.
-- 2026-07-16 independent review: `origin/main...6633779` had no blocker, high, or important finding. The reviewer separately confirmed the documented Apple, artwork/brand, legal/history, governance/reporting, GitHub-setting, and future signed-artifact blockers; Codex Security remained deferred.
-- 2026-07-16 PR hardening: GitHub dependency review was unsupported because the owner-controlled dependency graph is disabled. The PR workflow now requires successful repository API access, warns/skips only for an unavailable graph on that accessible repository, fails closed on permission/access/unexpected statuses, and retains mandatory Cargo/Python lockfile audits; actionlint, zizmor, and release-policy regressions pass.
-- 2026-07-16 hosted CI findings: the `macos-26` arm64 Python toolcache ends at 3.12.10 and the verified XcodeGen 2.45.4 zip contains `xcodegen/bin/xcodegen` beneath its archive root. CI now pins the available interpreter and exposes the actual extracted binary path; release-policy tests cover both values.
-- 2026-07-16 PR/merge closeout: PR #4 passed all nine hosted checks, including the 42-minute Swift CodeQL extraction and the full Apple distributed-bundle job. The only inline review concern was resolved after `xcodebuild -showBuildSettings` proved Debug retained `DISTRIBUTED_APP_BUILD APP_STORE_BUILD`. GitHub merged the reviewed head `d6f231346cbae8ca92e1fb448bf7142369dd0938` as `c335fbdae87b940c39483fa47761a6d57cf0593d`.
-- 2026-07-16 exact-main verification: the merge tree matched its second parent; local `main` matched `origin/main`; Swift 59 XCTest cases plus four bookmark tests, Python 24 tests and Ruff, Rust five tests and strict Clippy, release-policy/validator gates, and deterministic source-SBOM reproduction passed. The sole validator exception remains the explicit `app_icon_artwork` owner blocker.
-- 2026-07-16 cleanup closeout: superseded remote release branches and obsolete release/fresh-clone worktrees were removed only after ancestry and clean-state proof. The exact `647911a` community/official evidence bundle remains under `/private/tmp/LiteratureAtlas-release-647911a` for owner inspection.
+- Changes: Hardened canonical paper/chunk and project persistence, asynchronous
+  cancellation/publication, managed-Python execution, DuckDB/JSON/audit input
+  boundaries, versioned Rust FFI, release/notary evidence, SBOM identity, source
+  parsing/deduplication, analytics edge cases, and SwiftUI accessibility/state flow.
+- Tests run: Focused red/green regressions are complete. The frozen tree passed
+  69 Swift XCTest cases plus four bookmark tests, 39 Python tests, six Rust tests,
+  strict format/lint/warning gates, dependency audits, release policy, byte-stable
+  XcodeGen output, isolated E2E analytics, native six-destination interaction and
+  relaunch, accessibility semantics, and fresh macOS/iPadOS Release builds.
+  PR review findings for stale duplicate topic exports and main-actor checksum
+  hashing have focused regressions; incremental hashing also has a cancellation-
+  latency regression. All pass the complete local quality matrix.
+  Replacement hosted PR gates remain.
+- Tradeoffs: The local contributor build keeps explicit checkout tooling, while
+  distributed targets retain the self-contained sandbox boundary. The optional
+  Rust accelerator still accepts only caller-contract-valid non-null pointers;
+  the new ABI symbol prevents stale dylib signature confusion. Apple signing,
+  notarization, icon/legal provenance, and owner GitHub settings remain external.

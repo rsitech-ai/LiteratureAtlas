@@ -8,6 +8,7 @@ struct StrategyProjectsView: View {
     @State private var searchQuery: String = ""
     @State private var showArchived: Bool = false
     @State private var selectedProject: StrategyProject?
+    @State private var projectPendingDeletion: StrategyProject?
     @State private var stageFilter: StageFilter = .all
     @State private var sort: ProjectSort = .recent
 
@@ -121,7 +122,7 @@ struct StrategyProjectsView: View {
                                 }
                                 Divider()
                                 Button("Delete", role: .destructive) {
-                                    model.deleteStrategyProject(project.id)
+                                    projectPendingDeletion = project
                                 }
                             }
                         }
@@ -134,6 +135,26 @@ struct StrategyProjectsView: View {
         .sheet(item: $selectedProject) { project in
             StrategyProjectDetailView(strategyID: project.id)
                 .environmentObject(model)
+        }
+        .confirmationDialog(
+            "Delete \(projectPendingDeletion?.title ?? "research project")?",
+            isPresented: Binding(
+                get: { projectPendingDeletion != nil },
+                set: { if !$0 { projectPendingDeletion = nil } }
+            ),
+            titleVisibility: .visible
+        ) {
+            Button("Delete project", role: .destructive) {
+                if let project = projectPendingDeletion {
+                    _ = model.deleteStrategyProject(project.id)
+                }
+                projectPendingDeletion = nil
+            }
+            Button("Cancel", role: .cancel) {
+                projectPendingDeletion = nil
+            }
+        } message: {
+            Text("This removes the project and its exported notes from this library. This action cannot be undone.")
         }
         .onChange(of: nav.requestedStrategyProjectID) { _, requestedID in
             guard let requestedID else { return }
@@ -160,8 +181,9 @@ struct StrategyProjectsView: View {
                     Text("Research Projects").font(.title2.bold())
                     Spacer()
                     Button {
-                        let project = model.createEmptyStrategyProject()
-                        selectedProject = project
+                        if let project = model.createEmptyStrategyProject() {
+                            selectedProject = project
+                        }
                     } label: {
                         Label("New", systemImage: "plus")
                     }

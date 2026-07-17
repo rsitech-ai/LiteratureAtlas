@@ -55,6 +55,24 @@ class SPDXGenerationTests(unittest.TestCase):
             )
             self.assertTrue(all(item["checksums"][0]["algorithm"] == "SHA256" for item in document["files"]))
 
+    def test_artifact_namespace_changes_for_path_mode_and_symlink_state(self):
+        with tempfile.TemporaryDirectory() as tmp:
+            app = Path(tmp) / "Example.app"
+            executable = app / "Contents" / "MacOS" / "Example"
+            executable.parent.mkdir(parents=True)
+            executable.write_bytes(b"same bytes")
+            executable.chmod(0o644)
+            first = SBOM.build_artifact_document(app, version="1", created="2026-07-16T00:00:00Z")
+
+            executable.chmod(0o755)
+            second = SBOM.build_artifact_document(app, version="1", created="2026-07-16T00:00:00Z")
+            self.assertNotEqual(first["documentNamespace"], second["documentNamespace"])
+
+            link = app / "Contents" / "Current"
+            link.symlink_to("MacOS")
+            third = SBOM.build_artifact_document(app, version="1", created="2026-07-16T00:00:00Z")
+            self.assertNotEqual(second["documentNamespace"], third["documentNamespace"])
+
     def test_cyclonedx_sanitizer_removes_local_workspace_path(self):
         payload = {
             "metadata": {
@@ -116,6 +134,28 @@ class SPDXGenerationTests(unittest.TestCase):
 
             payload = json.loads(output.read_text(encoding="utf-8"))
             self.assertEqual(payload["creationInfo"]["created"], "1970-01-01T00:00:00Z")
+
+    def test_source_revision_changes_for_mode_and_symlink_target(self):
+        with tempfile.TemporaryDirectory() as tmp:
+            root = Path(tmp)
+            source = root / "source.txt"
+            source.write_text("same bytes", encoding="utf-8")
+            source.chmod(0o644)
+            first = SBOM.source_inventory_revision(root, [Path("source.txt")])
+
+            source.chmod(0o755)
+            second = SBOM.source_inventory_revision(root, [Path("source.txt")])
+            self.assertNotEqual(first, second)
+
+            (root / "target-a").write_text("a", encoding="utf-8")
+            (root / "target-b").write_text("b", encoding="utf-8")
+            link = root / "current"
+            link.symlink_to("target-a")
+            link_a = SBOM.source_inventory_revision(root, [Path("current")])
+            link.unlink()
+            link.symlink_to("target-b")
+            link_b = SBOM.source_inventory_revision(root, [Path("current")])
+            self.assertNotEqual(link_a, link_b)
 
 
 if __name__ == "__main__":

@@ -44,12 +44,16 @@ release_require_command plutil
 dmg_without_extension=${dmg%.dmg}
 [ -n "$response_output" ] || response_output="$dmg_without_extension.notary-submission.json"
 [ -n "$log_output" ] || log_output="$dmg_without_extension.notary-log.json"
-[ ! -e "$response_output" ] || release_die "submission response output already exists: $response_output"
-[ ! -e "$log_output" ] || release_die "notary log output already exists: $log_output"
-
 response_parent=$(dirname "$response_output")
 log_parent=$(dirname "$log_output")
 mkdir -p "$response_parent" "$log_parent"
+response_output_canonical=$(cd "$response_parent" && printf '%s/%s' "$(pwd -P)" "$(basename "$response_output")")
+log_output_canonical=$(cd "$log_parent" && printf '%s/%s' "$(pwd -P)" "$(basename "$log_output")")
+[ "$response_output_canonical" != "$log_output_canonical" ] \
+    || release_die "submission response and notary log must be different paths"
+[ ! -e "$response_output" ] || release_die "submission response output already exists: $response_output"
+[ ! -e "$log_output" ] || release_die "notary log output already exists: $log_output"
+
 response_tmp=$(mktemp "$response_parent/.notary-response.XXXXXX")
 log_tmp=$(mktemp "$log_parent/.notary-log.XXXXXX")
 cleanup() {

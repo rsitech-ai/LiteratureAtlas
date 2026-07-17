@@ -284,13 +284,17 @@ enum PlatformClipboard {
     }
 }
 
+@MainActor
 enum PlatformOpen {
     @discardableResult
     static func open(url: URL) -> Bool {
 #if os(macOS)
         return NSWorkspace.shared.open(url)
+#elseif os(iOS)
+        guard UIApplication.shared.canOpenURL(url) else { return false }
+        UIApplication.shared.open(url)
+        return true
 #else
-        // Best-effort; a Link in the UI can be used on iOS.
         _ = url
         return false
 #endif

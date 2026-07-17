@@ -137,6 +137,19 @@ touch "$TMP/Fake.dmg"
 expect_failure "notarization refuses implicit submission" \
     "$ROOT/script/notarize_dmg.sh" --dmg "$TMP/Fake.dmg" --keychain-profile Example
 assert_stderr_contains "notarization names explicit approval flag" "requires --submit"
+fake_dmg_sha=$(shasum -a 256 "$TMP/Fake.dmg" | awk '{print $1}')
+expect_failure "notarization rejects colliding evidence outputs before submission" \
+    "$ROOT/script/notarize_dmg.sh" --dmg "$TMP/Fake.dmg" --keychain-profile Example \
+    --submit --expected-sha256 "$fake_dmg_sha" \
+    --response-output "$TMP/notary.json" --log-output "$TMP/notary.json"
+assert_stderr_contains "colliding notarization outputs name the defect" "must be different paths"
+mkdir -p "$TMP/notary-alias/subdir"
+expect_failure "notarization rejects aliased evidence outputs before submission" \
+    "$ROOT/script/notarize_dmg.sh" --dmg "$TMP/Fake.dmg" --keychain-profile Example \
+    --submit --expected-sha256 "$fake_dmg_sha" \
+    --response-output "$TMP/notary-alias/evidence.json" \
+    --log-output "$TMP/notary-alias/subdir/../evidence.json"
+assert_stderr_contains "aliased notarization outputs name the defect" "must be different paths"
 
 expect_failure "corpus smoke rejects an implicit sample source" \
     "$ROOT/scripts/run_example_smoke.sh" --count 1
@@ -266,6 +279,13 @@ else
     fail "official build proves a signature-free pre-sign candidate"
 fi
 
+if grep -F 'final_source_revision=$(release_source_revision)' "$ROOT/script/build_official.sh" >/dev/null \
+    && grep -F 'source tree changed during the official build' "$ROOT/script/build_official.sh" >/dev/null; then
+    pass "official build rejects source changes during compilation"
+else
+    fail "official build rejects source changes during compilation"
+fi
+
 if grep -F -- '--expected-bundle-id' "$ROOT/script/verify_distribution.sh" >/dev/null \
     && grep -F -- '--expected-team-id' "$ROOT/script/verify_distribution.sh" >/dev/null \
     && grep -F -- '--expected-version' "$ROOT/script/verify_distribution.sh" >/dev/null \
@@ -297,6 +317,14 @@ if grep -F 'response_tmp=' "$ROOT/script/notarize_dmg.sh" >/dev/null \
     pass "notarization publishes submission evidence atomically"
 else
     fail "notarization publishes submission evidence atomically"
+fi
+
+if grep -F 'symbol("atlas_query_index_v2"' "$ROOT/Sources/LiteratureAtlas/Services/AtlasFFI.swift" >/dev/null \
+    && grep -F 'atlas_query_index_v2' "$ROOT/analytics/ffi/include/atlas_ffi.h" >/dev/null \
+    && ! grep -F 'symbol("atlas_query_index"' "$ROOT/Sources/LiteratureAtlas/Services/AtlasFFI.swift" >/dev/null; then
+    pass "length-aware FFI query uses a versioned dynamic symbol"
+else
+    fail "length-aware FFI query uses a versioned dynamic symbol"
 fi
 
 if grep -F 'LITERATURE_ATLAS_SOURCE_REVISION=' "$ROOT/script/release_common.sh" >/dev/null \
