@@ -77,7 +77,7 @@ After roughly 20 minutes, a macOS point sample showed 0.0% CPU and about 20 MB R
 
 ## 9. Security findings and fixes
 
-App Store builds now exclude runtime Python/dependency installation, repository-relative Rust loading, and the dormant OpenAI provider; mutable output uses the app container; macOS selected-folder enumeration begins inside the security scope; least-privilege entitlements and privacy manifests are packaged. The sealed branch-diff scan through `0d99116` reviewed all 20 changed source-like files with zero reportable findings and zero deferred rows. The post-scan `eff288e` one-line no-op cast removal received targeted Rust 1.97 review. This does not claim an exhaustive repository-wide scan. See [SECURITY_STATUS.md](SECURITY_STATUS.md).
+App Store builds exclude runtime Python/dependency installation and repository-relative Rust loading; document compilation is on-device in every build and the dormant network compiler has been removed. Mutable output uses the app container; macOS selected-folder enumeration begins inside the security scope; least-privilege entitlements and privacy manifests are packaged. The sealed branch-diff scan through `0d99116` reviewed all 20 changed source-like files with zero reportable findings and zero deferred rows. The post-scan `eff288e` one-line no-op cast removal received targeted Rust 1.97 review. This does not claim an exhaustive repository-wide scan. See [SECURITY_STATUS.md](SECURITY_STATUS.md).
 
 ## 10. Privacy and compliance
 

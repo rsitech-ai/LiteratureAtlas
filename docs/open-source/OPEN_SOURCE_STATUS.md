@@ -3,26 +3,31 @@
 **Publication verdict: BLOCKED.** The source repository is already public under
 MIT, but it is not ready for an official source release or notarized binary.
 
-## Verified locally
+## Verified current repository state
 
 - Current project-authored source remains under the existing MIT License.
 - Distributed macOS builds are native, sandboxed, local-only, and exclude
   checkout-only Python, environment-key, remote-provider, and relative-Rust paths.
-- A distinct ad-hoc signed community app and exact verified DMG build without
-  Apple credentials. The relocated app passed all six navigation destinations,
-  a real sandboxed Markdown ingest, truthful counters/output checks, and relaunch
-  persistence from source commit `647911a`.
 - Developer ID, DMG, explicit notarization, retained Apple evidence, stapling,
   Gatekeeper, and artifact-verification scripts fail closed.
-- A fresh Apple Silicon official pre-sign candidate from `647911a` is provably
-  signature-free, contains 35 prompt resources, embeds its source revision,
-  retains its dSYM, and has no checkout-only runtime markers.
 - Current-tree and reachable-history scans found no credential material.
 - Swift, Python, Rust, release-script, and Xcode Release gates pass except the
   intentional approved-AppIcon release blocker. Release compilation treats
   Swift warnings as errors.
 - Codex Security was explicitly deferred and was not run; the code-level audit
   found no unresolved critical/high implementation issue.
+
+## Historical artifact evidence
+
+- A distinct ad-hoc signed community app and exact verified DMG from source
+  commit `647911a` passed all six navigation destinations, a real sandboxed
+  Markdown ingest, truthful counters/output checks, and relaunch persistence.
+- An Apple Silicon official pre-sign candidate from `647911a` was signature-free,
+  contained 35 prompt resources, embedded its source revision, retained its dSYM,
+  and had no checkout-only runtime markers.
+- Those exact local app directories are no longer retained and were not
+  regenerated from the current tree. They are historical snapshots, not current
+  package-readiness, signing, notarization, or release evidence.
 
 ## Why publication remains blocked
 
