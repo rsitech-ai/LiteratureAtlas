@@ -55,11 +55,13 @@ Chosen: 2 because it can reveal stale assumptions and runtime regressions while 
   boundaries, versioned Rust FFI, release/notary evidence, SBOM identity, source
   parsing/deduplication, analytics edge cases, and SwiftUI accessibility/state flow.
 - Tests run: Focused red/green regressions are complete. The frozen tree passed
-  68 Swift XCTest cases plus four bookmark tests, 38 Python tests, six Rust tests,
+  68 Swift XCTest cases plus four bookmark tests, 39 Python tests, six Rust tests,
   strict format/lint/warning gates, dependency audits, release policy, byte-stable
   XcodeGen output, isolated E2E analytics, native six-destination interaction and
   relaunch, accessibility semantics, and fresh macOS/iPadOS Release builds.
-  Hosted PR gates remain.
+  PR review findings for stale duplicate topic exports and main-actor checksum
+  hashing have focused regressions and pass the complete local quality matrix.
+  Replacement hosted PR gates remain.
 - Tradeoffs: The local contributor build keeps explicit checkout tooling, while
   distributed targets retain the self-contained sandbox boundary. The optional
   Rust accelerator still accepts only caller-contract-valid non-null pointers;

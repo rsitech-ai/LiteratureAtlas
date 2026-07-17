@@ -381,7 +381,7 @@ final class AppModelTests: XCTestCase {
         try FileManager.default.setAttributes([.modificationDate: Date.distantPast], ofItemAtPath: source.path)
         let model = await MainActor.run { AppModel(skipInitialLoad: true, customOutputRoot: tmp.appendingPathComponent("Output")) }
 
-        let shouldSkip = await MainActor.run { model.testShouldSkipSource(sourceURL: source, existingPaper: paper) }
+        let shouldSkip = await model.testShouldSkipSource(sourceURL: source, existingPaper: paper)
 
         XCTAssertFalse(shouldSkip)
     }

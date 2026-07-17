@@ -118,6 +118,14 @@ or destructive user-data action was performed.
 23. Duplicate paper exports were selected before freshness and corpus-dimension
     resolution. Canonical/fresh selection and deterministic modal dimensions now
     precede normalization in both the app loader and analytics rebuild.
+24. PR review found that the topic-focus audit still rejected a stale duplicate
+    export even though the app and analytics rebuild already resolve duplicate
+    paper IDs by freshness. The audit now applies the same deterministic rule,
+    with a regression proving that the newest export wins.
+25. PR review found that ingest skip validation hashed the full source document
+    synchronously on `AppModel`'s main actor. Checksum I/O and SHA-256 work now run
+    in a cancellable utility task, while only the resulting state publication
+    returns to the main actor.
 
 ## Native scenario matrix
 
@@ -154,7 +162,7 @@ without an app intent integration, and did not affect launch or interaction.
 
 - Swift package: 68 XCTest cases passed, one explicitly opt-in corpus smoke
   skipped, and four Swift Testing bookmark tests passed with warnings as errors.
-- Python: frozen lock sync/import passed; Ruff format/lint passed; 38 tests
+- Python: frozen lock sync/import passed; Ruff format/lint passed; 39 tests
   passed; installed-environment audit found no known vulnerability.
 - Rust: formatting, strict Clippy, six tests, and release build passed.
 - RustSec: no vulnerability; one allowed unmaintained transitive warning for
