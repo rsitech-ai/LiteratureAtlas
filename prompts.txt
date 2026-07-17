@@ -13,7 +13,7 @@
 - **Swift app (`Sources/LiteratureAtlas/`)**
   - `App/AppModel.swift`: central state machine for ingestion, clustering, RAG Q&A, recommendations, analytics reloads, and event logging.
   - `Services/`: 
-    - `PDFProcessor.swift` (PDF text/metadata extraction), `EmbeddingService.swift` (sentence embeddings + KMeans), `VectorIndex.swift` (in-process similarity search fallback), `LLMActors.swift` (summaries, cluster naming, Q&A), `ClaimGraph.swift` (claim extraction/relations/stress tests), `TemporalAnalytics.swift` (novelty, drift, panel/debate simulators), `AnalyticsStore.swift` (loads Python-generated `analytics.json`), `AtlasFFI.swift` (HNSW/graph FFI loader).
+    - `PDFProcessor.swift` (PDF text/metadata extraction), `EmbeddingService.swift` (sentence embeddings + KMeans), `LLMActors.swift` (summaries, cluster naming, Q&A), `ClaimGraph.swift` (claim extraction/relations/stress tests), `TemporalAnalytics.swift` (novelty, drift, panel/debate simulators), `AnalyticsStore.swift` (loads and validates Python-generated `analytics.json`), `AtlasFFI.swift` (HNSW/graph FFI loader).
   - `Views/`: `IngestView`, `MapView`, `QuestionView`, `AnalyticsView`, `PaperDetailView`, `GlobalProgressOverlay`, etc.
 - **Analytics backend (`analytics/`)**
   - `rebuild_analytics.py`: loads app outputs, writes `Output/atlas.duckdb`, Parquet snapshots, and `Output/analytics/analytics.json` (novelty, centrality, drift, factor loadings, recommendations, counterfactuals, user event stats).
@@ -100,7 +100,7 @@
 ## 8. Module-Level Documentation (Compact)
 - `AppModel` — orchestrates ingestion, embeddings, clustering, RAG Q&A, analytics reloads, recommendations, flashcards, and event logging.
 - `Services/`
-  - `PDFProcessor` (text/title/year/page extraction), `EmbeddingService` (NLContextualEmbedding + KMeans), `VectorIndex` (cosine search), `LLMActors` (summary/Q&A actors), `ClaimGraph` (claims, relations, stress tests), `TemporalAnalytics` (novelty, drift, simulations), `AnalyticsStore` (decode `analytics.json`), `AtlasFFI` (Rust HNSW bindings).
+  - `PDFProcessor` (text/title/year/page extraction), `EmbeddingService` (NLContextualEmbedding + KMeans), `LLMActors` (summary/Q&A actors), `ClaimGraph` (claims, relations, stress tests), `TemporalAnalytics` (novelty, drift, simulations), `AnalyticsStore` (decode and validate `analytics.json`), `AtlasFFI` (Rust HNSW bindings).
 - `Views/`
   - `IngestView` (ingestion/logs/planner/claims), `MapView` (galaxy with lenses, zoom, bridging), `QuestionView` (RAG Q&A + evidence), `AnalyticsView` (trends, drift, factor exposures, counterfactuals), `PaperDetailView` (notes/tags/status).
 - `analytics/rebuild_analytics.py` — DuckDB load + novelty/centrality/drift/factors/recs export; writes Parquet snapshots and `analytics.json`.
@@ -356,5 +356,4 @@ You create comprehension questions for research papers.
 // File: ui.study_questions.prompt.md
 Draft 5 questions to check understanding of the paper "{{title}}".
 Use the summary and takeaways. Mix conceptual and application questions.
-
 

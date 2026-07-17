@@ -928,6 +928,8 @@ private struct SearchField: View {
                         .foregroundStyle(.secondary)
                 }
                 .buttonStyle(.plain)
+                .accessibilityLabel("Clear search")
+                .help("Clear search")
             }
         }
         .padding(.horizontal, 12)
