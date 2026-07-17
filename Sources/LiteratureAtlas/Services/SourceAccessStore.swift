@@ -1,6 +1,5 @@
 import Foundation
 
-#if os(macOS)
 struct SecurityScopedBookmarkResolution: Equatable {
     let url: URL
     let isStale: Bool
@@ -15,8 +14,16 @@ protocol SecurityScopedBookmarkProviding {
 
 struct FoundationSecurityScopedBookmarkProvider: SecurityScopedBookmarkProviding {
     func makeBookmark(for url: URL) throws -> Data {
-        try url.bookmarkData(
-            options: [.withSecurityScope, .securityScopeAllowOnlyReadAccess],
+        #if os(macOS)
+        let options: URL.BookmarkCreationOptions = [.withSecurityScope, .securityScopeAllowOnlyReadAccess]
+        #else
+        // iOS security-scoped document-provider URLs retain their scope when
+        // persisted as a minimal bookmark; the macOS-only security-scope
+        // creation flags are unavailable on iOS.
+        let options: URL.BookmarkCreationOptions = [.minimalBookmark]
+        #endif
+        return try url.bookmarkData(
+            options: options,
             includingResourceValuesForKeys: nil,
             relativeTo: nil
         )
@@ -24,9 +31,14 @@ struct FoundationSecurityScopedBookmarkProvider: SecurityScopedBookmarkProviding
 
     func resolveBookmark(_ data: Data) throws -> SecurityScopedBookmarkResolution {
         var isStale = false
+        #if os(macOS)
+        let options: URL.BookmarkResolutionOptions = [.withSecurityScope]
+        #else
+        let options: URL.BookmarkResolutionOptions = []
+        #endif
         let url = try URL(
             resolvingBookmarkData: data,
-            options: [.withSecurityScope],
+            options: options,
             relativeTo: nil,
             bookmarkDataIsStale: &isStale
         )
@@ -45,13 +57,16 @@ struct FoundationSecurityScopedBookmarkProvider: SecurityScopedBookmarkProviding
 enum SourceAccessStoreError: LocalizedError {
     case noBookmark(URL)
     case scopeDenied(URL)
+    case openFailed(URL)
 
     var errorDescription: String? {
         switch self {
         case .noBookmark(let url):
             return "Access to \(url.lastPathComponent) expired. Select its source folder again."
         case .scopeDenied(let url):
-            return "macOS denied access to \(url.lastPathComponent). Select its source folder again."
+            return "The system denied access to \(url.lastPathComponent). Select its source folder again."
+        case .openFailed(let url):
+            return "Could not open \(url.lastPathComponent). Verify that it still exists, or select its source folder again."
         }
     }
 }
@@ -177,4 +192,3 @@ final class SourceAccessStore {
         return records
     }
 }
-#endif

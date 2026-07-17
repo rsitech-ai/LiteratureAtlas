@@ -11,12 +11,18 @@ struct ChartZoomControls: View {
             Button(action: onZoomOut) {
                 Image(systemName: "minus.magnifyingglass")
             }
+            .accessibilityLabel("Zoom out")
+            .help("Zoom out")
             Button(action: onZoomIn) {
                 Image(systemName: "plus.magnifyingglass")
             }
+            .accessibilityLabel("Zoom in")
+            .help("Zoom in")
             Button(action: onReset) {
                 Image(systemName: "arrow.counterclockwise")
             }
+            .accessibilityLabel("Reset chart view")
+            .help("Reset chart view")
         }
         .buttonStyle(.bordered)
         .controlSize(.small)
@@ -29,4 +35,3 @@ struct ChartZoomControls: View {
         )
     }
 }
-

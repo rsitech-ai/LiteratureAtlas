@@ -961,6 +961,17 @@ struct AnalyticsSummary: Codable, Equatable {
 }
 
 enum AnalyticsStore {
+    enum ValidationError: LocalizedError, Equatable {
+        case duplicateIdentifier(section: String, identifier: UUID)
+
+        var errorDescription: String? {
+            switch self {
+            case let .duplicateIdentifier(section, identifier):
+                return "Analytics \(section) contains duplicate paper identifier \(identifier.uuidString). Rebuild analytics from the current corpus."
+            }
+        }
+    }
+
     /// Loads analytics summary JSON produced by the Python/Rust backend.
     /// Returns nil when the file is missing; throws when the payload is malformed.
     static func loadSummary(from url: URL) throws -> AnalyticsSummary? {
@@ -968,6 +979,29 @@ enum AnalyticsStore {
         let data = try Data(contentsOf: url)
         let decoder = JSONDecoder()
         decoder.dateDecodingStrategy = .iso8601
-        return try decoder.decode(AnalyticsSummary.self, from: data)
+        let summary = try decoder.decode(AnalyticsSummary.self, from: data)
+        try validate(summary)
+        return summary
+    }
+
+    private static func validate(_ summary: AnalyticsSummary) throws {
+        try validateUnique(summary.novelty.map(\.paperID), section: "novelty")
+        try validateUnique(summary.centrality.map(\.paperID), section: "centrality")
+        try validateUnique(summary.factorLoadings.map(\.paperID), section: "factor_loadings")
+        try validateUnique(summary.influence.map(\.paperID), section: "influence")
+        try validateUnique(summary.influencePos.map(\.paperID), section: "influence_pos")
+        try validateUnique(summary.influenceNeg.map(\.paperID), section: "influence_neg")
+        try validateUnique(summary.paperMetrics.map(\.paperID), section: "paper_metrics")
+        try validateUnique(summary.recommendations, section: "recommendations")
+        try validateUnique(summary.recommendationsSimple, section: "recommendations_simple")
+        try validateUnique(summary.stability?.perPaper?.map(\.paperID) ?? [], section: "stability.per_paper")
+        try validateUnique(summary.workflow?.recommendationsMIG?.selected?.map(\.paperID) ?? [], section: "workflow.recommendations_mig.selected")
+    }
+
+    private static func validateUnique(_ identifiers: [UUID], section: String) throws {
+        var seen = Set<UUID>()
+        for identifier in identifiers where !seen.insert(identifier).inserted {
+            throw ValidationError.duplicateIdentifier(section: section, identifier: identifier)
+        }
     }
 }
