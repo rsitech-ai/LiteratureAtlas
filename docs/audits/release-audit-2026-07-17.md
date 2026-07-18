@@ -189,6 +189,11 @@ or destructive user-data action was performed.
     contributor-only Rust library, claimed all writes were repo-relative, and
     denied the existing task files. Those statements now match the compile-time
     distributed boundary, privacy model, release gates, and task-tracking policy.
+42. UUID validation initially canonicalized paper IDs to lowercase while Swift
+    persisted uppercase UUID strings in chunks and other foreign keys. This
+    silently dropped chunk-derived analytics. Validation now preserves canonical
+    source casing, duplicate detection remains case-insensitive, and an uppercase
+    paper/chunk regression proves the join and code-link signal survive.
 
 ## Native scenario matrix
 
@@ -225,7 +230,7 @@ without an app intent integration, and did not affect launch or interaction.
 
 - Swift package: 84 XCTest cases passed, one explicitly opt-in corpus smoke
   skipped, and four Swift Testing bookmark tests passed with warnings as errors.
-- Python: frozen lock sync/import passed; Ruff format/lint passed; 53 tests
+- Python: frozen lock sync/import passed; Ruff format/lint passed; 54 tests
   passed; installed-environment audit found no known vulnerability.
 - Rust: formatting, strict Clippy, seven tests, and release build passed.
 - RustSec: no vulnerability; one allowed unmaintained transitive warning for
