@@ -714,6 +714,34 @@ final class AppModelTests: XCTestCase {
         }
     }
 
+    func testReloadAnalyticsRejectsNoveltyOutsideCanonicalCorpusWhenPaperMetricsAreEmpty() async throws {
+        let tmp = FileManager.default.temporaryDirectory.appendingPathComponent(UUID().uuidString)
+        let model = await MainActor.run { AppModel(skipInitialLoad: true, customOutputRoot: tmp) }
+        let paper = makeAnalyticsTestPaper(id: UUID())
+        let unknownID = UUID()
+        try writeAnalyticsPayload(
+            [
+                "generated_at": "2025-01-02T03:04:05Z",
+                "paper_count": 1,
+                "vector_dim": 2,
+                "novelty": [[
+                    "paper_id": unknownID.uuidString,
+                    "cluster_id": 0,
+                    "novelty": 0.5,
+                ]],
+            ],
+            to: tmp
+        )
+
+        await MainActor.run {
+            model.papers = [paper]
+            model.reloadAnalyticsSummary()
+            XCTAssertNil(model.analyticsSummary)
+            XCTAssertTrue(model.analyticsLoadError?.localizedCaseInsensitiveContains("stale") == true)
+            XCTAssertTrue(model.analyticsLoadError?.localizedCaseInsensitiveContains("rebuild") == true)
+        }
+    }
+
     func testObsidianNoteLookupUsesCacheAfterInitialIndexing() async throws {
         let tmp = FileManager.default.temporaryDirectory.appendingPathComponent(UUID().uuidString)
         let noteDirectory = tmp.appendingPathComponent("obsidian/papers", isDirectory: true)

@@ -18,7 +18,6 @@
 - **Analytics backend (`analytics/`)**
   - `rebuild_analytics.py`: loads app outputs, writes `Output/atlas.duckdb`, Parquet snapshots, and `Output/analytics/analytics.json` (novelty, centrality, drift, factor loadings, recommendations, counterfactuals, user event stats).
   - `requirements.txt` / `pyproject.toml`: Python dependencies.
-  - `rust/`: CLI that builds ANN edges from Parquet embeddings using Polars (see `analytics/rust/src/main.rs`).
   - `ffi/`: Rust `cdylib/staticlib` exposing HNSW search and basic graph analytics to Swift (`analytics/ffi/src/lib.rs`, headers in `analytics/ffi/include/`).
 - **Data**: all persistent artifacts live under `Output/` (papers, chunks, clusters, analytics parquet/JSON, DuckDB) to keep the app self-contained.
 
@@ -31,13 +30,13 @@
 - Corpus-level synthesis: generate an executive “corpus briefing” from the current topic hierarchy (cached to `Output/reports/`) — `AppModel.generateCorpusBriefing`, `LLMActors.CorpusBriefingActor`.
 - Topic dossiers: generate a structured briefing for any selected cluster (cached to `Output/reports/`) — `AppModel.loadOrGenerateTopicDossier`, `LLMActors.TopicDossierActor`.
 - Analytics dashboard fed by Python outputs: topic trends, novelty vs. centrality scatter, drift vectors, factor exposures, influence, counterfactual scenarios, and uncertainty proxy — `AnalyticsView`, `analytics/rebuild_analytics.py`.
-- Optional Rust acceleration: HNSW ANN + graph metrics via `analytics/ffi` (linked into the Swift target) and a standalone Polars-based ANN graph builder in `analytics/rust`.
+- Optional Rust acceleration: HNSW ANN + graph metrics via `analytics/ffi` (linked into the Swift target).
 - Event logging to `Output/analytics/user_events.jsonl` for later aggregation (questions asked, answers ready, papers opened).
 
 ## 5. Getting Started
 - **Prerequisites**
 - Swift toolchain 6.0+, Xcode 16+ recommended; macOS 26 (or iOS/iPadOS 26) with on-device FoundationModels + NLContextualEmbedding support.
-  - Rust toolchain (stable) for `analytics/ffi` and `analytics/rust` builds.
+  - Rust toolchain (stable) for the `analytics/ffi` build.
   - Python 3.10+ with `pip` or `uv`; dependencies in `analytics/requirements.txt`.
   - Apple Silicon strongly recommended for on-device models.
 - **Installation**
@@ -46,8 +45,6 @@
   cd LiteratureAtlas
   # Build Rust FFI used by the Swift target (produces libatlas_ffi.{dylib,a} in analytics/ffi/target/release)
   cargo build --manifest-path analytics/ffi/Cargo.toml --release
-  # Optional: build Rust ANN CLI
-  cargo build --manifest-path analytics/rust/Cargo.toml --release
   # Python env for analytics
   python -m venv .venv && source .venv/bin/activate
   pip install -r analytics/requirements.txt
@@ -75,18 +72,14 @@
   source .venv/bin/activate  # if using venv
   python analytics/rebuild_analytics.py            # rebuild DuckDB + analytics.json from Output/
   python analytics/rebuild_analytics.py --base ..  # if running from a subdir
-  cargo run --manifest-path analytics/rust/Cargo.toml --release -- \
-    --emb Output/analytics/paper_embeddings.parquet \
-    --out Output/analytics/ann_edges.json --k 8
   ```
 - **Production / release build**
   ```bash
   swift build -c release
   # Bundle libatlas_ffi.dylib next to the executable or in a Frameworks folder if redistributing.
   ```
-- **CLI usage quick reference**
+- **Analytics usage quick reference**
   - Rebuild analytics: `python analytics/rebuild_analytics.py [--base PATH] [--counterfactual-cutoffs ...]`
-  - ANN edges (Rust): `cargo run --manifest-path analytics/rust/Cargo.toml --release -- --emb Output/analytics/paper_embeddings.parquet --out Output/analytics/ann_edges.json --k 8`
 
 ## 7. Testing & QA
 - Swift tests (macOS 26+/Swift 6 required):
@@ -94,8 +87,8 @@
   swift test
   ```
   - Covers ingestion upsert logic, clustering assignments, PDF year inference, claim extraction/relations/stress tests, vector index, galaxy math, analytics store, and temporal analytics (`Tests/LiteratureAtlasTests/*`).
-- No dedicated Python test suite; run `python analytics/rebuild_analytics.py` to validate the pipeline end-to-end.
-- Rust crates have minimal logic and can be checked with `cargo test` (none defined) or `cargo fmt --check` if desired.
+- Python tests: `python -m pytest analytics/tests` (or `python -m unittest discover -s analytics/tests`).
+- Rust FFI tests: `cargo test --manifest-path analytics/ffi/Cargo.toml`; formatting: `cargo fmt --manifest-path analytics/ffi/Cargo.toml --check`.
 
 ## 8. Module-Level Documentation (Compact)
 - `AppModel` — orchestrates ingestion, embeddings, clustering, RAG Q&A, analytics reloads, recommendations, flashcards, and event logging.
@@ -105,7 +98,6 @@
   - `IngestView` (ingestion/logs/planner/claims), `MapView` (galaxy with lenses, zoom, bridging), `QuestionView` (RAG Q&A + evidence), `AnalyticsView` (trends, drift, factor exposures, counterfactuals), `PaperDetailView` (notes/tags/status).
 - `analytics/rebuild_analytics.py` — DuckDB load + novelty/centrality/drift/factors/recs export; writes Parquet snapshots and `analytics.json`.
 - `analytics/ffi` — HNSW ANN and graph utilities exposed to Swift via `include/atlas_ffi.h`.
-- `analytics/rust` — standalone ANN graph CLI writing `ann_edges.json`.
 - `examples/` — sample PDFs for local testing; `Output/` holds generated artifacts and sample precomputed data.
 
 ## 9. Data & Storage
@@ -356,4 +348,3 @@ You create comprehension questions for research papers.
 // File: ui.study_questions.prompt.md
 Draft 5 questions to check understanding of the paper "{{title}}".
 Use the summary and takeaways. Mix conceptual and application questions.
-

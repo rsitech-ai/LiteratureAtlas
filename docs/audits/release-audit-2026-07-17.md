@@ -163,6 +163,20 @@ or destructive user-data action was performed.
     not stop its detached filesystem scan. The scan now checks cancellation
     before every paper/artifact and after every metadata read, returns no partial
     result, and a 1,000-paper regression proves canceled work stops early.
+35. Independent PR review found that analytics freshness compared canonical IDs
+    only with `paper_metrics`. Every UUID-bearing decoded summary section is now
+    included, so stale novelty, neighbor, edge, recommendation, quality,
+    stability, citation, workflow, hygiene, and lens references all fail closed.
+36. Paper imports accepted arbitrary non-empty identifiers even though the Swift
+    consumer decodes UUIDs. The Python boundary now canonicalizes valid UUIDs and
+    skips invalid identifiers with an observable warning.
+37. Malformed `methodPipeline.steps` values could survive ingestion and fail in
+    downstream novelty/tag extraction. The nested structure is now normalized at
+    import, with invalid steps rejected and valid strings trimmed.
+38. Claim similarity sized nearest-neighbor queries from unfiltered input. Two
+    valid claims plus one invalid row could therefore request three neighbors
+    from a two-sample matrix. Sizing now uses the filtered population, with a
+    focused regression for that exact failure.
 
 ## Native scenario matrix
 
@@ -197,9 +211,9 @@ without an app intent integration, and did not affect launch or interaction.
 
 ## Verification evidence
 
-- Swift package: 83 XCTest cases passed, one explicitly opt-in corpus smoke
+- Swift package: 84 XCTest cases passed, one explicitly opt-in corpus smoke
   skipped, and four Swift Testing bookmark tests passed with warnings as errors.
-- Python: frozen lock sync/import passed; Ruff format/lint passed; 50 tests
+- Python: frozen lock sync/import passed; Ruff format/lint passed; 53 tests
   passed; installed-environment audit found no known vulnerability.
 - Rust: formatting, strict Clippy, seven tests, and release build passed.
 - RustSec: no vulnerability; one allowed unmaintained transitive warning for

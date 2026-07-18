@@ -23,6 +23,7 @@ import logging
 import math
 import pathlib
 import re
+import uuid
 from collections import Counter, defaultdict
 from dataclasses import dataclass
 from typing import Any
@@ -208,6 +209,38 @@ def _normalized_claims(value: Any, source_path: pathlib.Path) -> list[dict[str, 
     return claims
 
 
+def _normalized_method_pipeline(value: Any, source_path: pathlib.Path) -> dict[str, Any] | None:
+    if not isinstance(value, dict):
+        return None
+    steps = value.get("steps")
+    if not isinstance(steps, list):
+        _logger.warning("Ignoring method pipeline in %s because 'steps' is not a list", source_path)
+        return None
+
+    normalized_steps: list[dict[str, Any]] = []
+    for index, step in enumerate(steps):
+        if not isinstance(step, dict):
+            _logger.warning("Skipping method pipeline step %d in %s because it is not an object", index, source_path)
+            continue
+        stage = step.get("stage")
+        label = step.get("label")
+        if not isinstance(stage, str) or not stage.strip() or not isinstance(label, str) or not label.strip():
+            _logger.warning(
+                "Skipping method pipeline step %d in %s because stage or label is invalid", index, source_path
+            )
+            continue
+        detail = step.get("detail")
+        normalized_steps.append(
+            {
+                "stage": stage.strip(),
+                "label": label.strip(),
+                "detail": detail.strip() if isinstance(detail, str) and detail.strip() else None,
+            }
+        )
+
+    return {"steps": normalized_steps} if normalized_steps else None
+
+
 def load_papers(papers_dir: pathlib.Path) -> tuple[list[PaperRow], list[list[float]], list[dict[str, Any]]]:
     rows: list[PaperRow] = []
     embeddings: list[list[float]] = []
@@ -237,9 +270,14 @@ def load_papers(papers_dir: pathlib.Path) -> tuple[list[PaperRow], list[list[flo
         if not isinstance(data, dict):
             continue
 
-        paper_id = data.get("id")
-        if not isinstance(paper_id, str) or not paper_id.strip():
+        raw_paper_id = data.get("id")
+        if not isinstance(raw_paper_id, str) or not raw_paper_id.strip():
             _logger.warning("Skipping %s because it is missing a valid 'id'", path)
+            continue
+        try:
+            paper_id = str(uuid.UUID(raw_paper_id.strip()))
+        except ValueError:
+            _logger.warning("Skipping %s because 'id' is not a UUID", path)
             continue
 
         emb = data.get("embedding") or []
@@ -350,7 +388,7 @@ def load_papers(papers_dir: pathlib.Path) -> tuple[list[PaperRow], list[list[flo
                 primary_cluster_k50=primary_k50,
                 tags=_string_list(data.get("userTags") or data.get("keywords")),
                 claims=_normalized_claims(data.get("claims"), path),
-                method_pipeline=data.get("methodPipeline") if isinstance(data.get("methodPipeline"), dict) else None,
+                method_pipeline=_normalized_method_pipeline(data.get("methodPipeline"), path),
                 assumptions=_string_list(data.get("assumptions")),
                 page_count=_optional_int(data.get("pageCount")),
                 trading_tags=trading_tags,
@@ -3758,7 +3796,7 @@ def claim_similarity_edges(
             return []
         raise
     mat = normalize(mat)
-    neighbor_count = min(len(claims), max_neighbors + 1)
+    neighbor_count = min(len(valid_claims), max_neighbors + 1)
     neighbors = NearestNeighbors(n_neighbors=neighbor_count, metric="cosine", algorithm="brute")
     neighbors.fit(mat)
     distances, indices = neighbors.kneighbors(mat, return_distance=True)

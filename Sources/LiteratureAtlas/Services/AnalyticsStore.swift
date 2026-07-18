@@ -958,6 +958,31 @@ struct AnalyticsSummary: Codable, Equatable {
         workflow = try container.decodeIfPresent(WorkflowSection.self, forKey: .workflow)
         hygiene = try container.decodeIfPresent(HygieneSection.self, forKey: .hygiene)
     }
+
+    var referencedPaperIDs: Set<UUID> {
+        var identifiers = Set(novelty.map(\.paperID))
+        identifiers.formUnion(centrality.map(\.paperID))
+        identifiers.formUnion(centrality.flatMap(\.neighbors).map(\.paperID))
+        identifiers.formUnion(factorLoadings.map(\.paperID))
+        identifiers.formUnion(influence.map(\.paperID))
+        identifiers.formUnion(influencePos.map(\.paperID))
+        identifiers.formUnion(influenceNeg.map(\.paperID))
+        identifiers.formUnion(ideaFlowEdges.compactMap(\.src))
+        identifiers.formUnion(ideaFlowEdges.compactMap(\.dst))
+        identifiers.formUnion(paperMetrics.map(\.paperID))
+        identifiers.formUnion(recommendations)
+        identifiers.formUnion(recommendationsSimple)
+        identifiers.formUnion(quality?.ingestion?.issues?.map(\.paperID) ?? [])
+        identifiers.formUnion(stability?.perPaper?.map(\.paperID) ?? [])
+        identifiers.formUnion(bridges?.paperRecombination?.perPaper?.map(\.paperID) ?? [])
+        identifiers.formUnion(citations?.graph?.pagerank?.map(\.paperID) ?? [])
+        identifiers.formUnion(citations?.graph?.topInDegree?.map(\.paperID) ?? [])
+        identifiers.formUnion(workflow?.recommendationsMIG?.selected?.map(\.paperID) ?? [])
+        identifiers.formUnion(hygiene?.duplicates?.groups?.flatMap { $0 } ?? [])
+        identifiers.formUnion(trading?.scorePoints?.map(\.paperID) ?? [])
+        identifiers.formUnion(trading?.topPriority?.map(\.paperID) ?? [])
+        return identifiers
+    }
 }
 
 enum AnalyticsStore {
