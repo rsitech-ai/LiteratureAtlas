@@ -24,7 +24,7 @@
 
 ### Tests
 - Swift: `swift test -Xswiftc -warnings-as-errors` (83 XCTest cases, typically 1 opt-in smoke skipped, plus 4 Swift Testing bookmark cases; requires macOS 26+)
-- Python: `analytics/.venv/bin/python -m pytest analytics/tests -v` (50 tests)
+- Python: `analytics/.venv/bin/python -m pytest analytics/tests -v` (53 tests)
 - Rust FFI: `cargo test --locked --manifest-path analytics/ffi/Cargo.toml` (7 tests)
 - Release configuration: `python3 scripts/validate_release_configuration.py` (fails closed until approved AppIcon artwork is committed)
 - Known-blocker CI gate: `python3 scripts/validate_release_configuration.py --allow-blocker app_icon_artwork` (fails on every other gate)

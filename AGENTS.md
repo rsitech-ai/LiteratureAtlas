@@ -215,15 +215,15 @@ Chosen: 2 because it keeps UX smooth while preserving explicit errors.
 Setup/install:
 - Swift build: `swift build`
 - Rust FFI build: `cargo build --manifest-path analytics/ffi/Cargo.toml --release`
-- Python env + deps: `python -m venv .venv && source .venv/bin/activate` then `pip install -r analytics/requirements.txt`
+- Python env + deps: `uv sync --project analytics --extra dev --frozen` (managed environment: `analytics/.venv`)
 
 Format:
-- Python: `python -m ruff format --check analytics scripts`
+- Python: `analytics/.venv/bin/python -m ruff format --check analytics scripts`
 - Rust: `cargo fmt --manifest-path analytics/ffi/Cargo.toml --check`
 - No Swift formatter is configured; choose and document one before making formatting a required gate.
 
 Lint:
-- Python lint (configured): `python -m ruff check analytics`
+- Python lint (configured): `analytics/.venv/bin/python -m ruff check analytics scripts`
 - Rust lint (configured): `cargo clippy --locked --manifest-path analytics/ffi/Cargo.toml --all-targets --all-features -- -D warnings`
 - Swift warnings are enforced with `swift test -Xswiftc -warnings-as-errors`; no separate Swift linter is configured.
 
@@ -235,12 +235,12 @@ Typecheck/build:
 
 Tests:
 - Swift: `swift test`
-- Python (documented): `python -m unittest discover -s analytics/tests`
-- Python (optional if dev deps installed): `python -m pytest`
+- Python: `analytics/.venv/bin/python -m pytest analytics/tests`
+- Python unittest fallback: `analytics/.venv/bin/python -m unittest discover -s analytics/tests`
 - Rust FFI: `cargo test --manifest-path analytics/ffi/Cargo.toml`
 
 Integration/verification commands:
-- Analytics rebuild: `python analytics/rebuild_analytics.py`
+- Analytics rebuild: `analytics/.venv/bin/python analytics/rebuild_analytics.py`
 - Rust FFI verification: `cargo test --manifest-path analytics/ffi/Cargo.toml`
 
 ### Required follow-up for missing gates

@@ -23,3 +23,4 @@
 - [x] Ready PR #9 created against `main` from `feat/andrzej_fix_full_quality_audit` and the rendered scope/diff inspected.
 - [x] Reproduced and repaired all four independent-review findings: stale UUID references outside `paper_metrics`, invalid Python paper IDs, malformed method-pipeline steps, and nearest-neighbor sizing after invalid claims are filtered.
 - [x] Re-ran the focused/full repair gates: Ruff passed, 53 Python tests passed, 84 XCTest cases passed with one opt-in smoke skipped, and all four Swift Testing bookmark cases passed.
+- [x] Corrected re-review setup drift: Python 3.12, `analytics/.venv`, managed analytics commands, and current Swift test coverage now match the repository runtime.
