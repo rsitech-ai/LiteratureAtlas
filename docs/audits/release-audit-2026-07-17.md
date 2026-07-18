@@ -185,6 +185,10 @@ or destructive user-data action was performed.
     contributor-only `Output/`/Rust FFI behavior as a distributed-app contract.
     It now requires the verified Xcode 26.6 lane and documents container storage,
     Swift fallback, and the supported community release script truthfully.
+41. Adjacent deployment guidance still told distributed builds to ship the
+    contributor-only Rust library, claimed all writes were repo-relative, and
+    denied the existing task files. Those statements now match the compile-time
+    distributed boundary, privacy model, release gates, and task-tracking policy.
 
 ## Native scenario matrix
 

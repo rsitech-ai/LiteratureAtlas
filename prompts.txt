@@ -9,7 +9,7 @@
 - Primary stack: **Swift 6 + SwiftUI + PDFKit + NaturalLanguage + FoundationModels** for the app, **Python 3.12 + DuckDB + pandas/numpy + scikit-learn** for analytics, and **Rust (cargo)** for ANN/graph acceleration.
 
 ## 3. Architecture & Key Components
-- **Data flow**: PDF ingestion → on-device summarization & chunk embeddings → JSON in `Output/papers` & `Output/chunks` → clustering & galaxy layout → optional Python/Rust analytics → `analytics.json` reloaded by the app → interactive views (Map, Q&A, Analytics).
+- **Data flow**: PDF ingestion → on-device summarization & chunk embeddings → canonical paper/chunk JSON → clustering & galaxy layout → optional contributor-only Python/Rust analytics → `analytics.json` reloaded by the app → interactive views (Universe, Q&A, Analytics). Contributor files live under `Output/`; distributed files live under container Application Support.
 - **Swift app (`Sources/LiteratureAtlas/`)**
   - `App/AppModel.swift`: central state machine for ingestion, clustering, RAG Q&A, recommendations, analytics reloads, and event logging.
   - `Services/`: 
@@ -31,7 +31,7 @@
 - Topic dossiers: generate a structured briefing for any selected cluster (cached to `Output/reports/`) — `AppModel.loadOrGenerateTopicDossier`, `LLMActors.TopicDossierActor`.
 - Analytics dashboard fed by Python outputs: topic trends, novelty vs. centrality scatter, drift vectors, factor exposures, influence, counterfactual scenarios, and uncertainty proxy — `AnalyticsView`, `analytics/rebuild_analytics.py`.
 - Optional Rust acceleration: HNSW ANN + graph metrics via `analytics/ffi` (linked into the Swift target).
-- Event logging to `Output/analytics/user_events.jsonl` for later aggregation (questions asked, answers ready, papers opened).
+- Local event logging for later aggregation (questions asked, answers ready, papers opened), stored under the active contributor or distributed output root without raw question text.
 
 ## 5. Getting Started
 - **Prerequisites**
@@ -51,11 +51,11 @@
   swift build
   ```
 - **Configuration**
-  - Data is written to `Output/` beside the repo; folders (`papers`, `chunks`, `clusters`, `analytics`, `reports`, `obsidian/papers`) are created automatically.
-  - Prompt templates live in `Prompts/` (override path via `LITERATURE_ATLAS_PROMPTS_DIR`); edit them to iterate on prompts without touching Swift code.
+  - SwiftPM contributor data is written to `Output/` beside the repo; distributed data is written to container Application Support. Required folders are created automatically.
+  - Contributor prompt templates live in `Prompts/` (override path via `LITERATURE_ATLAS_PROMPTS_DIR`); distributed builds use bundled prompts.
   - Analytics script flags: `--base /path/to/repo`, `--db <path>`, `--counterfactual-cutoffs 2010 2015 2020` (see `analytics/rebuild_analytics.py`).
-  - The Swift target links against `analytics/ffi/target/release`; ensure the library exists before running `swift run`/`swift build`.
-  - Optional user events: the app appends newline-delimited JSON to `Output/analytics/user_events.jsonl`.
+  - SwiftPM contributor builds can link against `analytics/ffi/target/release`; build the library before `swift run`/`swift build`. Distributed targets use the Swift fallback.
+  - Optional user events are appended as newline-delimited JSON under the active output root without raw question text.
 
 ## 6. Running the Project
 - **Development (macOS)**
@@ -99,7 +99,7 @@
   - `IngestView` (ingestion/logs/planner/claims), `MapView` (galaxy with lenses, zoom, bridging), `QuestionView` (RAG Q&A + evidence), `AnalyticsView` (trends, drift, factor exposures, counterfactuals), `PaperDetailView` (notes/tags/status).
 - `analytics/rebuild_analytics.py` — DuckDB load + novelty/centrality/drift/factors/recs export; writes Parquet snapshots and `analytics.json`.
 - `analytics/ffi` — HNSW ANN and graph utilities exposed to Swift via `include/atlas_ffi.h`.
-- `examples/` — sample PDFs for local testing; `Output/` holds generated artifacts and sample precomputed data.
+- `examples/` — optional local-only corpus fixtures when supplied by the user; third-party PDFs are not redistributed. `Output/` holds contributor-build generated artifacts.
 
 ## 9. Data & Storage
 - `Output/papers/*.paper.json` — per-paper metadata, summaries, embeddings, claims, method pipeline, timestamps.
@@ -114,20 +114,20 @@
 - Contributor paths are repo-local; distributed mutable data stays in the app container. No remote storage is used.
 
 ## 10. Deployment & Environments
-- No Docker/Helm manifests provided; distribute as a SwiftPM/Xcode app. Ensure `libatlas_ffi` ships with the binary (or adjust `Package.swift` linker flags to your install path).
-- macOS build links `atlas_ffi` from `analytics/ffi/target/release` (see `Package.swift`); rebuild the Rust lib per architecture before shipping.
-- iOS builds default to the Swift fallback (no FFI). To enable FFI on iOS, add iOS linker settings and define `ATLAS_FFI_LINKED` for iOS in `Package.swift` after building a static library.
+- No Docker/Helm manifests are used. Generate the Xcode project with XcodeGen for app targets; use the release scripts under `script/` for direct-download macOS artifacts.
+- SwiftPM contributor builds can load `atlas_ffi` from `analytics/ffi/target/release`. Distributed macOS and iPadOS builds intentionally use the Swift fallback and do not ship the repository-local FFI library.
+- Official Developer ID/notarized and App Store distribution remain fail-closed behind the prerequisites documented in `docs/release/1.0.0/RELEASE_STATUS.md`.
 
 ## 11. Security & Permissions
 - All processing is offline: PDFs stay local, summaries/embeddings use on-device models, and analytics run locally.
-- The app confines writes to the repo-relative `Output/` directory and uses security-scoped resource access when importing folders.
+- Contributor builds write under repo-relative `Output/`; distributed builds write mutable data under container Application Support. Folder imports use balanced, persistent, read-only security-scoped access.
 
 ## 12. Roadmap / TODO
-- No explicit roadmap or TODO files are present in this repository; add issues or docs to track future work (e.g., alternative ANN backends, packaging automation).
+- `PLAN.md` and `TODO.md` track the current task only. Use GitHub issues and versioned design/release documents for durable product work.
 
 ## 13. Contributing
 - Suggested workflow: fork → create branch → build `analytics/ffi` → make changes → run `swift test` (and analytics script if relevant) → open PR.
-- Keep new data outputs inside `Output/` and avoid committing large binaries unless necessary.
+- Keep contributor-generated data inside ignored `Output/`; do not commit corpus PDFs, generated binaries, credentials, or private document content.
 
 ## 14. License
 - MIT License (see `LICENSE`).
