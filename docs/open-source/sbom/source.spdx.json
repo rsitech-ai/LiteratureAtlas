@@ -7,7 +7,7 @@
     ]
   },
   "dataLicense": "CC0-1.0",
-  "documentNamespace": "https://github.com/s1korrrr/LiteratureAtlas/sbom/source/tracked-source-sha256-312456fd41725b5d7601df98c1e8c7843aef80b8d41da7e310bf71e880acd183",
+  "documentNamespace": "https://github.com/s1korrrr/LiteratureAtlas/sbom/source/tracked-source-sha256-7617c08e3eecd78ef9054445ba167dc74a3ec1c301db7d231da405fd3332d2bb",
   "files": [
     {
       "SPDXID": "SPDXRef-File-cd49adffccd28c2b30a7",
@@ -539,7 +539,7 @@
       "checksums": [
         {
           "algorithm": "SHA256",
-          "checksumValue": "0ea4cfd10f92dd204dde9105721b116a5836492447fc623081ae036a3c2da74a"
+          "checksumValue": "cf16fbd9bb9163eaf254e5373430bbe6d7f0e2751c06b919b85b56374317173c"
         }
       ],
       "copyrightText": "NOASSERTION",
@@ -2189,7 +2189,7 @@
       "checksums": [
         {
           "algorithm": "SHA256",
-          "checksumValue": "bc1fc3ab514df13fbd8b7b2a773e0b6e57bb2a9f0ae3d9c8f57c85c6ba23dcd4"
+          "checksumValue": "28bc1917995008a379085b8f129a61a316f3366605c8eb94ebd4d2a328fbf552"
         }
       ],
       "copyrightText": "NOASSERTION",
@@ -3740,7 +3740,7 @@
       "licenseConcluded": "MIT",
       "licenseDeclared": "MIT",
       "name": "LiteratureAtlas source",
-      "versionInfo": "tracked-source-sha256-312456fd41725b5d7601df98c1e8c7843aef80b8d41da7e310bf71e880acd183"
+      "versionInfo": "tracked-source-sha256-7617c08e3eecd78ef9054445ba167dc74a3ec1c301db7d231da405fd3332d2bb"
     }
   ],
   "relationships": [

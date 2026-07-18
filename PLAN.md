@@ -1,56 +1,56 @@
 # Plan
 
 ## Context
-- Remediate every repository-owned defect reproduced by the 2026-07-17 end-to-end audit across the macOS/iPad app, Swift state and persistence, Python analytics, Rust FFI, release verification, CI, accessibility, and runtime behavior.
-- The user authorized local fixes. Push, PR creation, merge, Apple signing/notarization, and owner-controlled GitHub or legal actions remain outside this turn's authority.
+- Complete the already-validated full-quality remediation through cleanup, hosted review, merge to `main`, and a downloadable macOS release artifact.
+- The user explicitly authorized repository cleanup, PR creation, hosted review, merge/push to `main`, and publication of the latest downloadable app.
 
 ## Assumptions
-- The primary user is a researcher who imports a local PDF corpus, explores a trustworthy knowledge map, and expects derived analytics to match the current canonical corpus.
-- `Output/` is user data and must not be reprocessed or destructively changed; isolated tests use fixtures, while the requested live contributor-app smoke may perform its normal ignored index refresh and local navigation-event append.
-- macOS 26+ is the direct-download runtime target; iPadOS 26+ must still build and retain durable security-scoped folder access.
+- The primary download target is the documented Apple Silicon macOS 26+ direct-download app.
+- `Output/`, the active analytics environment, working corpus data, and validated release evidence are not irrelevant files and must be preserved.
+- A public community prerelease is acceptable only when it is labeled truthfully as ad-hoc signed/not notarized; it must not be represented as the official Developer ID release.
 
 ## Constraints
-- Work on `feat/andrzej_fix_full_quality_audit`; preserve unrelated/user files and commit only intentional changes.
-- Use focused failing tests or deterministic reproductions before behavioral fixes.
-- Preserve explicit error reporting, cancellation, sandboxing, privacy, and distributed-build boundaries.
-- External release blockers remain truthful blockers rather than being weakened or bypassed.
+- Preserve all user data and unrelated work; remove only exact, reproducible generated artifacts or stale remote release assets proven superseded.
+- Merge only through a reviewed PR with passing hosted checks and no unresolved actionable review findings.
+- Build the downloadable artifact from the exact merged `main` commit, then verify the bundle, signature mode, mounted DMG contents, checksums, and launch behavior.
+- Do not bypass the fail-closed app-icon, Developer ID, notarization, legal-provenance, or GitHub-policy gates.
 
 ## Options considered
-1. Apply narrow symptom patches only to the views and scripts named in the audit.
-2. Fix each defect at its owning boundary (input validation, persistence transaction, cancellation primitive, derived-data freshness, UI semantics, release artifact verification), then run focused and full end-to-end verification.
-3. Rewrite the app architecture and analytics pipeline before re-verification.
+1. Publish an official Developer ID-signed and Apple-notarized release after all release-configuration, identity, and notary gates pass.
+2. If an official release remains externally blocked, publish a clearly labeled community prerelease built from merged `main`, with exact limitations and verification evidence.
+3. Stop after merging the PR and leave the binary local-only.
 
-Chosen: 2 because it removes the root causes while keeping the change reviewable; option 1 would leave equivalent hidden failure paths and option 3 is disproportionate and regression-prone.
+Chosen: attempt 1 first and fall back to 2 only for verified external blockers. Option 3 does not satisfy the requested downloadable release.
 
 ## Execution plan
-1. Freeze the audit contract, branch, task plan, file ownership, and baseline evidence.
-2. Add red tests for Swift persistence/source access/cancellation/analytics boundaries and implement the smallest passing state-layer fixes.
-3. Add red tests for malformed analytics input, PCA rank, kNN memory behavior, output-path coherence, and audit failure semantics; implement passing Python fixes.
-4. Add red tests for Rust zero-weight connected-component topology and release artifact checks; implement passing FFI/release fixes.
-5. Fix derived-data freshness, placeholder trust, accessibility labels/chart descriptions, stable SwiftUI identity, menu commands, layout/log faults, render-time filesystem work, and idle animation behavior with focused proof.
-6. Pin the dependency audit and supported dependency/runtime versions in the frozen environment and CI; update only documentation that is proven stale.
-7. Run focused tests, then the full Swift/Python/Rust/release/security/build matrix.
-8. Build and relaunch the macOS app, exercise the scenario matrix, inspect logs and process behavior, verify iPad archive/build, and review the complete diff.
-9. Update audit evidence, TODO, PLAN results, and durable repository memory; commit locally only after all repository-owned gates are green.
+1. Inventory Git state, hosted repository state, existing releases/tags/assets, signing/notary prerequisites, and exact cleanup candidates.
+2. Remove only approved generated clutter using recoverable deletion where practical; preserve working data and evidence.
+3. Run a fresh pre-push verification matrix and inspect the complete `origin/main...HEAD` diff.
+4. Commit any closeout documentation changes, push the feature branch, create a ready-for-review PR, and inspect the rendered PR/diff.
+5. Wait for hosted checks, review comments, and an independent exact-head review; repair and re-verify any actionable issue.
+6. Merge through the PR only when all gates pass, synchronize local `main`, and verify exact local/remote/merge parity.
+7. Build the latest macOS app from merged `main`, create and verify the distributable, publish the truthful GitHub release, and verify its downloadable asset metadata.
+8. Update PLAN/TODO/MEMORY with exact final evidence and run final post-release cleanliness checks.
 
 ## Test plan
-- Swift: focused XCTest/Swift Testing red-green regressions, `swift test -Xswiftc -warnings-as-errors`, macOS and iPadOS Release builds, bundle launch, UI interaction, accessibility, persistence/relaunch, cancellation, and clean logs.
-- Python: focused pytest red-green regressions, Ruff format/check, full pytest, isolated analytics rebuild and topic audit, import smoke, and dependency audit.
-- Rust: focused red-green FFI test, `cargo fmt --check`, strict Clippy, tests, release build, and dependency audit.
-- Release/CI: release-script policy tests, release validator with only documented external blockers, entitlement/privacy-manifest fixture checks, workflow validation, and SBOM refresh.
-- Performance: Release-process idle sampling and targeted chart/layout log inspection before and after fixes.
+- Pre-PR: warning-free Swift tests, Python Ruff/tests/audit, Rust fmt/Clippy/tests/audit, release policy/configuration, privacy/entitlement validation, and canonical bundle runtime smoke.
+- Hosted: all required GitHub Actions checks green on the exact PR head; no unresolved actionable review threads or comments.
+- Post-merge: local `main` equals `origin/main`; repeat the strongest relevant release/build/runtime checks on the merge commit.
+- Distribution: verify app structure, architecture, bundle metadata, signature mode, DMG mount/content equality, checksum, source revision, and launch/log behavior.
 
 ## Risks and rollback
-- Broad changes could couple independent failures -> use bounded ownership and merge one green slice at a time; revert only the isolated slice if its parent workflow regresses.
-- Bookmark changes could break one platform -> keep a platform-neutral store with platform-specific options and verify macOS tests plus iPad build.
-- Freshness validation could hide usable analytics -> distinguish current, stale, invalid, and unavailable states and provide a rebuild/recovery action.
-- Cancellation changes could alter result ordering -> retain run identity checks and add cooperative cancellation tests.
-- Dependency upgrades could break macOS scientific wheels -> frozen sync plus import and full analytics tests before accepting the lock.
+- Cleanup could remove user data -> restrict targets to enumerated generated files and use Trash for material local artifacts.
+- Hosted review could expose a regression -> keep the branch alive, fix on the branch, and require fresh checks before merge.
+- Official distribution may be blocked by owner/Apple prerequisites -> publish only the explicitly labeled community prerelease and retain the exact official blocker.
+- A release asset could be built from the wrong commit -> embed and verify the merged source revision before upload; delete/replace only the newly created incorrect release if verification fails.
 
 ## Memory impact
-- Record only stable commands and newly established architecture rules: derived analytics must validate against the canonical corpus; persistence publishes only after durable writes; security-scoped source access is cross-platform; release verification inspects shipped entitlement/privacy values.
+- Record the exact merged commit, PR/release URLs, verified release command, artifact labeling, and durable cleanup boundary if any changed.
 
 ## Notes / Results
-- Changes: Hardened cross-platform source bookmarks, transactional state writes, cooperative cancellation, analytics identity/freshness validation, Python numerical/input/scale boundaries, Rust zero-weight topology, accessibility/layout semantics, native navigation, distribution verification, CI dependency auditing, dead-code removal, documentation, and idle rendering.
-- Tests run: 83 XCTest cases (one opt-in ingest smoke skipped) plus four Swift Testing bookmark cases; 50 Python tests with Ruff and pip-audit; seven Rust tests with fmt/strict Clippy/release build/RustSec; complete release-script policy; privacy/configuration gates; YAML parse; macOS and generic iOS Release builds; live six-destination 3,919-paper runtime, stale-analytics rejection, repeated accessibility/log inspection, and idle sampling.
-- Tradeoffs: Kept the ambient Universe animation at a one-second cadence, reducing measured full-corpus idle CPU from 14–18% to 1.7–2.0% while preserving motion. The first cold accessibility capture still emits three AppKit window-control geometry diagnostics; source-attributed backtraces contain no app frame, and repeat traversal is clean, so native window controls were retained.
+- Changes:
+- Cleanup: No old GitHub Releases/tags or repo-local DMGs/archives existed. Stopped the stale development app and moved 12 exact generated/cache targets (about 1.39 GiB) to Trash; preserved `Output/`, `examples/`, `analytics/.venv`, release/audit evidence, user configuration, and unmerged work.
+- Tests run: Cold-cache Swift warning-as-error suite (83 XCTest, one opt-in corpus smoke skipped, plus four Swift Testing bookmark cases); Python Ruff format/check, 50 pytest cases, and pip-audit; Rust fmt/strict Clippy, seven tests, Release build, and RustSec (only the documented allowed unmaintained `bincode 1.3.3` warning); release-script policy, configuration with only `app_icon_artwork` allowed, privacy manifests, CI YAML, deterministic XcodeGen parity, macOS and generic iPadOS Release builds; canonical app-bundle rebuild/launch and process-specific log inspection.
+- PR and merge:
+- Release:
+- Tradeoffs/blockers: Official distribution is currently blocked by `app_icon_artwork` and unproven noninteractive notary credentials. A valid Developer ID Application certificate is installed, but its private-key authorization and a `LiteratureAtlasNotary` profile have not been proven; fall back only to a clearly labeled ad-hoc/not-notarized community prerelease.

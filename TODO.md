@@ -1,28 +1,22 @@
 # TODO
 
 ## Tasks
-- [x] Swift source access and persistence integrity (DoD: iPad/macOS bookmarks survive relaunch; pin/rename/review writes are transactional and surface failures; focused tests pass)
-- [x] Swift cancellation and model-degraded operation (DoD: expensive clustering/layout work cooperatively stops and the corpus remains readable when generation is unavailable; focused tests pass)
-- [x] Analytics input/freshness integrity (DoD: duplicate/malformed/non-finite/stale analytics fail safely with actionable UI, current data loads, and no trapping dictionaries remain)
-- [x] Python analytics correctness and scalability (DoD: rank-deficient PCA, nested claims, malformed chunks, custom DB paths, separability errors, and kNN scale have red-green regressions)
-- [x] Rust FFI graph contract (DoD: zero-weight edge presence is consistent with the public non-negative contract and strict Rust gates pass)
-- [x] SwiftUI correctness and accessibility (DoD: stable identities, bounded layouts/charts, correct year semantics, action labels/help, native commands, and no render-time filesystem scans on audited surfaces)
-- [x] Runtime performance and logs (DoD: Release idle sample and full interaction log scan show no reproduced app-owned invalid-frame, huge-layer, duplicate-ID, crash, or persistent high-idle-CPU defect)
-- [x] Release artifact and supply-chain hardening (DoD: exact read-only entitlement and privacy reasons are verified, dependency audit is frozen in CI, supported versions are tested, and release tests pass)
-- [x] Documentation and dead-code reconciliation (DoD: privacy/release/SBOM statements match behavior and every confirmed unreferenced production helper is removed or documented as intentional)
-- [x] Full end-to-end verification (DoD: Swift/Python/Rust/release/security/build gates, macOS app relaunch/interaction, iPad build, and final diff review are green)
-- [x] Memory update (DoD: `MEMORY.md` contains only new durable facts and no secrets/task-history noise)
+- [x] Inventory cleanup, GitHub, and Apple release state (DoD: exact cleanup candidates, release history, identity/notary status, and authority boundary are documented)
+- [x] Clean generated/stale artifacts (DoD: only verified irrelevant artifacts removed; `Output/`, active environments, working data, and evidence preserved)
+- [x] Fresh pre-PR verification (DoD: relevant Swift/Python/Rust/release/runtime gates pass on the exact branch head)
+- [ ] Create and inspect PR (DoD: branch pushed, ready PR created against `main`, rendered metadata and full diff reviewed)
+- [ ] Hosted and independent PR review (DoD: exact-head checks green and no unresolved actionable findings remain)
+- [ ] Merge through PR and synchronize `main` (DoD: PR merged; local `main`, `origin/main`, and merge result match)
+- [ ] Build and verify downloadable app (DoD: artifact built from merged `main`; bundle, signature mode, metadata, checksum, DMG, launch, and logs verified)
+- [ ] Publish and re-check release (DoD: truthful release and downloadable asset are available; remote metadata/checksum match local evidence)
+- [ ] Memory update and closeout (DoD: PLAN/TODO/MEMORY reflect exact final evidence and repository is clean)
 
 ## In progress
-- None.
+- [ ] Create and inspect PR
 
 ## Done
-- [x] HQ session bootstrap, repository instructions, durable memory, historical plan/TODO, and exact Git baseline reviewed.
-- [x] Dedicated branch `feat/andrzej_fix_full_quality_audit` created from clean `cd7bb74` main.
-- [x] Improve-mode product contract established: preserve `Output/`, verify real macOS runtime, build-check iPadOS, and keep external release gates blocked.
-- [x] All repository-owned remediation, full verification, runtime proof, documentation, memory, and final review completed on the feature branch.
-
-## External / owner-controlled blockers
-- Approved production app icon/brand provenance and legal chain of title.
-- Developer ID private-key authorization, notarization upload, quarantine/hardware acceptance, tag, and public binary release.
-- Owner-controlled GitHub repository protection, private reporting, and security settings.
+- [x] New-day HQ bootstrap and repository continuity check passed.
+- [x] Previous full-quality remediation confirmed committed on `feat/andrzej_fix_full_quality_audit` with a clean worktree before closeout planning.
+- [x] No existing GitHub tags or Releases were present; official publication remains blocked by production artwork and unproven notarization credentials.
+- [x] Stopped the stale development app and moved 12 exact generated/cache targets (about 1.39 GiB) to Trash while preserving corpus data, examples, the analytics environment, and tracked evidence.
+- [x] Cold-cache verification passed: 83 XCTest cases (one opt-in corpus smoke skipped), four Swift Testing cases, 50 Python tests, seven Rust tests, formatting/linting/security audits, release policy/config/privacy gates, deterministic XcodeGen parity, macOS/iPadOS Release builds, and fresh app launch/log inspection.
