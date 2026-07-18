@@ -7,6 +7,7 @@ ROOT=$(cd "$(dirname "$0")/.." && pwd)
 
 app=
 output=
+output_parent=
 volume_name=
 
 while [ "$#" -gt 0 ]; do
@@ -30,17 +31,19 @@ esac
 release_require_command hdiutil
 release_require_command ditto
 
-app_name=$(basename "$app" .app)
+app_name=$(basename -- "$app" .app)
 [ -n "$volume_name" ] || volume_name="$app_name"
 release_validate_product_name "$volume_name"
 
-mkdir -p "$(dirname "$output")"
+output_parent=$(dirname -- "$output")
+mkdir -p -- "$output_parent"
+output=$(cd -- "$output_parent" && printf '%s/%s' "$(pwd -P)" "$(basename -- "$output")")
 stage=$(mktemp -d "${TMPDIR:-/tmp}/literatureatlas-dmg.XXXXXX")
 trap 'rm -rf "$stage"' EXIT
-ditto "$app" "$stage/$(basename "$app")"
+ditto "$app" "$stage/$(basename -- "$app")"
 ln -s /Applications "$stage/Applications"
 hdiutil create -quiet -fs HFS+ -format UDZO -imagekey zlib-level=9 \
     -volname "$volume_name" -srcfolder "$stage" "$output"
 hdiutil verify "$output" >/dev/null
-shasum -a 256 "$output" >"$output.sha256"
+release_write_sha256_file "$output"
 printf 'DMG: %s\nChecksum: %s.sha256\n' "$output" "$output"

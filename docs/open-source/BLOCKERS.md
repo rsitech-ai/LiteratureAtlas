@@ -31,5 +31,7 @@
 12. Generate and reconcile the exact future signed/stapled-artifact SBOM,
     notices, hashes, signature/notary evidence, and source-release mapping.
 
-No notarization upload, Git tag, GitHub Release, visibility mutation, history
-rewrite, public artifact, or announcement has been performed.
+No notarization upload, official production tag/release, visibility mutation,
+history rewrite, or official announcement has been performed. Community tag
+`v1.0.0-community.1` and its ad-hoc/not-notarized GitHub prerelease were
+published under explicit authorization and do not clear any blocker above.

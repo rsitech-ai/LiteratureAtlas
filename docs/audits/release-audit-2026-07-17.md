@@ -2,10 +2,11 @@
 
 ## Verdict
 
-- Repository implementation: **repo-ready**, pending final PR/hosted-check/merge proof.
+- Repository implementation: **repo-ready**; PR #9 merged after complete hosted and independent review.
 - Local contributor app: **runtime-proven** with an isolated Markdown corpus.
+- Community direct download: **published prerelease / runtime-proven** from merged `main`, ad-hoc signed and not notarized.
 - Official Developer ID/notarized artifact: **blocked:external**.
-- App Store / public binary publication: **blocked:external** by approved icon
+- Official App Store / Developer ID binary publication: **blocked:external** by approved icon
   artwork, Apple credentials, notarization, legal provenance, and owner-managed
   repository settings.
 - No unresolved repository-owned blocker or high-severity finding remains.
@@ -20,8 +21,9 @@ boundary or failure mode was material, then exercised a fresh app against a
 disposable fixture at `/private/tmp/LiteratureAtlas-UI-Audit` without changing
 the user's 3,919-paper corpus.
 
-No Developer ID key, notarization submission, public release, legal assertion,
-or destructive user-data action was performed.
+No Developer ID signing, notarization submission, official release, legal
+assertion, or destructive user-data action was performed. A separately labeled
+community prerelease was published only after explicit user authorization.
 
 ## Authoritative references
 
@@ -252,16 +254,20 @@ without an app intent integration, and did not affect launch or interaction.
 - Developer ID private-key authorization, signing, notarization upload,
   stapling, quarantine/Gatekeeper validation, and exact signed-artifact SBOM.
 - Owner-controlled GitHub branch protection, dependency graph/security
-  settings, private reporting, governance, and public release/tag decisions.
+  settings, private reporting, governance, and official production release/tag
+  decisions.
 - Third-party PDF history and other previously documented legal/history risks.
 
 ## Final readiness label
 
-- **repo-ready locally, hosted closeout pending**: PR #8 is the merged historical
-  baseline; the current follow-up branch still requires its own PR, hosted checks,
-  review, and merge before these newer fixes are part of `main`.
+- **repo-ready / merged**: PR #9 reviewed head
+  `e0eb788b8654a18a8fef62398b87017f5b56e79a` passed all ten hosted checks,
+  GitHub Codex review, independent review, and three resolved threads; merge
+  commit `95d0031a0ee67a9f91cd0d915de75e1f42137daa` had the exact reviewed tree.
 - **runtime-proven** for the local contributor app and isolated end-to-end flow.
-- **blocked:external** for Developer ID/notarized/App Store/public release.
+- **published community prerelease / runtime-proven** for
+  `v1.0.0-community.1`; ad-hoc signed, not notarized, Apple Silicon/macOS 26+.
+- **blocked:external** for Developer ID/notarized/App Store/official release.
 
 ## Prior PR baseline and current closeout
 
@@ -278,4 +284,21 @@ without an app intent integration, and did not affect launch or interaction.
 - The merge commit's tree exactly matched the reviewed head, and local `main`
   matched `origin/main` before the documentation-only closeout record.
 - Those PR #8 facts are historical baseline evidence. They do not approve the
-  current unmerged follow-up diff; its hosted PR evidence remains pending.
+  later follow-up by themselves. PR #9's separate exact-head evidence above is
+  the approval and merge record for the current implementation.
+
+## PR #9 and downloadable community release closeout
+
+- PR: https://github.com/s1korrrr/LiteratureAtlas/pull/9
+- Release: https://github.com/s1korrrr/LiteratureAtlas/releases/tag/v1.0.0-community.1
+- DMG SHA-256: `3337c297f3e0f9492795f9bae395a82aad63a00613e156a948e27e04eca5a691`
+- Exact-app SPDX SBOM SHA-256: `78dbf5c0fbb07095d86a8a9d410a1eaf1b6240222d7b795397af9c3dda3048a9`
+- Published DMG, checksum, and SBOM were downloaded and compared byte-for-byte
+  with local verified evidence. The DMG-extracted app launched from a relocated
+  path, stayed stable, and stopped cleanly. Error-level startup messages were
+  limited to Apple framework diagnostics; no app-owned error, SwiftUI fault, or
+  crash was observed.
+- PR #10 review reproduced that the first checksum asset embedded its local
+  build path. The generator now writes an atomic basename-only entry, the remote
+  checksum asset was replaced, and a fresh remote DMG/checksum pair passed the
+  documented verification command after relocation.

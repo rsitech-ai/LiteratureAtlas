@@ -85,7 +85,7 @@ The community build uses a non-official name and bundle identifier and needs no 
 ```bash
 script/build_community.sh \
   --product-name LiteratureAtlasCommunity \
-  --bundle-id org.example.LiteratureAtlasCommunity \
+  --bundle-id io.github.s1korrrr.LiteratureAtlasCommunity \
   --version 1.0.0 \
   --build 1 \
   --output dist/community
@@ -99,7 +99,11 @@ script/create_dmg.sh \
   --output dist/community/LiteratureAtlasCommunity-1.0.0.dmg
 ```
 
-Replace `org.example` with a bundle namespace you control. Community builds must not imply that they are official or Apple-notarized. See [community build policy](docs/community-build/README.md) and [branding](BRANDING.md).
+The command above reproduces this repository's published community identity.
+Downstream distributors must replace it with a bundle namespace they control.
+Community builds must not imply that they are official or Apple-notarized. See
+[community build policy](docs/community-build/README.md) and
+[branding](BRANDING.md).
 
 ## Prepare an official Developer ID build
 

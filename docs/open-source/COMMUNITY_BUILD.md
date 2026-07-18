@@ -3,11 +3,15 @@
 The canonical policy and commands are in
 [docs/community-build/README.md](../community-build/README.md).
 
-Local verification produced an Apple Silicon, ad-hoc signed,
-`org.literatureatlas.community` application with sandbox entitlement and no
-checkout-only runtime markers. A relocated copy launched from `/private/tmp` and
-quit cleanly. A DMG was created, verified with `hdiutil`, and accompanied by a
-matching SHA-256 file.
+Current verification produced an Apple Silicon, ad-hoc signed,
+`io.github.s1korrrr.LiteratureAtlasCommunity` application from merge commit
+`95d0031a0ee67a9f91cd0d915de75e1f42137daa`, with sandbox entitlement and no
+checkout-only runtime markers. A copy extracted from the DMG launched from a
+relocated `/private/tmp` path and quit cleanly. The DMG was mounted, compared
+exactly with the verified app, validated with `hdiutil`, and accompanied by a
+matching portable, basename-only SHA-256 file and exact-app SPDX SBOM.
 
-These ignored local artifacts are build evidence, not an official download, and
-were not uploaded or published.
+The artifact is published as the clearly labeled, non-notarized prerelease
+[`v1.0.0-community.1`](https://github.com/s1korrrr/LiteratureAtlas/releases/tag/v1.0.0-community.1).
+It is a community download, not an official Developer ID-signed, notarized, or
+App Store release.
