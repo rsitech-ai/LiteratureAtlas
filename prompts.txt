@@ -19,7 +19,7 @@
   - `rebuild_analytics.py`: loads app outputs, writes `Output/atlas.duckdb`, Parquet snapshots, and `Output/analytics/analytics.json` (novelty, centrality, drift, factor loadings, recommendations, counterfactuals, user event stats).
   - `requirements.txt` / `pyproject.toml`: Python dependencies.
   - `ffi/`: Rust `cdylib/staticlib` exposing HNSW search and basic graph analytics to Swift (`analytics/ffi/src/lib.rs`, headers in `analytics/ffi/include/`).
-- **Data**: all persistent artifacts live under `Output/` (papers, chunks, clusters, analytics parquet/JSON, DuckDB) to keep the app self-contained.
+- **Data**: SwiftPM contributor builds store artifacts under repo-local `Output/`; distributed builds store mutable artifacts in the app container's Application Support directory.
 
 ## 4. Features
 - Local PDF ingestion with first-pages text extraction, title/year inference, and on-device bullet summaries (no network calls) — `IngestView`, `PDFProcessor`, `LLMActors.PaperSummarizerActor`.
@@ -35,7 +35,7 @@
 
 ## 5. Getting Started
 - **Prerequisites**
-- Swift toolchain 6.0+, Xcode 16+ recommended; macOS 26 (or iOS/iPadOS 26) with on-device FoundationModels + NLContextualEmbedding support.
+- Xcode 26.6 (or a compatible Xcode 26 toolchain); macOS 26 or iPadOS 26 with on-device FoundationModels + NLContextualEmbedding support.
   - Rust toolchain (stable) for the `analytics/ffi` build.
   - Python 3.12 with `uv`; the frozen environment is managed under `analytics/.venv`.
   - Apple Silicon strongly recommended for on-device models.
@@ -65,17 +65,20 @@
   ```
   - Launches the SwiftUI app; use “Select Folder of PDFs” in the Ingest tab to start processing.
 - **iPadOS**
-- Open the package in Xcode 16+, select an iOS/iPadOS 26+ device/simulator with Apple Intelligence support, and run the `LiteratureAtlas` target. Ensure `analytics/ffi` is built for the target architecture.
+- Generate the project with XcodeGen 2.45.4, open it in Xcode 26.6, select an iPadOS 26+ device/simulator with Apple Intelligence support, and run the `LiteratureAtlas` target. Distributed targets use the Swift fallback and do not load the repository-local Rust FFI.
 - **Analytics pipeline (optional but recommended)**
   ```bash
   analytics/.venv/bin/python analytics/rebuild_analytics.py            # rebuild DuckDB + analytics.json from Output/
   analytics/.venv/bin/python analytics/rebuild_analytics.py --base ..  # if running from a subdir
   ```
-- **Production / release build**
+- **Direct-download community build**
   ```bash
-  swift build -c release
-  # Bundle libatlas_ffi.dylib next to the executable or in a Frameworks folder if redistributing.
+  script/build_community.sh \
+    --product-name LiteratureAtlasCommunity \
+    --bundle-id io.github.s1korrrr.LiteratureAtlasCommunity \
+    --version 1.0.0 --build 1 --output dist/community
   ```
+  - This creates an Apple Silicon macOS 26+ ad-hoc-signed community app. It is not a Developer ID-signed or notarized official release; see `docs/release/1.0.0/RELEASE_STATUS.md`.
 - **Analytics usage quick reference**
   - Rebuild analytics: `analytics/.venv/bin/python analytics/rebuild_analytics.py [--base PATH] [--counterfactual-cutoffs ...]`
 
@@ -108,7 +111,7 @@
 - `Output/analytics/user_events.jsonl` — optional event log appended by the app (qa_question, qa_ready, paper_opened, rec_feedback).
 - `Output/reports/corpus_briefing_<version>.md` — cached corpus-level executive briefing generated on-device from the current topic hierarchy.
 - `Output/reports/topic_<clusterID>_dossier_<version>.md` — cached per-topic dossier generated on-device from a cluster + representative papers.
-- All paths are local; no remote storage.
+- Contributor paths are repo-local; distributed mutable data stays in the app container. No remote storage is used.
 
 ## 10. Deployment & Environments
 - No Docker/Helm manifests provided; distribute as a SwiftPM/Xcode app. Ensure `libatlas_ffi` ships with the binary (or adjust `Package.swift` linker flags to your install path).

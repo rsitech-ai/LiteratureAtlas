@@ -181,6 +181,10 @@ or destructive user-data action was performed.
     locked analytics runtime moved to Python 3.12 under `analytics/.venv`.
     Contributor prerequisites and commands now match the managed runtime, and
     removed vector-index coverage is no longer claimed.
+40. The same setup guide advertised Xcode 16 for SDK 26 targets and treated
+    contributor-only `Output/`/Rust FFI behavior as a distributed-app contract.
+    It now requires the verified Xcode 26.6 lane and documents container storage,
+    Swift fallback, and the supported community release script truthfully.
 
 ## Native scenario matrix
 
