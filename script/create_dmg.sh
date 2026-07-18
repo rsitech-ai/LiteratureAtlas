@@ -7,6 +7,7 @@ ROOT=$(cd "$(dirname "$0")/.." && pwd)
 
 app=
 output=
+output_parent=
 volume_name=
 
 while [ "$#" -gt 0 ]; do
@@ -34,8 +35,9 @@ app_name=$(basename -- "$app" .app)
 [ -n "$volume_name" ] || volume_name="$app_name"
 release_validate_product_name "$volume_name"
 
-mkdir -p "$(dirname -- "$output")"
-output=$(cd "$(dirname -- "$output")" && printf '%s/%s' "$(pwd -P)" "$(basename -- "$output")")
+output_parent=$(dirname -- "$output")
+mkdir -p -- "$output_parent"
+output=$(cd -- "$output_parent" && printf '%s/%s' "$(pwd -P)" "$(basename -- "$output")")
 stage=$(mktemp -d "${TMPDIR:-/tmp}/literatureatlas-dmg.XXXXXX")
 trap 'rm -rf "$stage"' EXIT
 ditto "$app" "$stage/$(basename -- "$app")"

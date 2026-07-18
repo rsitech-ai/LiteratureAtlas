@@ -263,15 +263,16 @@ expect_success "verification accepts a DMG containing the exact supplied app" \
     "$ROOT/script/verify_distribution.sh" --app "$TMP/Expected.app" --dmg "$TMP/Valid.dmg" --mode community
 
 mkdir -p "$TMP/PortableChecksum/origin" "$TMP/PortableChecksum/download"
-touch "$TMP/PortableChecksum/origin/-Direct.dmg"
-expect_success "checksum helper accepts a current-directory leading-dash artifact" \
-    sh -c 'cd "$1" && . "$2/script/release_common.sh" && release_write_sha256_file -Direct.dmg' \
+mkdir -p "$TMP/PortableChecksum/origin/-direct"
+touch "$TMP/PortableChecksum/origin/-direct/-Direct.dmg"
+expect_success "checksum helper accepts leading-dash directory and artifact names" \
+    sh -c 'cd "$1" && . "$2/script/release_common.sh" && release_write_sha256_file -direct/-Direct.dmg' \
     sh "$TMP/PortableChecksum/origin" "$ROOT"
 expect_success "DMG creation emits a checksum" \
-    sh -c 'cd "$1" && "$2/script/create_dmg.sh" --app "$3" --output -Portable.dmg' \
+    sh -c 'cd "$1" && "$2/script/create_dmg.sh" --app "$3" --output -nested/-Portable.dmg' \
     sh "$TMP/PortableChecksum/origin" "$ROOT" "$TMP/Expected.app"
-mv "$TMP/PortableChecksum/origin/-Portable.dmg" \
-    "$TMP/PortableChecksum/origin/-Portable.dmg.sha256" \
+mv "$TMP/PortableChecksum/origin/-nested/-Portable.dmg" \
+    "$TMP/PortableChecksum/origin/-nested/-Portable.dmg.sha256" \
     "$TMP/PortableChecksum/download/"
 expect_success "leading-dash DMG checksum remains valid after download relocation" \
     sh -c 'cd "$1" && shasum -a 256 -c -- -Portable.dmg.sha256' \
