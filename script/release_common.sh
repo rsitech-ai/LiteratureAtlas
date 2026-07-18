@@ -63,6 +63,7 @@ release_print_command() {
 
 release_write_sha256_file() {
     local artifact=$1
+    local artifact_parent
     local artifact_directory
     local artifact_name
     local checksum_output
@@ -70,7 +71,8 @@ release_write_sha256_file() {
 
     [ -f "$artifact" ] || release_die "checksum artifact not found: $artifact"
     release_require_command shasum
-    artifact_directory=$(cd "$(dirname -- "$artifact")" && pwd)
+    artifact_parent=$(dirname -- "$artifact")
+    artifact_directory=$(cd -- "$artifact_parent" && pwd)
     artifact_name=$(basename -- "$artifact")
     checksum_output="$artifact_directory/$artifact_name.sha256"
     checksum_tmp=$(mktemp "$artifact_directory/.$artifact_name.sha256.XXXXXX")
