@@ -30,14 +30,15 @@ esac
 release_require_command hdiutil
 release_require_command ditto
 
-app_name=$(basename "$app" .app)
+app_name=$(basename -- "$app" .app)
 [ -n "$volume_name" ] || volume_name="$app_name"
 release_validate_product_name "$volume_name"
 
-mkdir -p "$(dirname "$output")"
+mkdir -p "$(dirname -- "$output")"
+output=$(cd "$(dirname -- "$output")" && printf '%s/%s' "$(pwd -P)" "$(basename -- "$output")")
 stage=$(mktemp -d "${TMPDIR:-/tmp}/literatureatlas-dmg.XXXXXX")
 trap 'rm -rf "$stage"' EXIT
-ditto "$app" "$stage/$(basename "$app")"
+ditto "$app" "$stage/$(basename -- "$app")"
 ln -s /Applications "$stage/Applications"
 hdiutil create -quiet -fs HFS+ -format UDZO -imagekey zlib-level=9 \
     -volname "$volume_name" -srcfolder "$stage" "$output"
