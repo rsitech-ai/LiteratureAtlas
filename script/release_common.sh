@@ -75,7 +75,7 @@ release_write_sha256_file() {
     checksum_output="$artifact_directory/$artifact_name.sha256"
     checksum_tmp=$(mktemp "$artifact_directory/.$artifact_name.sha256.XXXXXX")
 
-    if ! (cd "$artifact_directory" && shasum -a 256 "$artifact_name") >"$checksum_tmp"; then
+    if ! (cd "$artifact_directory" && shasum -a 256 -- "$artifact_name") >"$checksum_tmp"; then
         rm -f "$checksum_tmp"
         release_die "unable to generate checksum for: $artifact"
     fi
