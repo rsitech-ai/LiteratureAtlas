@@ -262,6 +262,17 @@ hdiutil create -quiet -fs HFS+ -format UDZO -volname Valid -srcfolder "$TMP/Vali
 expect_success "verification accepts a DMG containing the exact supplied app" \
     "$ROOT/script/verify_distribution.sh" --app "$TMP/Expected.app" --dmg "$TMP/Valid.dmg" --mode community
 
+mkdir -p "$TMP/PortableChecksum/origin" "$TMP/PortableChecksum/download"
+expect_success "DMG creation emits a checksum" \
+    "$ROOT/script/create_dmg.sh" --app "$TMP/Expected.app" \
+    --output "$TMP/PortableChecksum/origin/Portable.dmg"
+mv "$TMP/PortableChecksum/origin/Portable.dmg" \
+    "$TMP/PortableChecksum/origin/Portable.dmg.sha256" \
+    "$TMP/PortableChecksum/download/"
+expect_success "DMG checksum remains valid after download relocation" \
+    sh -c 'cd "$1" && shasum -a 256 -c Portable.dmg.sha256' \
+    sh "$TMP/PortableChecksum/download"
+
 if grep -R "notarytool submit" "$TMP" >/dev/null 2>&1; then
     fail "tests perform no notarization submission"
 else
@@ -275,7 +286,7 @@ else
     fail "notarization records structured submission evidence"
 fi
 
-if grep -F 'shasum -a 256 "$dmg" >"$dmg.sha256"' "$ROOT/script/notarize_dmg.sh" >/dev/null; then
+if grep -F 'release_write_sha256_file "$dmg"' "$ROOT/script/notarize_dmg.sh" >/dev/null; then
     pass "notarization refreshes checksum after stapling"
 else
     fail "notarization refreshes checksum after stapling"

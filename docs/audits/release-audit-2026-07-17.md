@@ -298,3 +298,7 @@ without an app intent integration, and did not affect launch or interaction.
   path, stayed stable, and stopped cleanly. Error-level startup messages were
   limited to Apple framework diagnostics; no app-owned error, SwiftUI fault, or
   crash was observed.
+- PR #10 review reproduced that the first checksum asset embedded its local
+  build path. The generator now writes an atomic basename-only entry, the remote
+  checksum asset was replaced, and a fresh remote DMG/checksum pair passed the
+  documented verification command after relocation.

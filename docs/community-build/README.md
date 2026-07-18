@@ -23,7 +23,8 @@ script/create_dmg.sh \
   --output dist/community/LiteratureAtlasCommunity-1.0.0.dmg
 ```
 
-The DMG script also creates a `.sha256` file and verifies the disk image.
+The DMG script also creates a portable `.sha256` file whose entry uses only the
+DMG basename, and verifies the disk image.
 Relocate the app outside the checkout and perform a clean launch before sharing
 it. Gatekeeper may warn about an ad-hoc signed build because no Apple
 notarization ticket exists.

@@ -61,6 +61,27 @@ release_print_command() {
     printf '\n'
 }
 
+release_write_sha256_file() {
+    local artifact=$1
+    local artifact_directory
+    local artifact_name
+    local checksum_output
+    local checksum_tmp
+
+    [ -f "$artifact" ] || release_die "checksum artifact not found: $artifact"
+    release_require_command shasum
+    artifact_directory=$(cd "$(dirname "$artifact")" && pwd)
+    artifact_name=$(basename "$artifact")
+    checksum_output="$artifact_directory/$artifact_name.sha256"
+    checksum_tmp=$(mktemp "$artifact_directory/.$artifact_name.sha256.XXXXXX")
+
+    if ! (cd "$artifact_directory" && shasum -a 256 "$artifact_name") >"$checksum_tmp"; then
+        rm -f "$checksum_tmp"
+        release_die "unable to generate checksum for: $artifact"
+    fi
+    mv "$checksum_tmp" "$checksum_output"
+}
+
 release_source_revision() {
     release_require_command git
     revision=$(git -C "$RELEASE_ROOT" rev-parse HEAD) \
