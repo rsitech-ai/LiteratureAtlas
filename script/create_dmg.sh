@@ -42,5 +42,5 @@ ln -s /Applications "$stage/Applications"
 hdiutil create -quiet -fs HFS+ -format UDZO -imagekey zlib-level=9 \
     -volname "$volume_name" -srcfolder "$stage" "$output"
 hdiutil verify "$output" >/dev/null
-shasum -a 256 "$output" >"$output.sha256"
+release_write_sha256_file "$output"
 printf 'DMG: %s\nChecksum: %s.sha256\n' "$output" "$output"

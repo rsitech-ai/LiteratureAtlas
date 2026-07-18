@@ -14,11 +14,24 @@ built from that exact commit, verified, launched from its DMG, and published as
 This community exception does not clear the production artwork, signing,
 notarization, metadata, legal, or physical-device blockers recorded below.
 
+Current post-PR #9 evidence is 84 XCTest cases (one opt-in corpus smoke skipped),
+four Swift Testing bookmark cases, 55 Python tests, seven Rust tests, and all ten
+hosted checks green on reviewed head
+`e0eb788b8654a18a8fef62398b87017f5b56e79a`.
+The published checksum asset uses a portable basename-only entry; a fresh remote
+DMG/checksum download passes the documented `shasum -c` command from one
+directory.
+
+Sections 1-17 preserve the official App Store release dossier captured on
+2026-07-15. Their PR #3 links, test counts, and fail-closed CI state are
+historical evidence for that dossier, not the current PR #9/community-release
+status summarized above.
+
 ## 1. Final verdict
 
 `BLOCKED`
 
-Current date: `2026-07-18` (Europe/Warsaw).
+Official dossier evidence date: `2026-07-15` (Europe/Warsaw).
 
 The repository is release-hardened and both shipping applications produce fresh unsigned Release archives, but the release is not package-ready, TestFlight-ready, or ready for App Store Connect upload. Production icon artwork, confirmed identifiers/team/profiles, distribution-signed Apple validation, physical-device acceptance, final metadata, and legal/privacy attestations remain genuine owner or external blockers.
 
@@ -40,7 +53,7 @@ Apple's requirement effective April 28, 2026 accepts apps built with Xcode 26 or
 
 The identifiers are centralized, reversible defaults and are not claimed to exist in App Store Connect. The Apple Team remains unset pending owner confirmation.
 
-## 4. Release-gate matrix
+## 4. Historical official release-gate matrix
 
 | Gate | Result | Command or inspection | Evidence | Owner | Next action |
 | --- | --- | --- | --- | --- | --- |
@@ -63,7 +76,7 @@ The identifiers are centralized, reversible defaults and are not claimed to exis
 | CI | EXPECTED FAIL-CLOSED | Push run `29423538877`; PR run `29423541480` at implementation head `45b9411` | Python and Rust green; both Apple jobs passed Swift, Release, XcodeGen, macOS, and iPadOS gates, then failed only `app_icon_artwork` | Product/design owner | Add approved icons and rerun CI |
 | TestFlight/App Store Connect | BLOCKED | Account/auth/upload inventory | No authorized upload or validation performed | Apple account owner/release lead | Close signing, validation, metadata, legal, and device gates; obtain explicit upload approval |
 
-## 5. Tests executed
+## 5. Tests executed for the historical dossier
 
 - Swift: 55 tests passed; one opt-in corpus ingestion smoke skipped because `LITERATURE_ATLAS_INGEST_SMOKE_INPUT_DIR` was not supplied.
 - Swift Release: `swift build -c release` passed.
@@ -127,7 +140,7 @@ Commits:
 - `eff288e` Fix Rust 1.97 Clippy drift
 - `45b9411` Record Rust CI compatibility evidence
 
-## 14. Pull request and CI status
+## 14. Historical pull request and CI status
 
 Draft PR: [#3 — Prepare LiteratureAtlas 1.0.0 App Store release](https://github.com/s1korrrr/LiteratureAtlas/pull/3), open and intentionally unmerged.
 

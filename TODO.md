@@ -29,3 +29,6 @@
 - [x] Final exact-head review passed: ten hosted checks green, GitHub Codex no-major-issue verdict, independent GO, all three threads resolved, and no remaining actionable finding.
 - [x] PR #9 merged as `95d0031a0ee67a9f91cd0d915de75e1f42137daa`; reviewed head and merge trees matched, and local/remote `main` synchronized.
 - [x] Built, verified, DMG-packaged, relocated-launched, published, downloaded, and byte-compared `v1.0.0-community.1` with checksum and exact-app SPDX SBOM.
+- [x] Reproduced and fixed the downloader checksum-path defect, replaced the published checksum asset, and verified a fresh remote download with the documented command.
+- [x] Reconciled machine-readable lock counts/current-versus-historical SBOM provenance and labeled the preserved 2026-07-15 official dossier evidence separately from current PR #9 results.
+- [x] Added a manifest regression that derives the 150-package lock count and proves current release versus historical tracked-app SBOM provenance; all 55 Python tests pass.
