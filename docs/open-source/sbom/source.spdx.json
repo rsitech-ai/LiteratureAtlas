@@ -7,7 +7,7 @@
     ]
   },
   "dataLicense": "CC0-1.0",
-  "documentNamespace": "https://github.com/s1korrrr/LiteratureAtlas/sbom/source/tracked-source-sha256-dad7452fb6f6002b1f1bbbe87749edb969d0c526e62e7b2aa2ed0ea8c68140b0",
+  "documentNamespace": "https://github.com/s1korrrr/LiteratureAtlas/sbom/source/tracked-source-sha256-de086c4c3f0860c94e1b6f8c5cffd8463edea4a2b0e1963de330989789915e60",
   "files": [
     {
       "SPDXID": "SPDXRef-File-cd49adffccd28c2b30a7",
@@ -509,7 +509,7 @@
       "checksums": [
         {
           "algorithm": "SHA256",
-          "checksumValue": "5cc9c1fe0662ef577d2f6bdf146abc2c5b3b50cdf8a25744dcbbbea71d201945"
+          "checksumValue": "d6fea035caf4b602aa9af7c8eba21f9da877ff5086b6e0ca38cb5cdbe4b90e52"
         }
       ],
       "copyrightText": "NOASSERTION",
@@ -539,7 +539,7 @@
       "checksums": [
         {
           "algorithm": "SHA256",
-          "checksumValue": "81d50b22d949b4d7228fce9f3444ed6f43f3016164219aa978729abe26870ae6"
+          "checksumValue": "5f6c3fb648029d232871cffa0baa84a557945208803f5f6b0187c2f8d5275d6c"
         }
       ],
       "copyrightText": "NOASSERTION",
@@ -1094,7 +1094,7 @@
       "checksums": [
         {
           "algorithm": "SHA256",
-          "checksumValue": "407a224d55302783443a60379fb207c72a62d3bf91895d521d89001639cf2d09"
+          "checksumValue": "f18ffd9c5bbdc25e9c61905744a97ba5908c0642e7b081aad872ef4a6f793be2"
         }
       ],
       "copyrightText": "NOASSERTION",
@@ -2189,7 +2189,7 @@
       "checksums": [
         {
           "algorithm": "SHA256",
-          "checksumValue": "b9b79f90f7a369444726b44b82361e2f20b8eae3f53c6b03148f92094ed66a94"
+          "checksumValue": "0955cc31d8867bf438be7c59e6fe2d4ad6eb8e7d916af0461ecbdeaec3ce6db4"
         }
       ],
       "copyrightText": "NOASSERTION",
@@ -2665,6 +2665,21 @@
       ]
     },
     {
+      "SPDXID": "SPDXRef-File-3e53e0a09706c641eb44",
+      "checksums": [
+        {
+          "algorithm": "SHA256",
+          "checksumValue": "cf7b5994fd9611906a2fbc4873d7f9e52110edd6b2986b326bc3cce7154acd90"
+        }
+      ],
+      "copyrightText": "NOASSERTION",
+      "fileName": "analytics/tests/test_open_source_manifest.py",
+      "licenseConcluded": "NOASSERTION",
+      "licenseInfoInFiles": [
+        "NOASSERTION"
+      ]
+    },
+    {
       "SPDXID": "SPDXRef-File-25cd6cbee07ee02174d0",
       "checksums": [
         {
@@ -2789,7 +2804,7 @@
       "checksums": [
         {
           "algorithm": "SHA256",
-          "checksumValue": "c71ec051e5ca9ccaa06b290378c9dc0ee863c3e6c29374357ac71eebf9e30f3a"
+          "checksumValue": "d7fd56368f125c36484e579e1b522ebf8a7e88f6a21b197f74c2737f2ea7a185"
         }
       ],
       "copyrightText": "NOASSERTION",
@@ -2834,7 +2849,7 @@
       "checksums": [
         {
           "algorithm": "SHA256",
-          "checksumValue": "5ae69ba03484bb650d10835bc5e4df9933c5fabf6e82fea66b3516375b12b407"
+          "checksumValue": "847d81913d8b6c2496651dca7048f64175391e12629df7a3cca4b7eba3d18f41"
         }
       ],
       "copyrightText": "NOASSERTION",
@@ -2849,7 +2864,7 @@
       "checksums": [
         {
           "algorithm": "SHA256",
-          "checksumValue": "ae16db31dfe778208dfb1ea343b786b22ac9eec862e60bcb5056719ad0c0f548"
+          "checksumValue": "dd3d49cde11d230d602cd5a9253f3ea44083e30e8ba1fcb45514342fed58f9c5"
         }
       ],
       "copyrightText": "NOASSERTION",
@@ -2864,7 +2879,7 @@
       "checksums": [
         {
           "algorithm": "SHA256",
-          "checksumValue": "981d4d7e0802361ef4d643cf15a612a6863bb3b6ae338034900f39843ed4a6c9"
+          "checksumValue": "b7bdbe68d6730ad59fe3261ef109836aea20613f2b025167f71503ef4e6ae6a8"
         }
       ],
       "copyrightText": "NOASSERTION",
@@ -2924,7 +2939,7 @@
       "checksums": [
         {
           "algorithm": "SHA256",
-          "checksumValue": "5413d0444b6e6a4497e3be195081c220c7bdcf473b8d798af2b8a2971fb6d43c"
+          "checksumValue": "78ddc992ed0ad4d2248c80fcb57943eb993d4d467fc8ef4a87ac158e9695cb46"
         }
       ],
       "copyrightText": "NOASSERTION",
@@ -2939,7 +2954,7 @@
       "checksums": [
         {
           "algorithm": "SHA256",
-          "checksumValue": "598ff6cbd10174c2d18272617f550674328ec3eb5990253405a45bfe5378da09"
+          "checksumValue": "b9e387a9c6304e6b1047c3496ccfd16b8f95b66025bb4d67d697c5e738a42b79"
         }
       ],
       "copyrightText": "NOASSERTION",
@@ -2954,7 +2969,7 @@
       "checksums": [
         {
           "algorithm": "SHA256",
-          "checksumValue": "868b15dfb83bbe2fa5c24afe11be11778a4d6613b75e9625ff4afdb5e45b001d"
+          "checksumValue": "ba0a4d216dc9fc133eab430988120426221feb2083e73b97d15e17efab900811"
         }
       ],
       "copyrightText": "NOASSERTION",
@@ -2999,7 +3014,7 @@
       "checksums": [
         {
           "algorithm": "SHA256",
-          "checksumValue": "03f23ac5f39b014f209f4616b39471465950090c1e660fdf0436e85d7f762a97"
+          "checksumValue": "4acb3dde54d3ad8b66d8dc4a18b27bc7fe0244c62f2e45cbac917ffe2830ce67"
         }
       ],
       "copyrightText": "NOASSERTION",
@@ -3149,7 +3164,7 @@
       "checksums": [
         {
           "algorithm": "SHA256",
-          "checksumValue": "18dc440bd67fe3048503b2aaf9f1a1bc70799530426b5b94b4b5a5517eb521a3"
+          "checksumValue": "567d1fbf37713a923825c5ab1573222e544c14c3e29edcad0ec514413c16aa19"
         }
       ],
       "copyrightText": "NOASSERTION",
@@ -3554,7 +3569,7 @@
       "checksums": [
         {
           "algorithm": "SHA256",
-          "checksumValue": "e33f161dd70606c46a871706926455c6bc5567a9f648ab4729e1bf2d49998ac6"
+          "checksumValue": "724b41e9a5b5faf3dee78ce0ef72dff9a7800d74f72153b1ee4c74718b64c8ba"
         }
       ],
       "copyrightText": "NOASSERTION",
@@ -3569,7 +3584,7 @@
       "checksums": [
         {
           "algorithm": "SHA256",
-          "checksumValue": "a71da389b9aed8c28d677b7a990bbfc1db67fe37e1e1ae0bb667ae000dbb3d54"
+          "checksumValue": "7f5e583c885ad02d29ffad74d64dc6eb659531fa8b8bf6ec21bff9778bd6929a"
         }
       ],
       "copyrightText": "NOASSERTION",
@@ -3584,7 +3599,7 @@
       "checksums": [
         {
           "algorithm": "SHA256",
-          "checksumValue": "2b16169c71d4c3d19ffbd41ad6ff3c979b3dbdd3376bcea098f748b5a7b470df"
+          "checksumValue": "63deab5a77fb10afac5fc0b4701084b2e5b237dd8f0c2913a08af32ac7e0983c"
         }
       ],
       "copyrightText": "NOASSERTION",
@@ -3689,7 +3704,7 @@
       "checksums": [
         {
           "algorithm": "SHA256",
-          "checksumValue": "fa69c8391229a5574708f823ab7a58e4d0001b0de83ac3a04b12b11815f6d03b"
+          "checksumValue": "1d6340b402efe2f1383d3325abfd7ba12daf9aba4f2e155909eee4e66ea45464"
         }
       ],
       "copyrightText": "NOASSERTION",
@@ -3740,7 +3755,7 @@
       "licenseConcluded": "MIT",
       "licenseDeclared": "MIT",
       "name": "LiteratureAtlas source",
-      "versionInfo": "tracked-source-sha256-dad7452fb6f6002b1f1bbbe87749edb969d0c526e62e7b2aa2ed0ea8c68140b0"
+      "versionInfo": "tracked-source-sha256-de086c4c3f0860c94e1b6f8c5cffd8463edea4a2b0e1963de330989789915e60"
     }
   ],
   "relationships": [
@@ -4631,6 +4646,11 @@
     },
     {
       "relatedSpdxElement": "SPDXRef-File-3326243ea999f1fd583e",
+      "relationshipType": "CONTAINS",
+      "spdxElementId": "SPDXRef-Package-LiteratureAtlas"
+    },
+    {
+      "relatedSpdxElement": "SPDXRef-File-3e53e0a09706c641eb44",
       "relationshipType": "CONTAINS",
       "spdxElementId": "SPDXRef-Package-LiteratureAtlas"
     },

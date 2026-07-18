@@ -1,10 +1,37 @@
 # LiteratureAtlas 1.0.0 Release Status
 
+## 0. 2026-07-18 community prerelease update
+
+The `BLOCKED` verdict below continues to apply to the official Developer ID,
+notarized, TestFlight, App Store, and production-brand release. It does not mean
+that no download exists.
+
+Under explicit publication authorization, reviewed PR #9 merged as
+`95d0031a0ee67a9f91cd0d915de75e1f42137daa` after all ten hosted checks passed.
+An Apple Silicon/macOS 26+ ad-hoc-signed, non-notarized community artifact was
+built from that exact commit, verified, launched from its DMG, and published as
+[`v1.0.0-community.1`](https://github.com/s1korrrr/LiteratureAtlas/releases/tag/v1.0.0-community.1).
+This community exception does not clear the production artwork, signing,
+notarization, metadata, legal, or physical-device blockers recorded below.
+
+Current post-PR #9 evidence is 84 XCTest cases (one opt-in corpus smoke skipped),
+four Swift Testing bookmark cases, 55 Python tests, seven Rust tests, and all ten
+hosted checks green on reviewed head
+`e0eb788b8654a18a8fef62398b87017f5b56e79a`.
+The published checksum asset uses a portable basename-only entry; a fresh remote
+DMG/checksum download passes the documented `shasum -c` command from one
+directory.
+
+Sections 1-17 preserve the official App Store release dossier captured on
+2026-07-15. Their PR #3 links, test counts, and fail-closed CI state are
+historical evidence for that dossier, not the current PR #9/community-release
+status summarized above.
+
 ## 1. Final verdict
 
 `BLOCKED`
 
-Current date: `2026-07-15` (Europe/Warsaw).
+Official dossier evidence date: `2026-07-15` (Europe/Warsaw).
 
 The repository is release-hardened and both shipping applications produce fresh unsigned Release archives, but the release is not package-ready, TestFlight-ready, or ready for App Store Connect upload. Production icon artwork, confirmed identifiers/team/profiles, distribution-signed Apple validation, physical-device acceptance, final metadata, and legal/privacy attestations remain genuine owner or external blockers.
 
@@ -26,7 +53,7 @@ Apple's requirement effective April 28, 2026 accepts apps built with Xcode 26 or
 
 The identifiers are centralized, reversible defaults and are not claimed to exist in App Store Connect. The Apple Team remains unset pending owner confirmation.
 
-## 4. Release-gate matrix
+## 4. Historical official release-gate matrix
 
 | Gate | Result | Command or inspection | Evidence | Owner | Next action |
 | --- | --- | --- | --- | --- | --- |
@@ -49,7 +76,7 @@ The identifiers are centralized, reversible defaults and are not claimed to exis
 | CI | EXPECTED FAIL-CLOSED | Push run `29423538877`; PR run `29423541480` at implementation head `45b9411` | Python and Rust green; both Apple jobs passed Swift, Release, XcodeGen, macOS, and iPadOS gates, then failed only `app_icon_artwork` | Product/design owner | Add approved icons and rerun CI |
 | TestFlight/App Store Connect | BLOCKED | Account/auth/upload inventory | No authorized upload or validation performed | Apple account owner/release lead | Close signing, validation, metadata, legal, and device gates; obtain explicit upload approval |
 
-## 5. Tests executed
+## 5. Tests executed for the historical dossier
 
 - Swift: 55 tests passed; one opt-in corpus ingestion smoke skipped because `LITERATURE_ATLAS_INGEST_SMOKE_INPUT_DIR` was not supplied.
 - Swift Release: `swift build -c release` passed.
@@ -93,7 +120,7 @@ The verified App Store runtime is local-first, has no linked third-party runtime
 
 ## 12. TestFlight and upload status
 
-No App Store Connect validation, upload, processing, tester assignment, TestFlight distribution, review submission, public release, merge, tag, or GitHub release occurred. TestFlight is blocked by the same artwork, account, signing, validation, metadata, and physical-device acceptance gates.
+No App Store Connect validation, upload, processing, tester assignment, TestFlight distribution, or review submission occurred. TestFlight remains blocked by the same artwork, account, signing, validation, metadata, and physical-device acceptance gates. The separately labeled community tag/GitHub prerelease described in section 0 is not an App Store or official release.
 
 ## 13. Changed files and commits
 
@@ -113,7 +140,7 @@ Commits:
 - `eff288e` Fix Rust 1.97 Clippy drift
 - `45b9411` Record Rust CI compatibility evidence
 
-## 14. Pull request and CI status
+## 14. Historical pull request and CI status
 
 Draft PR: [#3 — Prepare LiteratureAtlas 1.0.0 App Store release](https://github.com/s1korrrr/LiteratureAtlas/pull/3), open and intentionally unmerged.
 
@@ -135,4 +162,4 @@ First, the product/design owner must approve production icon artwork and the App
 - `bincode 1.3.3` is unmaintained even though no known vulnerability is reported and the FFI is excluded from the App Store runtime boundary.
 - The sealed security result is branch-diff scoped and predates the separately reviewed one-line Rust compatibility fix.
 
-No upload, TestFlight distribution, review submission, merge, production tag, or public release is authorized or has occurred.
+No Apple upload, TestFlight distribution, review submission, official production tag, or official public release is authorized or has occurred. The community prerelease described in section 0 is the explicit non-official exception.

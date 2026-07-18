@@ -79,7 +79,7 @@ mv "$log_tmp" "$log_output"
 xcrun stapler staple "$dmg"
 xcrun stapler validate "$dmg"
 spctl -a -vv -t open --context context:primary-signature "$dmg"
-shasum -a 256 "$dmg" >"$dmg.sha256"
+release_write_sha256_file "$dmg"
 trap - EXIT
 printf 'Notarized and stapled DMG: %s\nSubmission: %s\nResponse: %s\nLog: %s\n' \
     "$dmg" "$submission_id" "$response_output" "$log_output"

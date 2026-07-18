@@ -1,23 +1,36 @@
 {
-  "schema_version": 1,
-  "generated_on": "2026-07-16",
+  "schema_version": 2,
+  "generated_on": "2026-07-18",
   "scope": "the Git commit containing this manifest",
   "publication_verdict": "BLOCKED",
   "app_store_verdict": "BLOCKED",
   "repository": "https://github.com/s1korrrr/LiteratureAtlas",
-  "implementation_baseline_commit": "c7f4215c51ba7c4c2625cc0f6de402f6e8b141e5",
-  "verified_artifact_source_commit": "647911aa3093a9df56f48a048a002e5db458794a",
+  "implementation_baseline_commit": "95d0031a0ee67a9f91cd0d915de75e1f42137daa",
+  "published_community_artifact": {
+    "tag": "v1.0.0-community.1",
+    "source_commit": "95d0031a0ee67a9f91cd0d915de75e1f42137daa",
+    "bundle_id": "io.github.s1korrrr.LiteratureAtlasCommunity",
+    "signing": "ad-hoc",
+    "notarized": false,
+    "dmg_url": "https://github.com/s1korrrr/LiteratureAtlas/releases/download/v1.0.0-community.1/LiteratureAtlasCommunity-1.0.0.dmg",
+    "dmg_sha256": "3337c297f3e0f9492795f9bae395a82aad63a00613e156a948e27e04eca5a691",
+    "dmg_checksum_url": "https://github.com/s1korrrr/LiteratureAtlas/releases/download/v1.0.0-community.1/LiteratureAtlasCommunity-1.0.0.dmg.sha256",
+    "dmg_checksum_asset_sha256": "7838bd4293d5c3dca67bd2476dbebdf02df4512b90f941decaf4530c722dab6f",
+    "app_sbom_url": "https://github.com/s1korrrr/LiteratureAtlas/releases/download/v1.0.0-community.1/LiteratureAtlasCommunity-1.0.0.spdx.json",
+    "app_sbom_sha256": "78dbf5c0fbb07095d86a8a9d410a1eaf1b6240222d7b795397af9c3dda3048a9"
+  },
   "effective_primary_license": "MIT",
   "future_relicense_proposal": "MPL-2.0 for code and CC-BY-4.0 for documentation; not authorized",
   "copyright_holder": "unconfirmed",
   "trademark_owner": "unconfirmed",
   "contribution_policy": "DCO versus CLA unconfirmed",
-  "public_build_command": "script/build_community.sh --product-name LiteratureAtlasCommunity --bundle-id org.example.LiteratureAtlasCommunity --version 1.0.0 --build 1 --output dist/community",
+  "public_build_command": "script/build_community.sh --product-name LiteratureAtlasCommunity --bundle-id io.github.s1korrrr.LiteratureAtlasCommunity --version 1.0.0 --build 1 --output dist/community",
   "test_command": "swift test -Xswiftc -warnings-as-errors && cargo test --locked --manifest-path analytics/ffi/Cargo.toml && analytics/.venv/bin/python -m pytest analytics/tests -v && scripts/tests/test_release_scripts.sh",
   "community_scheme": "credential-free hardened-runtime ad-hoc direct distribution",
   "official_scheme": "signature-free build followed by owner-controlled Developer ID Application signing and explicit DMG notarization",
   "swift_remote_dependency_count": 0,
-  "locked_ecosystem_component_count": 90,
+  "locked_ecosystem_component_count": 150,
+  "locked_ecosystem_component_count_definition": "48 package entries in analytics/uv.lock plus 102 package entries in analytics/ffi/Cargo.lock",
   "source_inventory_package_records": 1,
   "unknown_license_count": 0,
   "known_dependency_advisory_count": 0,
@@ -33,20 +46,28 @@
   ],
   "third_party_notice_status": "locked source ecosystems inventoried; exact future signed artifact reconciliation remains required",
   "reuse_status": "passes REUSE Specification 3.3 for the effective MIT license; this is not chain-of-title proof",
-  "sbom_paths": [
+  "tracked_current_source_dependency_sbom_paths": [
     "docs/open-source/sbom/source.spdx.json",
-    "docs/open-source/sbom/community-app.spdx.json",
-    "docs/open-source/sbom/official-unsigned-app.spdx.json",
     "docs/open-source/sbom/python-environment.cdx.json",
     "docs/open-source/sbom/rust-source.cdx.json"
   ],
-  "security_scan_status": "code-level audit found no unresolved critical/high implementation finding; Codex Security was explicitly deferred and was not run",
+  "tracked_historical_app_sboms": [
+    {
+      "path": "docs/open-source/sbom/community-app.spdx.json",
+      "source_commit": "647911aa3093a9df56f48a048a002e5db458794a"
+    },
+    {
+      "path": "docs/open-source/sbom/official-unsigned-app.spdx.json",
+      "source_commit": "647911aa3093a9df56f48a048a002e5db458794a"
+    }
+  ],
+  "security_scan_status": "complete branch-diff review, exact-head CodeQL, dependency review, and independent review found no unresolved actionable implementation finding",
   "openssf_scorecard_result": "workflow configured; no public result accepted as release evidence",
-  "ci_status": "local workflow syntax, policy, build, test, license, dependency, and artifact gates pass; GitHub repository controls remain external",
+  "ci_status": "all ten hosted checks passed on reviewed PR head e0eb788b8654a18a8fef62398b87017f5b56e79a; GitHub repository controls remain external",
   "documentation_status": "public contract is complete for local reproduction; owner-controlled identities and channels remain blocked",
   "governance_status": "blocked pending owner-approved roster and authority",
   "security_contact_status": "blocked; GitHub private vulnerability reporting is disabled",
-  "source_release_mapping": "verified local community and official unsigned evidence embeds commit 647911aa3093a9df56f48a048a002e5db458794a; no official tag or signed artifact exists",
+  "source_release_mapping": "community prerelease v1.0.0-community.1 and its exact app SBOM map to merge commit 95d0031a0ee67a9f91cd0d915de75e1f42137daa; no official Developer ID-signed/notarized artifact exists",
   "trademark_policy_status": "technical rebrand rules exist; owner and protected marks are unconfirmed",
   "blockers": [
     "reachable third-party PDF history",
@@ -76,6 +97,6 @@
     "official bundle/signing identity and production artwork",
     "GitHub security/governance settings",
     "each Apple notarization upload",
-    "tag, public artifact, release, and announcement"
+    "each official production tag, artifact, release, and announcement"
   ]
 }

@@ -11,9 +11,17 @@ two inventories are no longer retained, so the commands below are rebuild
 recipes rather than evidence that the historical artifacts can be regenerated
 from the current worktree.
 
+The published
+[`v1.0.0-community.1`](https://github.com/s1korrrr/LiteratureAtlas/releases/tag/v1.0.0-community.1)
+assets include a separate exact 40-file app inventory generated from merge
+commit `95d0031a0ee67a9f91cd0d915de75e1f42137daa`. Its SHA-256 is
+`78dbf5c0fbb07095d86a8a9d410a1eaf1b6240222d7b795397af9c3dda3048a9`.
+That release asset is the current community-app evidence; the tracked app
+inventories below remain historical snapshots and are intentionally preserved.
+
 | File | Scope | Generator | Records |
 |---|---|---|---|
-| `source.spdx.json` | Current audited follow-up source snapshot; tracked/unignored source excluding Git, generated outputs, and this SBOM directory | `scripts/generate_spdx_sbom.py`, SPDX 2.3 JSON | 1 package, 248 regular files |
+| `source.spdx.json` | Current audited follow-up source snapshot; tracked/unignored source excluding Git, generated outputs, and this SBOM directory | `scripts/generate_spdx_sbom.py`, SPDX 2.3 JSON | 1 package, 249 regular files |
 | `community-app.spdx.json` | Exact ad-hoc signed `LiteratureAtlasCommunity.app` built from `647911a` | `scripts/generate_spdx_sbom.py`, SPDX 2.3 JSON | 1 package, 40 regular files |
 | `official-unsigned-app.spdx.json` | Exact signature-free official pre-sign app built from `647911a` | `scripts/generate_spdx_sbom.py`, SPDX 2.3 JSON | 1 package, 39 regular files |
 | `python-environment.cdx.json` | Locked analytics Python 3.12 environment | cyclonedx-bom 7.2.1, CycloneDX 1.6 | 46 dependency components plus the project root; 0 missing licenses |
@@ -75,7 +83,7 @@ SHA-256 values of the committed snapshot files:
 ```text
 1c8dc2d061b7b7dfe58695a4bff38df8fa89548eada54d0d60c86a4a43105c68  community-app.spdx.json
 65657374f17e19d5f82fc69567396e062d0a4ee8361bf5bf010ae91a0c1e0132  official-unsigned-app.spdx.json
-382c0d03bbfbbf6f8c2130a5e2eb9bfa215b07b05304a56b225465bcb91b0ad8  source.spdx.json
+dbdc864641535a47b1ee6ef641592f8e2f4b3626cf028dc7b013b9f99a191791  source.spdx.json
 8bf9f5ce21e191edfb83400b6a57629c09464b2dd07b548fcbc2c9c32fb9a119  python-environment.cdx.json
 651d595003f87f5883d42bd59ca3e3a5426dddd5c5f035e3e1af9cb9608d861d  rust-source.cdx.json
 ```
