@@ -24,3 +24,4 @@
 - [x] Reproduced and repaired all four independent-review findings: stale UUID references outside `paper_metrics`, invalid Python paper IDs, malformed method-pipeline steps, and nearest-neighbor sizing after invalid claims are filtered.
 - [x] Re-ran the focused/full repair gates: Ruff passed, 53 Python tests passed, 84 XCTest cases passed with one opt-in smoke skipped, and all four Swift Testing bookmark cases passed.
 - [x] Corrected re-review setup drift: Python 3.12, `analytics/.venv`, Xcode 26.6, managed analytics/release commands, distributed storage/FFI boundaries, and current Swift test coverage now match the repository runtime.
+- [x] Removed adjacent stale distribution guidance from `prompts.txt`: public fixtures, shipped FFI, storage paths, release boundaries, and task-tracking guidance now match the current product contract.
