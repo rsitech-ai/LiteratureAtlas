@@ -75,7 +75,7 @@ SHA-256 values of the committed snapshot files:
 ```text
 1c8dc2d061b7b7dfe58695a4bff38df8fa89548eada54d0d60c86a4a43105c68  community-app.spdx.json
 65657374f17e19d5f82fc69567396e062d0a4ee8361bf5bf010ae91a0c1e0132  official-unsigned-app.spdx.json
-9838b0fd05638766a5bd4ed2809cd98c600bf6dc78a22a04b3866ecd49f4b152  source.spdx.json
+8002576420e7924699b1feedda59db7273285c06bbf71a3f2a139b3b07a2fc6f  source.spdx.json
 8bf9f5ce21e191edfb83400b6a57629c09464b2dd07b548fcbc2c9c32fb9a119  python-environment.cdx.json
 651d595003f87f5883d42bd59ca3e3a5426dddd5c5f035e3e1af9cb9608d861d  rust-source.cdx.json
 ```

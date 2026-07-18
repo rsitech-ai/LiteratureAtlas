@@ -177,6 +177,10 @@ or destructive user-data action was performed.
     valid claims plus one invalid row could therefore request three neighbors
     from a two-sample matrix. Sizing now uses the filtered population, with a
     focused regression for that exact failure.
+39. Setup guidance still advertised Python 3.10 and a root `.venv` after the
+    locked analytics runtime moved to Python 3.12 under `analytics/.venv`.
+    Contributor prerequisites and commands now match the managed runtime, and
+    removed vector-index coverage is no longer claimed.
 
 ## Native scenario matrix
 
