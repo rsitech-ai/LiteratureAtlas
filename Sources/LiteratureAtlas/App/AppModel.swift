@@ -1553,15 +1553,12 @@ final class AppModel: ObservableObject {
                     return
                 }
 
-                if !loadedSummary.paperMetrics.isEmpty {
-                    let canonicalIDs = Set(papers.map(\.id))
-                    let metricIDs = Set(loadedSummary.paperMetrics.map(\.paperID))
-                    let unknownCount = metricIDs.subtracting(canonicalIDs).count
-                    if unknownCount > 0 {
-                        analyticsSummary = nil
-                        analyticsLoadError = "Analytics are stale: \(unknownCount) paper metric identifier(s) are not in the current library. Rebuild analytics."
-                        return
-                    }
+                let canonicalIDs = Set(papers.map(\.id))
+                let unknownCount = loadedSummary.referencedPaperIDs.subtracting(canonicalIDs).count
+                if unknownCount > 0 {
+                    analyticsSummary = nil
+                    analyticsLoadError = "Analytics are stale: \(unknownCount) paper identifier(s) are not in the current library. Rebuild analytics."
+                    return
                 }
             }
             analyticsSummary = loadedSummary

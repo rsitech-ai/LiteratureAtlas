@@ -12,7 +12,7 @@
 - [ ] Memory update and closeout (DoD: PLAN/TODO/MEMORY reflect exact final evidence and repository is clean)
 
 ## In progress
-- [ ] Hosted and independent PR review
+- [ ] Push repaired PR head and repeat hosted and independent review
 
 ## Done
 - [x] New-day HQ bootstrap and repository continuity check passed.
@@ -21,3 +21,5 @@
 - [x] Stopped the stale development app and moved 12 exact generated/cache targets (about 1.39 GiB) to Trash while preserving corpus data, examples, the analytics environment, and tracked evidence.
 - [x] Cold-cache verification passed: 83 XCTest cases (one opt-in corpus smoke skipped), four Swift Testing cases, 50 Python tests, seven Rust tests, formatting/linting/security audits, release policy/config/privacy gates, deterministic XcodeGen parity, macOS/iPadOS Release builds, and fresh app launch/log inspection.
 - [x] Ready PR #9 created against `main` from `feat/andrzej_fix_full_quality_audit` and the rendered scope/diff inspected.
+- [x] Reproduced and repaired all four independent-review findings: stale UUID references outside `paper_metrics`, invalid Python paper IDs, malformed method-pipeline steps, and nearest-neighbor sizing after invalid claims are filtered.
+- [x] Re-ran the focused/full repair gates: Ruff passed, 53 Python tests passed, 84 XCTest cases passed with one opt-in smoke skipped, and all four Swift Testing bookmark cases passed.

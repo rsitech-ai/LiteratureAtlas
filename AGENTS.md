@@ -207,7 +207,7 @@ Chosen: 2 because it keeps UX smooth while preserving explicit errors.
 ### Stacks detected
 - Swift (SwiftPM): app code in `Sources/`, tests in `Tests/`.
 - Python (analytics): code and tests in `analytics/`.
-- Rust: `analytics/ffi` (FFI library) and `analytics/rust` (CLI).
+- Rust: `analytics/ffi` (FFI library). The former standalone `analytics/rust` CLI is not part of the current tree.
 - CI: `.github/workflows/ci.yml` runs `cargo build --manifest-path analytics/ffi/Cargo.toml --release` and `swift test`.
 
 ### Commands found in this repo
@@ -215,21 +215,21 @@ Chosen: 2 because it keeps UX smooth while preserving explicit errors.
 Setup/install:
 - Swift build: `swift build`
 - Rust FFI build: `cargo build --manifest-path analytics/ffi/Cargo.toml --release`
-- Rust CLI build: `cargo build --manifest-path analytics/rust/Cargo.toml --release`
 - Python env + deps: `python -m venv .venv && source .venv/bin/activate` then `pip install -r analytics/requirements.txt`
 
 Format:
-- No formatter configured for Swift/Rust/Python.
-- TODO to add: choose and document a formatter (e.g., swift-format or SwiftLint for Swift, ruff format for Python, cargo fmt for Rust).
+- Python: `python -m ruff format --check analytics scripts`
+- Rust: `cargo fmt --manifest-path analytics/ffi/Cargo.toml --check`
+- No Swift formatter is configured; choose and document one before making formatting a required gate.
 
 Lint:
 - Python lint (configured): `python -m ruff check analytics`
-- No Swift/Rust lint configured.
-- TODO to add: choose and document linting (e.g., SwiftLint for Swift, cargo clippy for Rust).
+- Rust lint (configured): `cargo clippy --locked --manifest-path analytics/ffi/Cargo.toml --all-targets --all-features -- -D warnings`
+- Swift warnings are enforced with `swift test -Xswiftc -warnings-as-errors`; no separate Swift linter is configured.
 
 Typecheck/build:
 - Swift: `swift build`
-- Rust: `cargo build --manifest-path analytics/ffi/Cargo.toml --release` and `cargo build --manifest-path analytics/rust/Cargo.toml --release`
+- Rust: `cargo build --manifest-path analytics/ffi/Cargo.toml --release`
 - No Python type checker configured.
 - TODO to add: choose and document a type checker (e.g., mypy or pyright).
 
@@ -237,11 +237,11 @@ Tests:
 - Swift: `swift test`
 - Python (documented): `python -m unittest discover -s analytics/tests`
 - Python (optional if dev deps installed): `python -m pytest`
-- Rust: no tests documented; if added, use `cargo test --manifest-path analytics/rust/Cargo.toml` and `cargo test --manifest-path analytics/ffi/Cargo.toml`
+- Rust FFI: `cargo test --manifest-path analytics/ffi/Cargo.toml`
 
 Integration/verification commands:
 - Analytics rebuild: `python analytics/rebuild_analytics.py`
-- Rust ANN CLI: `cargo run --manifest-path analytics/rust/Cargo.toml --release -- --emb Output/analytics/paper_embeddings.parquet --out Output/analytics/ann_edges.json --k 8`
+- Rust FFI verification: `cargo test --manifest-path analytics/ffi/Cargo.toml`
 
 ### Required follow-up for missing gates
 - If format/lint/typecheck commands remain missing, add tasks to TODO.md to introduce and document them, then record final commands in MEMORY.md.
