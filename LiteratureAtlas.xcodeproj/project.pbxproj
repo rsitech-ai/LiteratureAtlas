@@ -28,7 +28,6 @@
 		2E3A9C406D0445333CD31762 /* PDFProcessor.swift in Sources */ = {isa = PBXBuildFile; fileRef = 89C860D7692B874A9A3FF2AF /* PDFProcessor.swift */; };
 		2F8F3ED9729447B5A8C4DBAB /* GalaxyTheme.swift in Sources */ = {isa = PBXBuildFile; fileRef = F9949DEC6E64354065EB83D5 /* GalaxyTheme.swift */; };
 		302C3427319BABE2E1754412 /* StrategyProjectRow.swift in Sources */ = {isa = PBXBuildFile; fileRef = 37101F6080097C569FD315A0 /* StrategyProjectRow.swift */; };
-		342F874B3AD271C2EF47F718 /* VectorIndex.swift in Sources */ = {isa = PBXBuildFile; fileRef = DD176077C6D1FA6C080DC009 /* VectorIndex.swift */; };
 		387F966E409D556465220770 /* PaperMarkdownExporter.swift in Sources */ = {isa = PBXBuildFile; fileRef = 1F8242342A6DA43CA4FC24CD /* PaperMarkdownExporter.swift */; };
 		39747DA128C5C003291D9401 /* StrategyProjectRow.swift in Sources */ = {isa = PBXBuildFile; fileRef = 37101F6080097C569FD315A0 /* StrategyProjectRow.swift */; };
 		3A01034850477070496D8E43 /* StrategyProjectsView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 437060059F45CDDB4A2E5F8D /* StrategyProjectsView.swift */; };
@@ -123,7 +122,6 @@
 		EB76140E770AA9168F41A27B /* ChartPlotGeometry.swift in Sources */ = {isa = PBXBuildFile; fileRef = EA371A708136027E5D45BB7B /* ChartPlotGeometry.swift */; };
 		EBD68C9D8BD488A6D6D5AF85 /* ClusterMarkdownExporter.swift in Sources */ = {isa = PBXBuildFile; fileRef = BA0DC14974ABB82DC11AB4C1 /* ClusterMarkdownExporter.swift */; };
 		EC67FC2BF8BEF9BF3D2AEF26 /* QuantKnowledgeGraph.swift in Sources */ = {isa = PBXBuildFile; fileRef = E3438DE7E76B315162D5D148 /* QuantKnowledgeGraph.swift */; };
-		EC964ED73208AE5BE0612E13 /* VectorIndex.swift in Sources */ = {isa = PBXBuildFile; fileRef = DD176077C6D1FA6C080DC009 /* VectorIndex.swift */; };
 		EF07A8CBC38DEB820CAF7C0B /* AppPaths.swift in Sources */ = {isa = PBXBuildFile; fileRef = D88EF04A27314D4FA1DF6E11 /* AppPaths.swift */; };
 		F0C83D5CB2F1F9B8C08B025D /* StrategyProject.swift in Sources */ = {isa = PBXBuildFile; fileRef = 3A8466C4C1592805D8367FF3 /* StrategyProject.swift */; };
 		F199695B960605F1DAD6551A /* ModelJSON.swift in Sources */ = {isa = PBXBuildFile; fileRef = 89E50C2AB67E7066BFBB04B8 /* ModelJSON.swift */; };
@@ -189,7 +187,6 @@
 		CDE81572CFA454BF6788965B /* AnalyticsStore.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = AnalyticsStore.swift; sourceTree = "<group>"; };
 		D88EF04A27314D4FA1DF6E11 /* AppPaths.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = AppPaths.swift; sourceTree = "<group>"; };
 		DC6E54E34A2D7995F92D10A3 /* DocumentGraphExporter.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = DocumentGraphExporter.swift; sourceTree = "<group>"; };
-		DD176077C6D1FA6C080DC009 /* VectorIndex.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = VectorIndex.swift; sourceTree = "<group>"; };
 		E3438DE7E76B315162D5D148 /* QuantKnowledgeGraph.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = QuantKnowledgeGraph.swift; sourceTree = "<group>"; };
 		E6748CAAF74ACF9A67DC9BD5 /* Prompts */ = {isa = PBXFileReference; lastKnownFileType = folder; path = Prompts; sourceTree = SOURCE_ROOT; };
 		E9FDDBB94AF080D3BD5A39FD /* Release.xcconfig */ = {isa = PBXFileReference; lastKnownFileType = text.xcconfig; path = Release.xcconfig; sourceTree = "<group>"; };
@@ -311,7 +308,6 @@
 				14732DE268069B7594A612FE /* SourceAccessStore.swift */,
 				39540723B087E3D33CA042E6 /* StrategyMarkdownExporter.swift */,
 				AFCB67E4221F8C07ADF49573 /* TemporalAnalytics.swift */,
-				DD176077C6D1FA6C080DC009 /* VectorIndex.swift */,
 			);
 			path = Services;
 			sourceTree = "<group>";
@@ -534,7 +530,6 @@
 				88CA61A83CF9DFA0AE3BDBB9 /* TradingLensCharts.swift in Sources */,
 				FB76620531C3B4F6079A44EA /* TradingLensView.swift in Sources */,
 				AE3ABE3D59DC372156B91BE0 /* TradingScoreStrip.swift in Sources */,
-				EC964ED73208AE5BE0612E13 /* VectorIndex.swift in Sources */,
 				687494B84F3979F463B45679 /* ViewMeasurements.swift in Sources */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
@@ -600,7 +595,6 @@
 				95C07A4300BCAFDD65A2D1EF /* TradingLensCharts.swift in Sources */,
 				70458E6EA7D89AA5DF8A25E2 /* TradingLensView.swift in Sources */,
 				6C197836191C311B492F8B38 /* TradingScoreStrip.swift in Sources */,
-				342F874B3AD271C2EF47F718 /* VectorIndex.swift in Sources */,
 				C7296451239200E5856BF133 /* ViewMeasurements.swift in Sources */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;

@@ -2,7 +2,7 @@
 
 ## Product boundary
 
-The App Store build is designed as a local research workspace. It accepts documents selected by the user, processes them with Apple's on-device Foundation Models APIs and local algorithms, and stores derived artifacts inside the application container. The dormant OpenAI provider, runtime Python pipeline, and repository-relative Rust loader are excluded at compile time from `APP_STORE_BUILD`.
+The App Store build is designed as a local research workspace. It accepts documents selected by the user, processes them with Apple's on-device Foundation Models APIs and local algorithms, and stores derived artifacts inside the application container. No network document compiler is present. The runtime Python pipeline and repository-relative Rust loader are excluded at compile time from `APP_STORE_BUILD`.
 
 This map describes verified code and packaged behavior. It does not replace the product owner's App Store Connect privacy attestation or privacy policy.
 
@@ -12,14 +12,14 @@ This map describes verified code and packaged behavior. It does not replace the 
 | --- | --- | --- | --- | --- | --- |
 | PDF and Markdown contents | User-selected folder | Text extraction, summaries, embeddings, topic/claim analysis | Derived paper/chunk JSON and Markdown under the app container | No transmission path found in App Store build | User chooses the source folder; source access is read-only |
 | File metadata | Selected files | File type, path, modification timestamps, page/year inference | Included where needed in local paper/index artifacts | No transmission path found | Follows selected-folder scope |
-| Questions and generated answers | User input and on-device model output | Local retrieval and synthesis | Answer text under local `Output/qa`; question text also appears in local diagnostics/events | No transmission path found | Removed by deleting the app/container; no dedicated erase UI is verified |
+| Questions and generated answers | User input and on-device model output | Local retrieval and synthesis | Answer text under local `Output/qa`; a SHA-256 question digest is used only in the filename. Raw question text remains in session memory for product features and is not stored in diagnostics/events | No transmission path found | Removed by deleting the app/container; no dedicated erase UI is verified |
 | Research notes, reading state, project data | User input | Local organization and analytics | Local JSON/Markdown under the app container | No transmission path found | Edited/deleted through product flows where exposed; full reset is not verified |
 | Embeddings, clusters, claim graphs, analytics | Derived locally | On-device model and deterministic local computation | Local app-container artifacts | No transmission path found | Removed with app data |
 | Operational logs and user events | App behavior | Local diagnostics/aggregate analytics | Local text/JSONL in the app container and OSLog | No first-party telemetry endpoint found | No dedicated diagnostics deletion/export UI is verified |
 
 ## Network and SDK inventory
 
-- App Store compilation excludes `OpenAIDocumentCompilerProvider`, including `https://api.openai.com/v1/responses`.
+- Document compilation is on-device in every build; the repository contains no OpenAI compiler endpoint or API-key path.
 - App Store compilation excludes the Python analytics launcher and dependency installer.
 - App Store compilation disables the relative `dlopen` Rust FFI path and uses the pure-Swift fallback.
 - No third-party runtime SDK is linked by either application target.
@@ -32,11 +32,16 @@ Both platform manifests declare `NSPrivacyAccessedAPICategoryFileTimestamp` with
 - `3B52.1` for timestamps on files the user granted access to.
 - `C617.1` for timestamps inside the app container.
 
+Distribution verification lints the packaged manifest and requires both reason
+codes under `NSPrivacyAccessedAPICategoryFileTimestamp`.
+
 The manifests intentionally omit `NSPrivacyCollectedDataTypes`; an empty declaration would be an unverified privacy claim. App Store Connect answers remain owner-attested.
 
 ## Sandbox and retention
 
 - macOS entitlement: App Sandbox plus `com.apple.security.files.user-selected.read-only`.
+- Distribution verification inspects the shipped signature and fails unless read-only
+  user-selected access is `true` and the read-write entitlement is absent.
 - iPadOS entitlement file is intentionally empty; document access is mediated by the system picker/container.
 - The selected macOS folder's security scope is opened before enumeration and closed when ingestion finishes.
 - Mutable output uses `Application Support/LiteratureAtlas/Output` within the application container for App Store builds.

@@ -17,6 +17,7 @@ final class LiteratureAtlasAppDelegate: NSObject, NSApplicationDelegate {
 struct LiteratureAtlasApp: App {
     @StateObject private var model = AppModel()
     @StateObject private var nav = AppNavigation()
+    @State private var modelAvailabilityRefreshID = 0
 
     #if os(macOS)
     @NSApplicationDelegateAdaptor(LiteratureAtlasAppDelegate.self) private var appDelegate
@@ -28,6 +29,16 @@ struct LiteratureAtlasApp: App {
             appContent
         }
         .defaultSize(width: 1280, height: 820)
+        .commands {
+            CommandMenu("Navigate") {
+                navigationCommand("Ingest", tab: .ingest, key: "1")
+                navigationCommand("Universe", tab: .map, key: "2")
+                navigationCommand("Q&A", tab: .qa, key: "3")
+                navigationCommand("Insights", tab: .trading, key: "4")
+                navigationCommand("Projects", tab: .projects, key: "5")
+                navigationCommand("Analytics", tab: .analytics, key: "6")
+            }
+        }
         #else
         WindowGroup {
             appContent
@@ -37,33 +48,55 @@ struct LiteratureAtlasApp: App {
 
     @ViewBuilder
     private var appContent: some View {
+        let _ = modelAvailabilityRefreshID
         let availability = SystemLanguageModel.default.availability
-        switch availability {
-        case .available:
-            RootView()
-                .environmentObject(model)
-                .environmentObject(nav)
-        case .unavailable(let reason):
-            UnsupportedView(reason: String(describing: reason))
-        }
+        RootView()
+            .environmentObject(model)
+            .environmentObject(nav)
+            .safeAreaInset(edge: .top, spacing: 0) {
+                if case let .unavailable(reason) = availability {
+                    ModelUnavailableBanner(reason: String(describing: reason)) {
+                        modelAvailabilityRefreshID &+= 1
+                    }
+                }
+            }
     }
+
+    #if os(macOS)
+    private func navigationCommand(_ title: String, tab: AppNavigation.Tab, key: Character) -> some View {
+        Button(title) {
+            selectNavigationTab(tab)
+        }
+        .keyboardShortcut(KeyEquivalent(key), modifiers: .command)
+    }
+
+    private func selectNavigationTab(_ tab: AppNavigation.Tab) {
+        nav.select(tab, collapseSidebar: false)
+    }
+    #endif
 }
 
-struct UnsupportedView: View {
+struct ModelUnavailableBanner: View {
     let reason: String
+    let retry: () -> Void
 
     var body: some View {
-        VStack(spacing: 12) {
-            Text("On-device model unavailable")
-                .font(.title2.bold())
-            Text("LiteratureAtlas requires an on-device Foundation Models language model for summaries and Q&A.")
-                .multilineTextAlignment(.center)
-                .foregroundStyle(.secondary)
-            Text(reason)
-                .font(.caption)
-                .multilineTextAlignment(.center)
-                .foregroundStyle(.secondary)
+        HStack(spacing: 10) {
+            Image(systemName: "exclamationmark.triangle.fill")
+                .foregroundStyle(.orange)
+            VStack(alignment: .leading, spacing: 2) {
+                Text("Generation is unavailable; your existing library remains accessible.")
+                    .font(.callout.bold())
+                Text(reason)
+                    .font(.caption)
+                    .foregroundStyle(.secondary)
+                    .lineLimit(2)
+            }
+            Spacer(minLength: 8)
+            Button("Check again", action: retry)
         }
-        .padding()
+        .padding(.horizontal, 14)
+        .padding(.vertical, 9)
+        .background(.regularMaterial)
     }
 }

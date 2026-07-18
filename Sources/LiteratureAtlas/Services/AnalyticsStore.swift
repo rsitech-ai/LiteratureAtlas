@@ -958,9 +958,45 @@ struct AnalyticsSummary: Codable, Equatable {
         workflow = try container.decodeIfPresent(WorkflowSection.self, forKey: .workflow)
         hygiene = try container.decodeIfPresent(HygieneSection.self, forKey: .hygiene)
     }
+
+    var referencedPaperIDs: Set<UUID> {
+        var identifiers = Set(novelty.map(\.paperID))
+        identifiers.formUnion(centrality.map(\.paperID))
+        identifiers.formUnion(centrality.flatMap(\.neighbors).map(\.paperID))
+        identifiers.formUnion(factorLoadings.map(\.paperID))
+        identifiers.formUnion(influence.map(\.paperID))
+        identifiers.formUnion(influencePos.map(\.paperID))
+        identifiers.formUnion(influenceNeg.map(\.paperID))
+        identifiers.formUnion(ideaFlowEdges.compactMap(\.src))
+        identifiers.formUnion(ideaFlowEdges.compactMap(\.dst))
+        identifiers.formUnion(paperMetrics.map(\.paperID))
+        identifiers.formUnion(recommendations)
+        identifiers.formUnion(recommendationsSimple)
+        identifiers.formUnion(quality?.ingestion?.issues?.map(\.paperID) ?? [])
+        identifiers.formUnion(stability?.perPaper?.map(\.paperID) ?? [])
+        identifiers.formUnion(bridges?.paperRecombination?.perPaper?.map(\.paperID) ?? [])
+        identifiers.formUnion(citations?.graph?.pagerank?.map(\.paperID) ?? [])
+        identifiers.formUnion(citations?.graph?.topInDegree?.map(\.paperID) ?? [])
+        identifiers.formUnion(workflow?.recommendationsMIG?.selected?.map(\.paperID) ?? [])
+        identifiers.formUnion(hygiene?.duplicates?.groups?.flatMap { $0 } ?? [])
+        identifiers.formUnion(trading?.scorePoints?.map(\.paperID) ?? [])
+        identifiers.formUnion(trading?.topPriority?.map(\.paperID) ?? [])
+        return identifiers
+    }
 }
 
 enum AnalyticsStore {
+    enum ValidationError: LocalizedError, Equatable {
+        case duplicateIdentifier(section: String, identifier: UUID)
+
+        var errorDescription: String? {
+            switch self {
+            case let .duplicateIdentifier(section, identifier):
+                return "Analytics \(section) contains duplicate paper identifier \(identifier.uuidString). Rebuild analytics from the current corpus."
+            }
+        }
+    }
+
     /// Loads analytics summary JSON produced by the Python/Rust backend.
     /// Returns nil when the file is missing; throws when the payload is malformed.
     static func loadSummary(from url: URL) throws -> AnalyticsSummary? {
@@ -968,6 +1004,29 @@ enum AnalyticsStore {
         let data = try Data(contentsOf: url)
         let decoder = JSONDecoder()
         decoder.dateDecodingStrategy = .iso8601
-        return try decoder.decode(AnalyticsSummary.self, from: data)
+        let summary = try decoder.decode(AnalyticsSummary.self, from: data)
+        try validate(summary)
+        return summary
+    }
+
+    private static func validate(_ summary: AnalyticsSummary) throws {
+        try validateUnique(summary.novelty.map(\.paperID), section: "novelty")
+        try validateUnique(summary.centrality.map(\.paperID), section: "centrality")
+        try validateUnique(summary.factorLoadings.map(\.paperID), section: "factor_loadings")
+        try validateUnique(summary.influence.map(\.paperID), section: "influence")
+        try validateUnique(summary.influencePos.map(\.paperID), section: "influence_pos")
+        try validateUnique(summary.influenceNeg.map(\.paperID), section: "influence_neg")
+        try validateUnique(summary.paperMetrics.map(\.paperID), section: "paper_metrics")
+        try validateUnique(summary.recommendations, section: "recommendations")
+        try validateUnique(summary.recommendationsSimple, section: "recommendations_simple")
+        try validateUnique(summary.stability?.perPaper?.map(\.paperID) ?? [], section: "stability.per_paper")
+        try validateUnique(summary.workflow?.recommendationsMIG?.selected?.map(\.paperID) ?? [], section: "workflow.recommendations_mig.selected")
+    }
+
+    private static func validateUnique(_ identifiers: [UUID], section: String) throws {
+        var seen = Set<UUID>()
+        for identifier in identifiers where !seen.insert(identifier).inserted {
+            throw ValidationError.duplicateIdentifier(section: section, identifier: identifier)
+        }
     }
 }

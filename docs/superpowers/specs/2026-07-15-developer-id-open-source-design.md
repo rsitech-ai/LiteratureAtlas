@@ -53,7 +53,7 @@ The official artifact is a read-only compressed DMG containing the signed app an
 - Bundled prompts remain resources of the Xcode target.
 - Python analytics remains an open-source contributor/research lane. Official distributed builds do not offer package installation or execute checkout-relative scripts.
 - Rust FFI remains optional. The first official artifact uses the Swift fallback unless a universal or declared-architecture dylib is placed in `Contents/Frameworks`, linked with `@rpath`, license-inventoried, and signed before the app.
-- The dormant OpenAI provider is not selected in distributed builds. No API key is embedded. Any future network provider requires a separate privacy/security design.
+- Historical design note: the dormant OpenAI provider was not selected in distributed builds and embedded no API key. It was removed on 2026-07-17; any future network provider requires a separate privacy/security design.
 
 ## Licensing and Branding
 

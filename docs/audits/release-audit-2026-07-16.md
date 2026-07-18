@@ -2,15 +2,21 @@
 
 ## Verdict
 
-- Repository implementation: **repo-ready**, pending PR/CI/merge verification.
+- Repository implementation at audit closeout: **repo-ready**; PR #4 subsequently
+  passed its hosted workflows and merged as recorded below.
 - Community artifact from `647911aa3093a9df56f48a048a002e5db458794a`:
-  **package-ready local evidence**.
+  **historical package-ready local evidence**, not a current release candidate.
 - Official Developer ID/notarized artifact: **blocked:external**.
 - Open-source publication: **blocked** by legal/history, artwork/brand,
   governance/reporting, and Apple owner gates.
 - Codex Security: explicitly deferred by the owner; not run or claimed.
 - Independent review: no blocker, high, or important finding in
   `origin/main...6633779`.
+
+The app, DMG, runtime, and pre-sign statements below are immutable historical
+snapshots tied to `647911aa3093a9df56f48a048a002e5db458794a`. Their exact local
+artifact directories are no longer retained, so this audit does not claim they
+were regenerated from the current tree or that they validate a future release.
 
 ## Scope and standards
 
@@ -120,8 +126,9 @@ is stored outside exported paper JSON.
   REUSE 3.3 and CFF validation passed; Python/Rust advisory checks found no
   vulnerability; exact-tree/history signature matching and GitHub secret
   scanning found zero credential alert.
-- Hosted PR: GitHub's dependency-review action reported that the repository
-  dependency graph is disabled. The workflow now requires a successful
+- Hosted PR: the dependency-review workflow detected that the repository
+  dependency graph was unavailable and intentionally skipped the
+  `actions/dependency-review-action` step. The workflow requires a successful
   repository API preflight, warns and skips only for an unavailable graph on
   that accessible repository, fails closed on permission/access/unexpected
   statuses, and still fails on findings whenever the graph is enabled;
@@ -152,8 +159,9 @@ is stored outside exported paper JSON.
 - PR: <https://github.com/s1korrrr/LiteratureAtlas/pull/4>
 - Reviewed head: `d6f231346cbae8ca92e1fb448bf7142369dd0938`
 - Merge commit: `c335fbdae87b940c39483fa47761a6d57cf0593d`
-- Hosted result: all nine checks passed, including Apple/Swift distributed
-  bundle, Python, Rust, release policy, REUSE, dependency review, and
+- Hosted result: all nine workflow checks passed, including Apple/Swift
+  distributed bundle, Python, Rust, release policy, REUSE, the dependency-review
+  workflow with its explicit unavailable-graph warning/action skip, and
   Python/Swift CodeQL.
 - Review result: the only inline concern was resolved with effective Xcode
   build-setting evidence; all review threads were resolved and the PR reported

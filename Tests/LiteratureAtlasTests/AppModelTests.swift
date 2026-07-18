@@ -61,6 +61,42 @@ final class AppModelTests: XCTestCase {
         }
     }
 
+    func testCancelMultiScaleGalaxyStopsDetachedCompute() async {
+        let tmp = FileManager.default.temporaryDirectory.appendingPathComponent(UUID().uuidString)
+        let model = await MainActor.run { AppModel(skipInitialLoad: true, customOutputRoot: tmp) }
+        let papers = (0..<5_000).map { index in
+            Paper(
+                filePath: "paper-\(index)", id: UUID(), originalFilename: "paper-\(index).pdf",
+                title: "Paper \(index)", introSummary: nil, summary: "summary",
+                methodSummary: nil, resultsSummary: nil, takeaways: nil, keywords: nil,
+                userNotes: nil, userTags: nil, readingStatus: nil, noteEmbedding: nil,
+                userQuestions: nil, flashcards: nil, year: nil,
+                embedding: (0..<32).map { Float((index + $0) % 17) }, clusterIndex: nil
+            )
+        }
+        await MainActor.run { model.papers = papers }
+
+        let galaxyTask = Task { await model.buildMultiScaleGalaxy() }
+        var computeStarted = false
+        for _ in 0..<500 {
+            if await MainActor.run(body: { model.testHasActiveMultiScaleComputeTask }) {
+                computeStarted = true
+                break
+            }
+            try? await Task.sleep(for: .milliseconds(1))
+        }
+        XCTAssertTrue(computeStarted)
+
+        await MainActor.run { model.cancelClustering() }
+        await galaxyTask.value
+
+        await MainActor.run {
+            XCTAssertFalse(model.testHasActiveMultiScaleComputeTask)
+            XCTAssertFalse(model.isClustering)
+            XCTAssertTrue(model.megaClusters.isEmpty)
+        }
+    }
+
 
     func testFallbackEmbeddingUsesStableVersionedTokenBuckets() async {
         let model = await MainActor.run { AppModel(skipInitialLoad: true) }
@@ -482,5 +518,266 @@ final class AppModelTests: XCTestCase {
             XCTAssertTrue(model.papers.allSatisfy { $0.embedding.count == 3 })
             XCTAssertEqual(model.papers.first(where: { $0.id == sharedID })?.title, "Fresh")
         }
+    }
+
+    func testOpenSourceDocumentSurfacesPlatformFailureAfterBookmarkResolution() async throws {
+        let tmp = FileManager.default.temporaryDirectory.appendingPathComponent(UUID().uuidString)
+        let selectedFolder = tmp.appendingPathComponent("Library", isDirectory: true)
+        let sourceURL = selectedFolder.appendingPathComponent("paper.pdf")
+        let provider = FakeSecurityScopedBookmarkProvider()
+        let store = await MainActor.run {
+            SourceAccessStore(
+                storageURL: tmp.appendingPathComponent("source-access.json"),
+                provider: provider
+            )
+        }
+        try await MainActor.run { try store.rememberFolder(selectedFolder) }
+        let model = await MainActor.run {
+            AppModel(
+                skipInitialLoad: true,
+                customOutputRoot: tmp.appendingPathComponent("Output"),
+                sourceAccessStore: store,
+                sourceDocumentOpener: { _ in false }
+            )
+        }
+        let paper = Paper(
+            filePath: sourceURL.path, id: UUID(), originalFilename: "paper.pdf", title: "Paper",
+            introSummary: nil, summary: "Summary", methodSummary: nil, resultsSummary: nil,
+            takeaways: nil, keywords: nil, userNotes: nil, userTags: nil, readingStatus: nil,
+            noteEmbedding: nil, userQuestions: nil, flashcards: nil, year: nil,
+            embedding: [1, 0], clusterIndex: nil
+        )
+
+        await MainActor.run {
+            model.papers = [paper]
+            model.openSourceDocument(for: paper.id)
+            XCTAssertNotNil(model.sourceAccessError)
+        }
+        XCTAssertEqual(provider.startCount, 2)
+        XCTAssertEqual(provider.stopCount, 2)
+    }
+
+    func testPinRollbackWhenGalaxySnapshotCannotBePersisted() async throws {
+        let tmp = FileManager.default.temporaryDirectory.appendingPathComponent(UUID().uuidString)
+        let model = await MainActor.run { AppModel(skipInitialLoad: true, customOutputRoot: tmp) }
+        let cluster = Cluster(
+            id: 7, name: "Original", metaSummary: "Summary", centroid: [1, 0],
+            memberPaperIDs: [], layoutPosition: nil, resolutionK: 1,
+            corpusVersion: "v1", subclusters: nil
+        )
+        try replaceDirectoryWithFile(tmp.appendingPathComponent("clusters", isDirectory: true))
+
+        let saved = await MainActor.run { () -> Bool in
+            model.megaClusters = [cluster]
+            return model.toggleGalaxyPin(clusterID: cluster.id)
+        }
+
+        await MainActor.run {
+            XCTAssertFalse(saved)
+            XCTAssertFalse(model.pinnedClusterIDs.contains(cluster.id))
+            XCTAssertNotNil(model.persistenceError)
+        }
+    }
+
+    func testRenameRollbackWhenGalaxySnapshotCannotBePersisted() async throws {
+        let tmp = FileManager.default.temporaryDirectory.appendingPathComponent(UUID().uuidString)
+        let model = await MainActor.run { AppModel(skipInitialLoad: true, customOutputRoot: tmp) }
+        let cluster = Cluster(
+            id: 7, name: "Original", metaSummary: "Summary", centroid: [1, 0],
+            memberPaperIDs: [], layoutPosition: nil, resolutionK: 1,
+            corpusVersion: "v1", subclusters: nil
+        )
+        try replaceDirectoryWithFile(tmp.appendingPathComponent("clusters", isDirectory: true))
+
+        let saved = await MainActor.run { () -> Bool in
+            model.megaClusters = [cluster]
+            return model.renameGalaxyCluster(clusterID: cluster.id, name: "Unsaved", metaSummary: nil)
+        }
+
+        await MainActor.run {
+            XCTAssertFalse(saved)
+            XCTAssertEqual(model.megaClusters.first?.name, "Original")
+            XCTAssertNil(model.clusterNameSources[cluster.id])
+            XCTAssertNotNil(model.persistenceError)
+        }
+    }
+
+    func testFlashcardReviewRollbackWhenPaperCannotBePersisted() async throws {
+        let tmp = FileManager.default.temporaryDirectory.appendingPathComponent(UUID().uuidString)
+        let model = await MainActor.run { AppModel(skipInitialLoad: true, customOutputRoot: tmp) }
+        let cardID = UUID()
+        let paper = Paper(
+            filePath: "/tmp/paper.pdf", id: UUID(), originalFilename: "paper.pdf", title: "Paper",
+            introSummary: nil, summary: "Summary", methodSummary: nil, resultsSummary: nil,
+            takeaways: nil, keywords: nil, userNotes: nil, userTags: nil, readingStatus: .done,
+            noteEmbedding: nil, userQuestions: nil,
+            flashcards: [Flashcard(id: cardID, question: "Q?", answer: "A.", lastReviewedAt: nil, reviewCount: nil)],
+            year: nil, embedding: [1, 0], clusterIndex: nil
+        )
+        try replaceDirectoryWithFile(tmp.appendingPathComponent("papers", isDirectory: true))
+
+        let saved = await MainActor.run { () -> Bool in
+            model.papers = [paper]
+            return model.markFlashcardReviewed(paperID: paper.id, cardID: cardID)
+        }
+
+        await MainActor.run {
+            XCTAssertFalse(saved)
+            XCTAssertNil(model.papers.first?.flashcards?.first?.lastReviewedAt)
+            XCTAssertNil(model.papers.first?.flashcards?.first?.reviewCount)
+            XCTAssertNotNil(model.persistenceError)
+        }
+    }
+
+    func testKMeansStopsWhenCancellationIsRequested() {
+        let vectors = (0..<200).map { index in
+            (0..<32).map { dimension in Float((index + dimension) % 11) }
+        }
+        var checks = 0
+
+        let result = KMeans.cluster(vectors: vectors, k: 8, iterations: 100) {
+            checks += 1
+            return checks >= 8
+        }
+
+        XCTAssertNil(result)
+        XCTAssertEqual(checks, 8)
+    }
+
+    func testForceLayoutStopsWhenCancellationIsRequested() {
+        let vectors = (0..<80).map { index in
+            (0..<16).map { dimension in Float((index + dimension) % 7) }
+        }
+        var checks = 0
+
+        let result = ForceLayout.compute(for: vectors) {
+            checks += 1
+            return checks >= 8
+        }
+
+        XCTAssertNil(result)
+        XCTAssertEqual(checks, 8)
+    }
+
+    func testReloadAnalyticsRejectsMismatchedCanonicalPaperCount() async throws {
+        let tmp = FileManager.default.temporaryDirectory.appendingPathComponent(UUID().uuidString)
+        let model = await MainActor.run { AppModel(skipInitialLoad: true, customOutputRoot: tmp) }
+        let paper = makeAnalyticsTestPaper(id: UUID())
+        try writeAnalyticsPayload(
+            [
+                "generated_at": "2025-01-02T03:04:05Z",
+                "paper_count": 2,
+                "vector_dim": 2,
+            ],
+            to: tmp
+        )
+
+        await MainActor.run {
+            model.papers = [paper]
+            model.reloadAnalyticsSummary()
+            XCTAssertNil(model.analyticsSummary)
+            XCTAssertTrue(model.analyticsLoadError?.localizedCaseInsensitiveContains("stale") == true)
+            XCTAssertTrue(model.analyticsLoadError?.localizedCaseInsensitiveContains("rebuild") == true)
+        }
+    }
+
+    func testReloadAnalyticsRejectsPaperMetricsOutsideCanonicalCorpus() async throws {
+        let tmp = FileManager.default.temporaryDirectory.appendingPathComponent(UUID().uuidString)
+        let model = await MainActor.run { AppModel(skipInitialLoad: true, customOutputRoot: tmp) }
+        let paper = makeAnalyticsTestPaper(id: UUID())
+        let unknownID = UUID()
+        let metric: [String: Any] = [
+            "paper_id": unknownID.uuidString,
+            "nov_cluster": 0.0, "nov_global": 0.0, "nov_directional": 0.0,
+            "nov_combinatorial": 0.0, "novelty_uncertainty": 0.0, "z_novelty": 0.0,
+            "consensus_struct": 0.0, "consensus_claim": 0.0, "consensus_temporal": 0.0,
+            "consensus_total": 0.0, "z_consensus": 0.0, "consensus_uncertainty": 0.0,
+            "influence_abs": 0.0, "influence_pos": 0.0, "influence_neg": 0.0,
+            "drift_contrib": 0.0, "role_source": 0.0, "role_bridge": 0.0, "role_sink": 0.0,
+        ]
+        try writeAnalyticsPayload(
+            [
+                "generated_at": "2025-01-02T03:04:05Z",
+                "paper_count": 1,
+                "vector_dim": 2,
+                "paper_metrics": [metric],
+            ],
+            to: tmp
+        )
+
+        await MainActor.run {
+            model.papers = [paper]
+            model.reloadAnalyticsSummary()
+            XCTAssertNil(model.analyticsSummary)
+            XCTAssertTrue(model.analyticsLoadError?.localizedCaseInsensitiveContains("stale") == true)
+            XCTAssertTrue(model.analyticsLoadError?.localizedCaseInsensitiveContains("rebuild") == true)
+        }
+    }
+
+    func testReloadAnalyticsRejectsNoveltyOutsideCanonicalCorpusWhenPaperMetricsAreEmpty() async throws {
+        let tmp = FileManager.default.temporaryDirectory.appendingPathComponent(UUID().uuidString)
+        let model = await MainActor.run { AppModel(skipInitialLoad: true, customOutputRoot: tmp) }
+        let paper = makeAnalyticsTestPaper(id: UUID())
+        let unknownID = UUID()
+        try writeAnalyticsPayload(
+            [
+                "generated_at": "2025-01-02T03:04:05Z",
+                "paper_count": 1,
+                "vector_dim": 2,
+                "novelty": [[
+                    "paper_id": unknownID.uuidString,
+                    "cluster_id": 0,
+                    "novelty": 0.5,
+                ]],
+            ],
+            to: tmp
+        )
+
+        await MainActor.run {
+            model.papers = [paper]
+            model.reloadAnalyticsSummary()
+            XCTAssertNil(model.analyticsSummary)
+            XCTAssertTrue(model.analyticsLoadError?.localizedCaseInsensitiveContains("stale") == true)
+            XCTAssertTrue(model.analyticsLoadError?.localizedCaseInsensitiveContains("rebuild") == true)
+        }
+    }
+
+    func testObsidianNoteLookupUsesCacheAfterInitialIndexing() async throws {
+        let tmp = FileManager.default.temporaryDirectory.appendingPathComponent(UUID().uuidString)
+        let noteDirectory = tmp.appendingPathComponent("obsidian/papers", isDirectory: true)
+        try FileManager.default.createDirectory(at: noteDirectory, withIntermediateDirectories: true)
+        let paperID = UUID()
+        let noteURL = noteDirectory.appendingPathComponent("Paper [\(paperID.uuidString.uppercased())].md")
+        try Data("# Note".utf8).write(to: noteURL)
+        let model = await MainActor.run { AppModel(skipInitialLoad: true, customOutputRoot: tmp) }
+
+        try FileManager.default.removeItem(at: noteDirectory)
+        try Data("not a directory".utf8).write(to: noteDirectory)
+
+        let resolved = await MainActor.run { model.obsidianNoteURL(for: paperID) }
+
+        XCTAssertEqual(resolved?.lastPathComponent, noteURL.lastPathComponent)
+        XCTAssertEqual(resolved?.deletingLastPathComponent().lastPathComponent, "papers")
+    }
+
+    private func replaceDirectoryWithFile(_ url: URL) throws {
+        try FileManager.default.removeItem(at: url)
+        try Data("not a directory".utf8).write(to: url)
+    }
+
+    private func makeAnalyticsTestPaper(id: UUID) -> Paper {
+        Paper(
+            filePath: "/tmp/\(id.uuidString).pdf", id: id, originalFilename: "paper.pdf", title: "Paper",
+            introSummary: nil, summary: "Summary", methodSummary: nil, resultsSummary: nil,
+            takeaways: nil, keywords: nil, userNotes: nil, userTags: nil, readingStatus: nil,
+            noteEmbedding: nil, userQuestions: nil, flashcards: nil, year: nil,
+            embedding: [1, 0], clusterIndex: nil
+        )
+    }
+
+    private func writeAnalyticsPayload(_ payload: [String: Any], to outputRoot: URL) throws {
+        let analyticsURL = outputRoot.appendingPathComponent("analytics/analytics.json")
+        let data = try JSONSerialization.data(withJSONObject: payload, options: [.prettyPrinted, .sortedKeys])
+        try data.write(to: analyticsURL, options: .atomic)
     }
 }

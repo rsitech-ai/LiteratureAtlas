@@ -1,29 +1,28 @@
 # TODO
 
 ## Tasks
-- [x] Baseline inventory and current-doc map (DoD: targets, dependencies, services, flows, external gates, and official sources are recorded in the audit report)
-- [x] Static architecture/correctness/security review (DoD: all production Swift/Python/Rust/release/workflow paths are reviewed and every material finding has file/line evidence)
-- [x] Fresh local quality matrix (DoD: relevant format, lint, build, test, dependency, release-policy, SBOM, and warning gates pass or have exact blockers)
-- [x] Native macOS E2E matrix (DoD: a freshly built app exercises all reachable primary surfaces, reversible edge paths, relaunch persistence, and focused logs with evidence)
-- [x] Fix reproduced repository-owned defects (DoD: each fix has focused failing proof before and passing proof after, plus parent-workflow verification)
-- [x] Performance/accessibility/polish pass (DoD: release-relevant launch, interaction, resizing, motion, contrast, keyboard, labels/help, and log behavior are verified or explicitly blocked)
-- [x] Audit and security reports (DoD: July 17 reports contain commands, sources, scenario results, findings/fixes, remaining risks, and the weakest truthful readiness label)
-- [x] Memory update (DoD: `MEMORY.md` contains any new durable knowledge and no task-history noise)
-- [x] Independent review and final local ship gate (DoD: no unresolved blocker/high/important finding; full diff and fresh verification matrix are clean)
-- [x] Publish reviewed PR (DoD: intentional commits are pushed, PR is reviewed, hosted checks pass, actionable feedback is resolved, and the approved head is merged)
-- [x] Verify exact merged `main` (DoD: local `main`, `origin/main`, PR merge tree, and required post-merge commands agree)
+- [x] Inventory cleanup, GitHub, and Apple release state (DoD: exact cleanup candidates, release history, identity/notary status, and authority boundary are documented)
+- [x] Clean generated/stale artifacts (DoD: only verified irrelevant artifacts removed; `Output/`, active environments, working data, and evidence preserved)
+- [x] Fresh pre-PR verification (DoD: relevant Swift/Python/Rust/release/runtime gates pass on the exact branch head)
+- [x] Create and inspect PR (DoD: branch pushed, ready PR created against `main`, rendered metadata and full diff reviewed)
+- [ ] Hosted and independent PR review (DoD: exact-head checks green and no unresolved actionable findings remain)
+- [ ] Merge through PR and synchronize `main` (DoD: PR merged; local `main`, `origin/main`, and merge result match)
+- [ ] Build and verify downloadable app (DoD: artifact built from merged `main`; bundle, signature mode, metadata, checksum, DMG, launch, and logs verified)
+- [ ] Publish and re-check release (DoD: truthful release and downloadable asset are available; remote metadata/checksum match local evidence)
+- [ ] Memory update and closeout (DoD: PLAN/TODO/MEMORY reflect exact final evidence and repository is clean)
 
 ## In progress
-- None.
+- [ ] Push repaired PR head and repeat hosted and independent review
 
 ## Done
-- [x] HQ session bootstrap completed; repository instructions, memory, previous plan/TODO, and Git baseline reviewed.
-- [x] Clean `bde3e9f` baseline preserved on `feat/andrzej_full_audit_2026_07_17`.
-- [x] Isolated native E2E, focused regression fixes, dependency SBOM refresh, and audit/security reports completed without modifying the 3,919-paper user corpus.
-- [x] PR #8 passed all nine hosted checks; both inline review findings were fixed, regression-tested, independently re-reviewed as SHIP, and resolved.
-- [x] GitHub merged reviewed head `a5c1cc8199fd61b19a8a957c24eeaece38e06552` as `6802f6e24e8e78e77b5a54cb4b58ee14c57f5926`; its merge tree exactly matched the reviewed head and local `main` matched `origin/main` before this closeout record.
-
-## External / owner-controlled blockers to revalidate
-- Approved production app icon/brand provenance and legal chain of title.
-- Developer ID private-key authorization, notarization upload, quarantine/hardware acceptance, tag, and public binary release.
-- Owner-controlled GitHub repository protection, private reporting, and security settings.
+- [x] New-day HQ bootstrap and repository continuity check passed.
+- [x] Previous full-quality remediation confirmed committed on `feat/andrzej_fix_full_quality_audit` with a clean worktree before closeout planning.
+- [x] No existing GitHub tags or Releases were present; official publication remains blocked by production artwork and unproven notarization credentials.
+- [x] Stopped the stale development app and moved 12 exact generated/cache targets (about 1.39 GiB) to Trash while preserving corpus data, examples, the analytics environment, and tracked evidence.
+- [x] Cold-cache verification passed: 83 XCTest cases (one opt-in corpus smoke skipped), four Swift Testing cases, 50 Python tests, seven Rust tests, formatting/linting/security audits, release policy/config/privacy gates, deterministic XcodeGen parity, macOS/iPadOS Release builds, and fresh app launch/log inspection.
+- [x] Ready PR #9 created against `main` from `feat/andrzej_fix_full_quality_audit` and the rendered scope/diff inspected.
+- [x] Reproduced and repaired all four independent-review findings: stale UUID references outside `paper_metrics`, invalid Python paper IDs, malformed method-pipeline steps, and nearest-neighbor sizing after invalid claims are filtered.
+- [x] Re-ran the focused/full repair gates: Ruff passed, 53 Python tests passed, 84 XCTest cases passed with one opt-in smoke skipped, and all four Swift Testing bookmark cases passed.
+- [x] Corrected re-review setup drift: Python 3.12, `analytics/.venv`, Xcode 26.6, managed analytics/release commands, distributed storage/FFI boundaries, and current Swift test coverage now match the repository runtime.
+- [x] Removed adjacent stale distribution guidance from `prompts.txt`: public fixtures, shipped FFI, storage paths, release boundaries, and task-tracking guidance now match the current product contract.
+- [x] Preserved canonical Swift UUID casing after Python validation so uppercase paper IDs continue to join chunks and other persisted artifacts; added a real paper/chunk regression and passed all 54 Python tests.

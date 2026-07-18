@@ -79,6 +79,14 @@ final class AnalyticsStoreTests: XCTestCase {
 
         let model = await MainActor.run { AppModel(skipInitialLoad: true, customOutputRoot: tmp) }
         await MainActor.run {
+            model.papers = [Paper(
+                filePath: "/tmp/\(paperID.uuidString).pdf", id: paperID,
+                originalFilename: "paper.pdf", title: "Paper", introSummary: nil,
+                summary: "Summary", methodSummary: nil, resultsSummary: nil,
+                takeaways: nil, keywords: nil, userNotes: nil, userTags: nil,
+                readingStatus: nil, noteEmbedding: nil, userQuestions: nil,
+                flashcards: nil, year: 2024, embedding: [1, 0], clusterIndex: 0
+            )]
             model.reloadAnalyticsSummary()
             XCTAssertNotNil(model.analyticsSummary)
             XCTAssertEqual(model.analyticsSummary?.paperCount, 1)
@@ -180,5 +188,65 @@ final class AnalyticsStoreTests: XCTestCase {
         let missingFile = tmp.appendingPathComponent("analytics/analytics.json")
         let summary = try AnalyticsStore.loadSummary(from: missingFile)
         XCTAssertNil(summary, "Missing analytics.json should return nil, not throw")
+    }
+
+    func testLoadSummaryRejectsDuplicatePaperMetricIdentifiers() throws {
+        let tmp = FileManager.default.temporaryDirectory.appendingPathComponent(UUID().uuidString)
+        try FileManager.default.createDirectory(at: tmp, withIntermediateDirectories: true)
+        let file = tmp.appendingPathComponent("analytics.json")
+        let paperID = UUID().uuidString
+        let metric: [String: Any] = [
+            "paper_id": paperID,
+            "nov_cluster": 0.1,
+            "nov_global": 0.2,
+            "nov_directional": 0.0,
+            "nov_combinatorial": 0.0,
+            "novelty_uncertainty": 0.0,
+            "z_novelty": 0.0,
+            "consensus_struct": 0.0,
+            "consensus_claim": 0.0,
+            "consensus_temporal": 0.0,
+            "consensus_total": 0.0,
+            "z_consensus": 0.0,
+            "consensus_uncertainty": 0.0,
+            "influence_abs": 0.0,
+            "influence_pos": 0.0,
+            "influence_neg": 0.0,
+            "drift_contrib": 0.0,
+            "role_source": 0.0,
+            "role_bridge": 0.0,
+            "role_sink": 0.0
+        ]
+        let payload: [String: Any] = [
+            "generated_at": "2025-01-02T03:04:05Z",
+            "paper_count": 1,
+            "vector_dim": 128,
+            "paper_metrics": [metric, metric]
+        ]
+        try JSONSerialization.data(withJSONObject: payload).write(to: file)
+
+        XCTAssertThrowsError(try AnalyticsStore.loadSummary(from: file)) { error in
+            XCTAssertTrue(error.localizedDescription.contains("paper_metrics"))
+            XCTAssertTrue(error.localizedDescription.contains("duplicate"))
+        }
+    }
+
+    func testLoadSummaryRejectsDuplicateRecommendations() throws {
+        let tmp = FileManager.default.temporaryDirectory.appendingPathComponent(UUID().uuidString)
+        try FileManager.default.createDirectory(at: tmp, withIntermediateDirectories: true)
+        let file = tmp.appendingPathComponent("analytics.json")
+        let paperID = UUID().uuidString
+        let payload: [String: Any] = [
+            "generated_at": "2025-01-02T03:04:05Z",
+            "paper_count": 1,
+            "vector_dim": 128,
+            "recommendations": [paperID, paperID]
+        ]
+        try JSONSerialization.data(withJSONObject: payload).write(to: file)
+
+        XCTAssertThrowsError(try AnalyticsStore.loadSummary(from: file)) { error in
+            XCTAssertTrue(error.localizedDescription.contains("recommendations"))
+            XCTAssertTrue(error.localizedDescription.contains("duplicate"))
+        }
     }
 }

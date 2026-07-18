@@ -121,7 +121,36 @@ release_validate_bundle_id "$bundle_id"
 executable="$app/Contents/MacOS/$executable_name"
 [ -x "$executable" ] || release_die "bundle executable is missing: $executable"
 [ -d "$app/Contents/Resources/Prompts" ] || release_die "bundled prompts are missing"
-[ -f "$app/Contents/Resources/PrivacyInfo.xcprivacy" ] || release_die "privacy manifest is missing"
+privacy_manifest="$app/Contents/Resources/PrivacyInfo.xcprivacy"
+[ -f "$privacy_manifest" ] || release_die "privacy manifest is missing"
+plutil -lint "$privacy_manifest" >/dev/null 2>&1 \
+    || release_die "privacy manifest is not a valid property list"
+
+privacy_has_file_timestamp_reason() {
+    manifest=$1
+    required_reason=$2
+    api_index=0
+    while api_type=$(/usr/libexec/PlistBuddy \
+        -c "Print :NSPrivacyAccessedAPITypes:$api_index:NSPrivacyAccessedAPIType" \
+        "$manifest" 2>/dev/null); do
+        if [ "$api_type" = "NSPrivacyAccessedAPICategoryFileTimestamp" ]; then
+            reason_index=0
+            while reason=$(/usr/libexec/PlistBuddy \
+                -c "Print :NSPrivacyAccessedAPITypes:$api_index:NSPrivacyAccessedAPITypeReasons:$reason_index" \
+                "$manifest" 2>/dev/null); do
+                [ "$reason" = "$required_reason" ] && return 0
+                reason_index=$((reason_index + 1))
+            done
+        fi
+        api_index=$((api_index + 1))
+    done
+    return 1
+}
+
+for required_reason in 3B52.1 C617.1; do
+    privacy_has_file_timestamp_reason "$privacy_manifest" "$required_reason" \
+        || release_die "privacy manifest is missing required file-timestamp reason: $required_reason"
+done
 
 if LC_ALL=C strings "$executable" | grep -E 'OPENAI_API_KEY|rebuild_analytics\.py|\.venv/bin/python|libatlas_ffi\.dylib|LITERATURE_ATLAS_PROMPTS_DIR|LITERATURE_ATLAS_SMOKE_FAST' >/dev/null; then
     release_die "distributed executable contains a checkout-only runtime marker"
@@ -152,6 +181,11 @@ plutil -extract 'com\.apple\.security\.app-sandbox' raw -o - "$entitlements" 2>/
     || release_die "app sandbox entitlement is missing"
 plutil -extract 'com\.apple\.security\.files\.bookmarks\.app-scope' raw -o - "$entitlements" 2>/dev/null | grep -Fx true >/dev/null \
     || release_die "app-scoped bookmark entitlement is missing"
+plutil -extract 'com\.apple\.security\.files\.user-selected\.read-only' raw -o - "$entitlements" 2>/dev/null | grep -Fx true >/dev/null \
+    || release_die "read-only user-selected file entitlement is missing"
+if plutil -extract 'com\.apple\.security\.files\.user-selected\.read-write' raw -o - "$entitlements" >/dev/null 2>&1; then
+    release_die "read-write user-selected file entitlement must not ship"
+fi
 if plutil -extract 'com\.apple\.security\.get-task-allow' raw -o - "$entitlements" >/dev/null 2>&1; then
     release_die "debug get-task-allow entitlement must not ship"
 fi

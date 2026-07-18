@@ -85,16 +85,20 @@ private struct UniverseField: View {
     var starCount: Int = 90
     var isCanvas: Bool = false
     @Environment(\.accessibilityReduceMotion) private var reduceMotion
+    @Environment(\.scenePhase) private var scenePhase
 
     var body: some View {
-        TimelineView(.periodic(from: .now, by: reduceMotion ? 3600 : 1.0 / 6.0)) { timeline in
+        TimelineView(.periodic(from: .now, by: reduceMotion || scenePhase != .active ? 3600 : 1.0)) { timeline in
             GeometryReader { geo in
                 let time = reduceMotion ? 0 : timeline.date.timeIntervalSinceReferenceDate
+                let size = sanitizedGeometrySize(geo.size)
                 ZStack {
                     MapPalette.backdrop
-                    nebulaLayer(size: geo.size, time: time)
-                    StarCanvas(count: starCount, time: time, intensity: isCanvas ? 0.95 : 0.62)
-                    orbitalDust(size: geo.size, time: time)
+                    if size != .zero {
+                        nebulaLayer(size: size, time: time)
+                        StarCanvas(count: starCount, time: time, intensity: isCanvas ? 0.95 : 0.62)
+                        orbitalDust(size: size, time: time)
+                    }
                 }
                 .clipShape(shape)
             }
@@ -1505,6 +1509,8 @@ private struct FocusedPaperInspector: View {
                         .foregroundStyle(.white.opacity(0.7))
                 }
                 .buttonStyle(.plain)
+                .accessibilityLabel("Clear selected paper")
+                .help("Clear selected paper")
             }
 
             Text(paper.summary)
@@ -1713,7 +1719,6 @@ struct ClusterGraphView: View {
     var driftMagnitudes: [Int: Double] = [:]
     var driftVectors: [Int: (dx: Double, dy: Double)] = [:]
     var ideaEdges: [(Int, Int, Double)] = []
-    @Environment(\.accessibilityReduceMotion) private var reduceMotion
 
     private var layoutSignature: String {
         clusters.map { cluster in
@@ -1723,26 +1728,25 @@ struct ClusterGraphView: View {
     }
 
     var body: some View {
-        TimelineView(.periodic(from: .now, by: reduceMotion ? 3600 : 1.0 / 8.0)) { timeline in
-            GeometryReader { geo in
+        GeometryReader { geo in
                 let size = geo.size
                 let center = CGPoint(x: size.width / 2, y: size.height / 2)
-                let radius = min(size.width, size.height) / 2 - 80
-                let time = timeline.date.timeIntervalSinceReferenceDate
-                let wobble = reduceMotion ? 0 : min(10, radius * 0.03)
+                let radius = graphLayoutRadius(size: size, padding: 80)
                 let positions = Dictionary(uniqueKeysWithValues: clusters.enumerated().map { idx, cluster in
-                    (cluster.id, position(for: cluster, fallbackIndex: idx, total: clusters.count, center: center, radius: radius, time: time, wobble: wobble))
+                    (cluster.id, position(for: cluster, fallbackIndex: idx, total: clusters.count, center: center, radius: radius))
                 })
 
                 ZStack {
                     UniverseField(cornerRadius: 24, starCount: 95, isCanvas: true)
                         .overlay(
                             ZStack {
-                                ForEach(0..<6, id: \.self) { idx in
-                                    Circle()
-                                        .stroke(Color.white.opacity(0.05), lineWidth: 1)
-                                        .frame(width: radius * 2 * CGFloat(0.3 + 0.1 * Double(idx)), height: radius * 2 * CGFloat(0.3 + 0.1 * Double(idx)))
-                                        .offset(y: 8)
+                                if radius > 0 {
+                                    ForEach(0..<6, id: \.self) { idx in
+                                        Circle()
+                                            .stroke(Color.white.opacity(0.05), lineWidth: 1)
+                                            .frame(width: radius * 2 * CGFloat(0.3 + 0.1 * Double(idx)), height: radius * 2 * CGFloat(0.3 + 0.1 * Double(idx)))
+                                            .offset(y: 8)
+                                    }
                                 }
                             }
                         )
@@ -1795,7 +1799,7 @@ struct ClusterGraphView: View {
                                 ClusterNodeView(
                                     cluster: cluster,
                                     isSelected: selectedClusterIDs.contains(cluster.id),
-                                    pulsePhase: reduceMotion ? 0 : time + Double(cluster.id)
+                                    pulsePhase: 0
                                 )
                                     .position(pos)
                                     .contentShape(Rectangle())
@@ -1829,28 +1833,19 @@ struct ClusterGraphView: View {
                 }
                 .animation(.spring(response: 0.55, dampingFraction: 0.85), value: layoutSignature)
             }
-        }
     }
 
-    private func position(for cluster: Cluster, fallbackIndex: Int, total: Int, center: CGPoint, radius: CGFloat, time: TimeInterval, wobble: CGFloat) -> CGPoint {
-        let base: CGPoint
+    private func position(for cluster: Cluster, fallbackIndex: Int, total: Int, center: CGPoint, radius: CGFloat) -> CGPoint {
         if let layout = cluster.layoutPosition {
             let x = center.x + (CGFloat(layout.x) - 0.5) * radius * 2
             let y = center.y + (CGFloat(layout.y) - 0.5) * radius * 2
-            base = CGPoint(x: x, y: y)
-        } else {
-            let angle = 2 * Double.pi * Double(fallbackIndex) / Double(max(total, 1))
-            base = CGPoint(
-                x: center.x + radius * CGFloat(cos(angle)),
-                y: center.y + radius * CGFloat(sin(angle))
-            )
+            return CGPoint(x: x, y: y)
         }
-
-        guard wobble > 0 else { return base }
-        let phase = CGFloat(time * 0.9) + hashAngle(for: cluster.id)
-        let dx = wobble * CGFloat(cos(phase))
-        let dy = wobble * CGFloat(sin(phase * 1.18))
-        return CGPoint(x: base.x + dx, y: base.y + dy)
+        let angle = 2 * Double.pi * Double(fallbackIndex) / Double(max(total, 1))
+        return CGPoint(
+            x: center.x + radius * CGFloat(cos(angle)),
+            y: center.y + radius * CGFloat(sin(angle))
+        )
     }
 
     private func hashAngle(for id: Int) -> CGFloat {
@@ -2183,7 +2178,7 @@ struct PaperScatterView: View {
         GeometryReader { geo in
             let size = geo.size
             let center = CGPoint(x: size.width / 2, y: size.height / 2)
-            let radius = min(size.width, size.height) / 2 - 60
+            let radius = graphLayoutRadius(size: size, padding: 60)
             let usesDotMode = shouldUseDotMode(total: papers.count, size: size)
             let scale = clampScale(zoomScale * gestureZoom)
             let offset = CGSize(width: panOffset.width + gesturePan.width, height: panOffset.height + gesturePan.height)

@@ -345,21 +345,6 @@ struct IngestView: View {
         }
     }
 
-    @ViewBuilder
-    private var availabilityBanner: some View {
-        let availability = SystemLanguageModel.default.availability
-        switch availability {
-        case .available:
-            Text("On-device language model: available")
-                .font(.caption)
-                .foregroundStyle(.green)
-        case .unavailable(let reason):
-            Text("On-device language model unavailable: \(String(describing: reason))")
-                .font(.caption)
-                .foregroundStyle(.red)
-        }
-    }
-    
     private var latestIngestedPaper: Paper? {
         let papers = model.papers
         return papers.max(by: { ($0.ingestedAt ?? Date.distantPast) < ($1.ingestedAt ?? Date.distantPast) })

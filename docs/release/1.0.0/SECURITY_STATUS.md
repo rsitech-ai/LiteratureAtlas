@@ -23,7 +23,7 @@ After sealing, commit `eff288e` removed a no-op `f32`-to-`f32` cast to satisfy t
 | App executed external Python and installed dependencies at runtime | Python analytics and install controls are excluded from `APP_STORE_BUILD` | Release compiler condition, validator, archive executable string scan |
 | Rust FFI loaded from repository-relative paths | App Store build disables relative `dlopen` and uses the pure-Swift path | Release compiler condition, validator, executable string scan |
 | Mutable data depended on repository/current working directory | App Store build writes under container Application Support and bundles prompts | Focused `AppPaths` tests; sandboxed runtime container evidence; `/Output` absent |
-| App Store product retained a dormant OpenAI endpoint | Provider is excluded from `APP_STORE_BUILD` | Compiler condition and packaged executable string scan |
+| App Store product retained a dormant OpenAI endpoint | The unused provider was removed; document compilation is on-device in every build | Source search and packaged executable string scan |
 | No application sandbox/entitlements/privacy manifests | Least-privilege platform files are committed and packaged | Validator, build logs, codesign entitlement inspection, archive inspection |
 | Folder enumeration happened before security-scoped access | Selected folder scope now opens before `fileExists`/enumeration | Red/green validator regression test and source-order gate |
 | Known Rust advisories in `bytes` and `crossbeam-epoch` | Lock updated to `bytes 1.11.1` and `crossbeam-epoch 0.9.20`; `anyhow` and `rand` also refreshed | `cargo audit`, strict clippy, tests |
