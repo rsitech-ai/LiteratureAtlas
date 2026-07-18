@@ -265,12 +265,12 @@ expect_success "verification accepts a DMG containing the exact supplied app" \
 mkdir -p "$TMP/PortableChecksum/origin" "$TMP/PortableChecksum/download"
 expect_success "DMG creation emits a checksum" \
     "$ROOT/script/create_dmg.sh" --app "$TMP/Expected.app" \
-    --output "$TMP/PortableChecksum/origin/Portable.dmg"
-mv "$TMP/PortableChecksum/origin/Portable.dmg" \
-    "$TMP/PortableChecksum/origin/Portable.dmg.sha256" \
+    --output "$TMP/PortableChecksum/origin/-Portable.dmg"
+mv "$TMP/PortableChecksum/origin/-Portable.dmg" \
+    "$TMP/PortableChecksum/origin/-Portable.dmg.sha256" \
     "$TMP/PortableChecksum/download/"
-expect_success "DMG checksum remains valid after download relocation" \
-    sh -c 'cd "$1" && shasum -a 256 -c Portable.dmg.sha256' \
+expect_success "leading-dash DMG checksum remains valid after download relocation" \
+    sh -c 'cd "$1" && shasum -a 256 -c -- -Portable.dmg.sha256' \
     sh "$TMP/PortableChecksum/download"
 
 if grep -R "notarytool submit" "$TMP" >/dev/null 2>&1; then
