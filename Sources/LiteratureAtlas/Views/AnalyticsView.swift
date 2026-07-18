@@ -3,15 +3,64 @@ import Charts
 import FoundationModels
 import Combine
 
+nonisolated func compiledArtifactStaleCount(
+    _ papers: [Paper],
+    contentModificationDate: @Sendable (URL) -> Date? = { url in
+        (try? url.resourceValues(forKeys: [.contentModificationDateKey]))?.contentModificationDate
+    }
+) -> Int? {
+    var staleCount = 0
+    for paper in papers {
+        guard !Task.isCancelled else { return nil }
+        let artifacts = paper.compiledArtifacts ?? []
+        guard let modifiedAt = paper.sourceModifiedAt else {
+            if artifacts.isEmpty { staleCount += 1 }
+            continue
+        }
+
+        var latestGeneratedAt: Date?
+        for artifact in artifacts {
+            guard !Task.isCancelled else { return nil }
+            let generatedAt: Date?
+            if let recordedDate = artifact.generatedAt {
+                generatedAt = recordedDate
+            } else {
+                generatedAt = contentModificationDate(URL(fileURLWithPath: artifact.path))
+            }
+            guard !Task.isCancelled else { return nil }
+            if let generatedAt {
+                if let currentLatest = latestGeneratedAt {
+                    if generatedAt > currentLatest {
+                        latestGeneratedAt = generatedAt
+                    }
+                } else {
+                    latestGeneratedAt = generatedAt
+                }
+            }
+        }
+
+        guard let latestGeneratedAt else {
+            staleCount += 1
+            continue
+        }
+        if latestGeneratedAt < modifiedAt {
+            staleCount += 1
+        }
+    }
+    return staleCount
+}
+
 private final class AnalyticsRecomputeTasks {
     var timeline: Task<Void, Never>?
     var temporal: Task<Void, Never>?
     var backend: Task<Void, Never>?
+    var artifactMetadata: Task<Void, Never>?
 
     deinit {
         timeline?.cancel()
         temporal?.cancel()
         backend?.cancel()
+        artifactMetadata?.cancel()
     }
 }
 
@@ -74,6 +123,7 @@ struct AnalyticsView: View {
     @State private var cachedInfluenceTop: [(paper: Paper, score: Double)] = []
     @State private var cachedInfluenceTimeline: [(paper: Paper, score: Double, year: Int)] = []
     @State private var cachedIdeaRiver: [Paper] = []
+    @State private var cachedStaleCompiledCount: Int = 0
 
     @State private var recomputeTasks = AnalyticsRecomputeTasks()
 
@@ -156,7 +206,7 @@ struct AnalyticsView: View {
     }
 
     private var staleCompiledCount: Int {
-        model.papers.filter(isCompiledArtifactStale).count
+        cachedStaleCompiledCount
     }
 
     private var graphReadyCount: Int {
@@ -199,23 +249,6 @@ struct AnalyticsView: View {
             .filter { !$0.isEmpty }
     }
 
-    private func isCompiledArtifactStale(_ paper: Paper) -> Bool {
-        guard let modifiedAt = paper.sourceModifiedAt else {
-            return (paper.compiledArtifacts ?? []).isEmpty
-        }
-        let generatedDates = (paper.compiledArtifacts ?? []).compactMap { artifact -> Date? in
-            if let generatedAt = artifact.generatedAt {
-                return generatedAt
-            }
-            let url = URL(fileURLWithPath: artifact.path)
-            return (try? url.resourceValues(forKeys: [.contentModificationDateKey]))?.contentModificationDate
-        }
-        guard let latestGeneratedAt = generatedDates.max() else {
-            return true
-        }
-        return latestGeneratedAt < modifiedAt
-    }
-
     private func scheduleTimelineRecompute() {
         recomputeTasks.timeline?.cancel()
         let papersSnapshot = model.papers
@@ -250,6 +283,23 @@ struct AnalyticsView: View {
 
             guard !Task.isCancelled else { return }
             cachedTimeline = timeline
+        }
+    }
+
+    private func scheduleArtifactMetadataRecompute() {
+        recomputeTasks.artifactMetadata?.cancel()
+        let papersSnapshot = model.papers
+        recomputeTasks.artifactMetadata = Task(priority: .utility) {
+            let computeTask = Task.detached(priority: .utility) {
+                compiledArtifactStaleCount(papersSnapshot)
+            }
+            let count = await withTaskCancellationHandler(operation: {
+                await computeTask.value
+            }, onCancel: {
+                computeTask.cancel()
+            })
+            guard !Task.isCancelled, let count else { return }
+            cachedStaleCompiledCount = count
         }
     }
 
@@ -718,13 +768,6 @@ struct AnalyticsView: View {
         return formatter.string(from: date)
     }
 
-    private func factorLabel(for idx: Int) -> String {
-        if let labels = analyticsSummary?.factorLabels, idx < labels.count {
-            return labels[idx]
-        }
-        return "F\(idx)"
-    }
-
     @ViewBuilder private func noveltyCard() -> some View {
         GlassCard {
             VStack(alignment: .leading, spacing: 8) {
@@ -992,25 +1035,6 @@ struct AnalyticsView: View {
         }
     }
 
-    @ViewBuilder private func factorChart() -> some View {
-        let rows = factorExposures
-        Chart {
-            ForEach(Array(rows.enumerated()), id: \.offset) { _, row in
-                LineMark(
-                    x: .value("Year", row.year),
-                    y: .value("Exposure", row.score)
-                )
-                .foregroundStyle(by: .value("Factor", factorLabel(for: row.factor)))
-                .interpolationMethod(.catmullRom)
-            }
-        }
-        .chartXScale(domain: chartYearDomain ?? 1900...Calendar.current.component(.year, from: Date()))
-        .frame(height: 520)
-        .chartLegend(position: .bottom)
-        .animation(.easeInOut(duration: 0.4), value: rows.count)
-        .animation(.easeInOut(duration: 0.4), value: focusMyExposure)
-    }
-
     @ViewBuilder private func influenceCard() -> some View {
         GlassCard {
             VStack(alignment: .leading, spacing: 8) {
@@ -1173,10 +1197,14 @@ struct AnalyticsView: View {
                                 model.recordRecommendationFeedback(paperID: paper.id, helpful: true)
                             } label: { Image(systemName: "hand.thumbsup") }
                                 .buttonStyle(.borderless)
+                                .accessibilityLabel("Mark recommendation helpful")
+                                .help("Mark recommendation helpful")
                             Button {
                                 model.recordRecommendationFeedback(paperID: paper.id, helpful: false)
                             } label: { Image(systemName: "hand.thumbsdown") }
                                 .buttonStyle(.borderless)
+                                .accessibilityLabel("Mark recommendation not helpful")
+                                .help("Mark recommendation not helpful")
                         }
                     }
                 }
@@ -2117,6 +2145,7 @@ struct AnalyticsView: View {
                     scheduleTimelineRecompute()
                     scheduleTemporalRecompute(delay: 0)
                     scheduleBackendRecompute(delay: 0)
+                    scheduleArtifactMetadataRecompute()
                 }
                 .onReceive(model.$papers) { _ in
                     Task { @MainActor in
@@ -2124,6 +2153,7 @@ struct AnalyticsView: View {
                         scheduleTimelineRecompute()
                         scheduleTemporalRecompute()
                         scheduleBackendRecompute()
+                        scheduleArtifactMetadataRecompute()
                     }
                 }
                 .onReceive(model.$clusters) { _ in
@@ -2626,6 +2656,9 @@ private struct NoveltyConsensusChartView: View {
         .chartYScale(domain: yDomain)
         .chartXAxisLabel("Novelty (z / combo / directional)")
         .chartYAxisLabel("Consensus (z)")
+        .accessibilityElement(children: .ignore)
+        .accessibilityLabel("Novelty and consensus scatter plot")
+        .accessibilityValue("\(points.count) papers; \(frontier.count) on the frontier")
         .overlay(alignment: .topTrailing) {
             ChartZoomControls(
                 onZoomIn: {
@@ -2796,6 +2829,9 @@ private struct TopicStreamChart: View {
         .chartYScale(domain: 0...maxCount)
         .chartXAxisLabel("Year")
         .chartYAxisLabel("Count")
+        .accessibilityElement(children: .ignore)
+        .accessibilityLabel("Topic activity over time")
+        .accessibilityValue(Text(verbatim: "\(String(fullDomain.lowerBound)) to \(String(fullDomain.upperBound)), \(String(stream.countsByYear.values.reduce(0, +))) papers"))
         .frame(height: height)
         .overlay(alignment: .topTrailing) {
             ChartZoomControls(
@@ -2954,6 +2990,9 @@ private struct MethodCrossoverChart: View {
         .chartXAxisLabel("Year")
         .chartYAxisLabel("Count")
         .chartXScale(domain: domain)
+        .accessibilityElement(children: .ignore)
+        .accessibilityLabel("Method adoption crossover")
+        .accessibilityValue(Text(verbatim: "\(signal.a) and \(signal.b), \(String(fullDomain.lowerBound)) to \(String(fullDomain.upperBound))"))
         .overlay(alignment: .topTrailing) {
             ChartZoomControls(
                 onZoomIn: { visibleDomain = ChartZoomPan.zoom(domain: domain, by: 1.35, within: fullDomain) },
@@ -3171,6 +3210,9 @@ private struct ReadingLagChart: View {
         .chartYScale(domain: yDomain)
         .chartXAxisLabel("Publication year")
         .chartYAxisLabel("Read year")
+        .accessibilityElement(children: .ignore)
+        .accessibilityLabel("Publication and reading year lag")
+        .accessibilityValue(Text(verbatim: "\(String(points.count)) papers, years \(String(fullDomain.lowerBound)) to \(String(fullDomain.upperBound))"))
         .overlay(alignment: .topTrailing) {
             ChartZoomControls(
                 onZoomIn: {
@@ -3311,6 +3353,12 @@ private struct FactorExposureChart: View {
     var body: some View {
         let fullDomain = domain
         let xDomain = visibleDomain ?? fullDomain
+        let scoreDomain: ClosedRange<Double> = {
+            let scores = exposures.map(\.score).filter { $0.isFinite }
+            guard let low = scores.min(), let high = scores.max(), low < high else { return -1...1 }
+            let padding = max(0.1, (high - low) * 0.12)
+            return (low - padding)...(high + padding)
+        }()
         Chart {
             ForEach(Array(exposures.enumerated()), id: \.offset) { _, row in
                 LineMark(
@@ -3318,7 +3366,7 @@ private struct FactorExposureChart: View {
                     y: .value("Exposure", row.score)
                 )
                 .foregroundStyle(by: .value("Factor", label(for: row.factor)))
-                .interpolationMethod(.catmullRom)
+                .interpolationMethod(.linear)
             }
 
             if let y = hoveredYear, xDomain.contains(y) {
@@ -3337,6 +3385,7 @@ private struct FactorExposureChart: View {
             }
         }
         .chartXScale(domain: xDomain)
+        .chartYScale(domain: scoreDomain)
         .chartXAxis {
             AxisMarks(values: .automatic(desiredCount: 8)) { value in
                 AxisGridLine()
@@ -3527,6 +3576,9 @@ private struct InfluenceTimelineChart: View {
         .chartYScale(domain: yDomain)
         .chartXAxisLabel("Year")
         .chartYAxisLabel("Influence")
+        .accessibilityElement(children: .ignore)
+        .accessibilityLabel("Paper influence over time")
+        .accessibilityValue(Text(verbatim: "\(String(items.count)) papers, \(String(fullXDomain.lowerBound)) to \(String(fullXDomain.upperBound))"))
         .chartXAxis {
             AxisMarks(values: .automatic(desiredCount: 8)) { value in
                 AxisGridLine()

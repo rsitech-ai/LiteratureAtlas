@@ -50,7 +50,7 @@ or destructive user-data action was performed.
 | Ingestion | Validate PDF/Markdown -> parse metadata/body -> embed -> commit canonical paper/chunk state -> publish memory -> derive document/Markdown exports | Canonical write failures publish neither papers nor chunks; frontmatter year, final section range, duplicate identity, checksum skip, and source-kind counts are correct. |
 | App state | Canonical persistence succeeds before in-memory publication; derived-export failures stay visible; async work cannot publish stale results | Paper/project transactions, project-note deletion, per-paper task cancellation, and clustering run tokens are covered by regressions. |
 | Analytics | Strict validated JSON/parquet -> parameterized DuckDB writes -> finite deterministic summary | Frozen rebuild and isolated artifact/topic audits pass with no warning or finding. |
-| Rust FFI | Swift/C ABI lengths agree; null pointers, mismatched lengths, and non-finite floats are rejected; non-null pointers satisfy the documented C contract; panics do not cross C | The length-aware query uses a versioned symbol so a stale four-argument dylib cannot be called through the five-argument ABI. Header, Swift, Rust, strict Clippy, and six FFI tests agree. |
+| Rust FFI | Swift/C ABI lengths agree; null pointers, mismatched lengths, and non-finite floats are rejected; non-null pointers satisfy the documented C contract; panics do not cross C | The length-aware query uses a versioned symbol so a stale four-argument dylib cannot be called through the five-argument ABI. Header, Swift, Rust, strict Clippy, and seven FFI tests agree. |
 | Distribution | Debug contributor runtime may use checkout tools; Release distributed runtime is self-contained | Policy validator and macOS/iPadOS Release builds pass. |
 | Release evidence | Exact clean source -> unsigned candidate -> signing -> notarization evidence -> post-staple verification | Scripts fail closed on mixed source, invalid identity, colliding evidence paths, missing approval, and mismatched artifacts. |
 
@@ -126,6 +126,74 @@ or destructive user-data action was performed.
     synchronously on `AppModel`'s main actor. Checksum I/O and incremental SHA-256
     work now run in a utility task that checks cancellation between bounded file
     reads, while only the resulting state publication returns to the main actor.
+26. Follow-up review found that distribution verification checked only for a
+    privacy-manifest file and did not enforce the shipped user-selected-file
+    entitlement. It now lints the packaged manifest, requires file-timestamp
+    reasons `3B52.1` and `C617.1`, requires read-only access to be `true`, and
+    rejects any read-write user-selected-file entitlement.
+27. macOS-only bookmark options left iPad source access non-durable. Bookmark
+    creation/resolution now uses platform-appropriate options, refreshes stale
+    data, balances scope lifetime, and exposes source-open failures.
+28. Pin, rename, and flashcard review state could diverge from disk after a
+    failed write. These mutations now commit before publication and preserve
+    prior state with an observable persistence error on failure.
+29. Analytics could combine a 3,921-paper summary with the current 3,919-paper
+    library and could trap on duplicate identifiers. The Swift boundary now
+    validates corpus count, paper membership, identifier uniqueness, and finite
+    values before publishing any derived state.
+30. Rank-deficient PCA/NMF inputs, malformed claim/chunk structures, dense
+    all-pairs similarity, vocabulary-squared tag pairs, custom database paths,
+    and audit silhouette failures had unsafe or misleading edge behavior. The
+    Python pipeline now has bounded, deterministic, fail-closed implementations
+    and focused regressions for each case.
+31. Zero-weight finite Rust edges satisfied the public non-negative contract
+    but disappeared from connected-component topology. Topology now records
+    edge presence independently from weighted centrality and the public header
+    agrees with the implementation.
+32. Placeholder cluster names, unstable glossary identities, ambiguous icon-only
+    actions, chart semantics, render-time filesystem scans, and dormant remote/
+    vector-index code were reconciled. Generated numeric names render as
+    `Unnamed topic`, primary actions have native accessibility/help semantics,
+    and uncalled production paths were removed.
+33. The decorative Universe field consumed 14–18% CPU at six redraws per second
+    on the 3,919-paper corpus. A one-second cadence preserves the slow ambient
+    effect while reducing measured idle CPU to 1.7–2.0%; the sampled main thread
+    spent 98% of samples waiting for events.
+34. Final review found that canceling a compiled-artifact metadata refresh did
+    not stop its detached filesystem scan. The scan now checks cancellation
+    before every paper/artifact and after every metadata read, returns no partial
+    result, and a 1,000-paper regression proves canceled work stops early.
+35. Independent PR review found that analytics freshness compared canonical IDs
+    only with `paper_metrics`. Every UUID-bearing decoded summary section is now
+    included, so stale novelty, neighbor, edge, recommendation, quality,
+    stability, citation, workflow, hygiene, and lens references all fail closed.
+36. Paper imports accepted arbitrary non-empty identifiers even though the Swift
+    consumer decodes UUIDs. The Python boundary now canonicalizes valid UUIDs and
+    skips invalid identifiers with an observable warning.
+37. Malformed `methodPipeline.steps` values could survive ingestion and fail in
+    downstream novelty/tag extraction. The nested structure is now normalized at
+    import, with invalid steps rejected and valid strings trimmed.
+38. Claim similarity sized nearest-neighbor queries from unfiltered input. Two
+    valid claims plus one invalid row could therefore request three neighbors
+    from a two-sample matrix. Sizing now uses the filtered population, with a
+    focused regression for that exact failure.
+39. Setup guidance still advertised Python 3.10 and a root `.venv` after the
+    locked analytics runtime moved to Python 3.12 under `analytics/.venv`.
+    Contributor prerequisites and commands now match the managed runtime, and
+    removed vector-index coverage is no longer claimed.
+40. The same setup guide advertised Xcode 16 for SDK 26 targets and treated
+    contributor-only `Output/`/Rust FFI behavior as a distributed-app contract.
+    It now requires the verified Xcode 26.6 lane and documents container storage,
+    Swift fallback, and the supported community release script truthfully.
+41. Adjacent deployment guidance still told distributed builds to ship the
+    contributor-only Rust library, claimed all writes were repo-relative, and
+    denied the existing task files. Those statements now match the compile-time
+    distributed boundary, privacy model, release gates, and task-tracking policy.
+42. UUID validation initially canonicalized paper IDs to lowercase while Swift
+    persisted uppercase UUID strings in chunks and other foreign keys. This
+    silently dropped chunk-derived analytics. Validation now preserves canonical
+    source casing, duplicate detection remains case-insensitive, and an uppercase
+    paper/chunk regression proves the join and code-link signal survive.
 
 ## Native scenario matrix
 
@@ -160,21 +228,23 @@ without an app intent integration, and did not affect launch or interaction.
 
 ## Verification evidence
 
-- Swift package: 69 XCTest cases passed, one explicitly opt-in corpus smoke
+- Swift package: 84 XCTest cases passed, one explicitly opt-in corpus smoke
   skipped, and four Swift Testing bookmark tests passed with warnings as errors.
-- Python: frozen lock sync/import passed; Ruff format/lint passed; 39 tests
+- Python: frozen lock sync/import passed; Ruff format/lint passed; 54 tests
   passed; installed-environment audit found no known vulnerability.
-- Rust: formatting, strict Clippy, six tests, and release build passed.
+- Rust: formatting, strict Clippy, seven tests, and release build passed.
 - RustSec: no vulnerability; one allowed unmaintained transitive warning for
   `bincode 1.3.3` through `hnsw_rs`.
 - Release policy: shell syntax, the complete release-script regression suite,
   and configuration validation passed with only `app_icon_artwork` explicitly
   allowed.
-- Xcode: generated project is byte-stable; unsigned macOS and iPadOS Simulator
-  Release builds passed in isolated DerivedData with no diagnostic output.
-- Runtime: current bundle launched, isolated ingest/rebuild/audits passed, and
-  the final accessibility interaction exposed correct year semantics with no
-  app-owned publication fault.
+- Xcode: generated project is byte-stable; unsigned universal macOS and generic
+  iOS-device Release builds passed in isolated DerivedData with no diagnostics.
+- Runtime: the contributor bundle launched with the 3,919-paper corpus; all six
+  destinations rendered through native Cmd-1…Cmd-6 navigation; Analytics
+  truthfully rejected the stale 3,921-paper summary; repeated accessibility
+  traversal emitted no app-owned geometry, duplicate-ID, oversized-layer, or
+  publication fault; final idle CPU was 1.7–2.0%.
 
 ## Residual external blockers
 
@@ -187,18 +257,25 @@ without an app intent integration, and did not affect launch or interaction.
 
 ## Final readiness label
 
-- **repo-ready**: PR #8 passed all nine hosted checks and merged to `main`.
+- **repo-ready locally, hosted closeout pending**: PR #8 is the merged historical
+  baseline; the current follow-up branch still requires its own PR, hosted checks,
+  review, and merge before these newer fixes are part of `main`.
 - **runtime-proven** for the local contributor app and isolated end-to-end flow.
 - **blocked:external** for Developer ID/notarized/App Store/public release.
 
-## PR and merge closeout
+## Prior PR baseline and current closeout
 
 - Reviewed head: `a5c1cc8199fd61b19a8a957c24eeaece38e06552`.
 - GitHub merge commit: `6802f6e24e8e78e77b5a54cb4b58ee14c57f5926`.
-- All nine hosted checks passed, including Python/Rust/Apple quality, release
-  policy, dependency review, REUSE, and Python/Swift CodeQL.
+- All nine PR #8 workflow checks passed, including Python/Rust/Apple quality,
+  release policy, REUSE, and Python/Swift CodeQL. The dependency-review workflow
+  passed with an explicit warning and skipped the dependency-review action because
+  the owner-disabled dependency graph was unavailable; independent lockfile audits
+  remained mandatory.
 - The two automated inline findings were fixed, regression-tested, replied to,
   and resolved. Independent follow-up review returned SHIP after verifying
   cooperative chunk-level checksum cancellation.
 - The merge commit's tree exactly matched the reviewed head, and local `main`
   matched `origin/main` before the documentation-only closeout record.
+- Those PR #8 facts are historical baseline evidence. They do not approve the
+  current unmerged follow-up diff; its hosted PR evidence remains pending.

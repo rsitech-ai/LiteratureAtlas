@@ -397,8 +397,8 @@ def assign_topics(
     try:
         if k >= 2 and len(set(emb_labels.tolist())) >= 2:
             sil = float(silhouette_score(X, emb_labels, metric="cosine"))
-    except Exception:
-        sil = None
+    except Exception as exc:
+        raise RuntimeError(f"Silhouette score computation failed: {exc}") from exc
     return labels, f"kmeans_k{k}", sil
 
 
@@ -594,13 +594,16 @@ def run_audit(args: argparse.Namespace) -> tuple[int, str]:
     if not papers:
         return 2, "No readable papers found in Output/papers."
 
-    labels, method, silhouette = assign_topics(
-        papers=papers,
-        min_cluster_coverage=float(args.min_cluster_coverage),
-        min_k=int(args.kmeans_min_k),
-        max_k=int(args.kmeans_max_k),
-        seed=int(args.seed),
-    )
+    try:
+        labels, method, silhouette = assign_topics(
+            papers=papers,
+            min_cluster_coverage=float(args.min_cluster_coverage),
+            min_k=int(args.kmeans_min_k),
+            max_k=int(args.kmeans_max_k),
+            seed=int(args.seed),
+        )
+    except RuntimeError as exc:
+        return 2, f"Topic reliability audit error: {exc}"
 
     topics = build_topic_metrics(
         papers=papers,

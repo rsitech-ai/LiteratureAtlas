@@ -121,12 +121,12 @@ final class AppModel: ObservableObject {
     private let topicDossierActor = TopicDossierActor()
     private let embedder = SentenceEmbedder(language: .english)
     private let logger = Logger(subsystem: "LiteratureAtlas", category: "AppModel")
-    #if os(macOS)
     private let sourceAccessStore: SourceAccessStore
-    #endif
+    private let sourceDocumentOpener: @MainActor (URL) -> Bool
     private var ingestionTask: Task<Void, Never>?
     private var tradingLensBackfillTask: Task<Void, Never>?
     private var clusteringTask: Task<Void, Never>?
+    private var multiScaleComputeTask: Task<GalaxyComputeResult?, Never>?
     private var activeClusteringRunID: UUID?
     private var clusteringCancellationRequested = false
     private enum PaperAsyncOperation: Hashable {
@@ -146,8 +146,15 @@ final class AppModel: ObservableObject {
     private var chunksByPaperIDBuiltCount: Int = 0
     private var questionHistory: [String] = []
     private var questionEmbeddings: [[Float]] = []
+    private var obsidianPaperNoteURLsByID: [UUID: URL] = [:]
+    private var obsidianStrategyNoteURLsByID: [UUID: URL] = [:]
 
-    init(skipInitialLoad: Bool = false, customOutputRoot: URL? = nil) {
+    init(
+        skipInitialLoad: Bool = false,
+        customOutputRoot: URL? = nil,
+        sourceAccessStore: SourceAccessStore? = nil,
+        sourceDocumentOpener: @escaping @MainActor (URL) -> Bool = { PlatformOpen.open(url: $0) }
+    ) {
         documentCompiler = DocumentCompilerProviderFactory.makeDefault()
         if let custom = customOutputRoot {
             outputRoot = custom
@@ -157,13 +164,13 @@ final class AppModel: ObservableObject {
             outputRoot = AppModel.makePrimaryOutputRoot()
             legacyOutputRoot = AppModel.makeLegacyOutputRoot()
         }
-        #if os(macOS)
-        sourceAccessStore = SourceAccessStore(
+        self.sourceAccessStore = sourceAccessStore ?? SourceAccessStore(
             storageURL: outputRoot.deletingLastPathComponent()
                 .appendingPathComponent("SourceAccess", isDirectory: true)
                 .appendingPathComponent("source-bookmarks.json")
         )
-        #endif
+        self.sourceDocumentOpener = sourceDocumentOpener
+        refreshObsidianNoteIndexes()
         if canonicalEmbeddingDim == nil {
             let d = embedder.dimension
             if d > 0 { canonicalEmbeddingDim = d }
@@ -363,7 +370,6 @@ final class AppModel: ObservableObject {
     // MARK: - Ingestion
 
     func ingestFolder(url: URL) {
-        #if os(macOS)
         do {
             try sourceAccessStore.rememberFolder(url)
             sourceAccessError = nil
@@ -372,12 +378,10 @@ final class AppModel: ObservableObject {
             logger.error("[Ingest] Failed to preserve source-folder access: \(error.localizedDescription, privacy: .private)")
             return
         }
-        #endif
         selectedFolder = url
         ingestionLog = "Selected folder: \(url.lastPathComponent)"
         logger.info("[Ingest] Selected folder: \(url.path, privacy: .private(mask: .hash))")
         ingestionTask?.cancel()
-        #if os(macOS)
         ingestionTask = Task {
             do {
                 try await sourceAccessStore.withAccess(to: url) { resolvedURL in
@@ -390,9 +394,6 @@ final class AppModel: ObservableObject {
                 logger.error("[Ingest] Failed to reopen source-folder access: \(error.localizedDescription, privacy: .private)")
             }
         }
-        #else
-        ingestionTask = Task { await runIngestion(folderURL: url) }
-        #endif
     }
 
     func cancelIngestion() {
@@ -405,22 +406,18 @@ final class AppModel: ObservableObject {
             return
         }
 
-        #if os(macOS)
         do {
             let opened = try sourceAccessStore.withAccess(to: paper.fileURL) { resolvedURL in
-                PlatformOpen.open(url: resolvedURL)
+                sourceDocumentOpener(resolvedURL)
             }
             guard opened else {
-                throw CocoaError(.fileReadNoPermission)
+                throw SourceAccessStoreError.openFailed(paper.fileURL)
             }
             sourceAccessError = nil
         } catch {
             sourceAccessError = error.localizedDescription
             logger.error("[SourceAccess] Failed to open source document: \(error.localizedDescription, privacy: .private)")
         }
-        #else
-        _ = PlatformOpen.open(url: paper.fileURL)
-        #endif
     }
 
     private func runIngestion(folderURL: URL) async {
@@ -514,6 +511,7 @@ final class AppModel: ObservableObject {
                 }
                 do {
                     let mdURL = try PaperMarkdownExporter.write(paper: paper, outputRoot: outputRoot, context: paperObsidianContextSnapshot())
+                    obsidianPaperNoteURLsByID[paper.id] = mdURL
                     ingestionLog += "\n  Saved MD: \(mdURL.lastPathComponent)"
                 } catch {
                     ingestionLog += "\n  Warning: Markdown export failed: \(error.localizedDescription)"
@@ -790,11 +788,12 @@ final class AppModel: ObservableObject {
     /// commit into a reported generation failure.
     private func refreshPaperMarkdownAfterSave(_ paper: Paper) {
         do {
-            _ = try PaperMarkdownExporter.write(
+            let noteURL = try PaperMarkdownExporter.write(
                 paper: paper,
                 outputRoot: outputRoot,
                 context: paperObsidianContextSnapshot()
             )
+            obsidianPaperNoteURLsByID[paper.id] = noteURL
         } catch {
             persistenceError = "Paper data was saved, but the Markdown note could not be refreshed: \(error.localizedDescription)"
             ingestionLog += "\nWarning: paper data was saved, but Markdown refresh failed: \(error.localizedDescription)"
@@ -961,6 +960,10 @@ final class AppModel: ObservableObject {
         let runID = UUID()
         activeClusteringRunID = runID
         await runClustering(k: k, runID: runID)
+    }
+
+    var testHasActiveMultiScaleComputeTask: Bool {
+        multiScaleComputeTask != nil
     }
 
     func testPersistAndPublishIngestedPaper(_ paper: Paper, chunks: [PaperChunk]) throws {
@@ -1184,7 +1187,7 @@ final class AppModel: ObservableObject {
             // One-time Obsidian export for existing strategies (create missing + upgrade old format).
             let root = outputRoot
             let titleMap = Dictionary(uniqueKeysWithValues: papers.map { ($0.id, $0.title) })
-            Task.detached(priority: .utility) {
+            Task.detached(priority: .utility) { [weak self] in
                 let fm = FileManager.default
                 let folder = root
                     .appendingPathComponent("obsidian", isDirectory: true)
@@ -1208,6 +1211,7 @@ final class AppModel: ObservableObject {
                     }
                     _ = try? StrategyMarkdownExporter.write(project: project, outputRoot: root, paperTitlesByID: titleMap)
                 }
+                await self?.refreshObsidianNoteIndexes()
             }
         }
     }
@@ -1241,11 +1245,12 @@ final class AppModel: ObservableObject {
         upsertStrategyProject(project)
         persistenceError = nil
         do {
-            _ = try StrategyMarkdownExporter.write(
+            let noteURL = try StrategyMarkdownExporter.write(
                 project: project,
                 outputRoot: outputRoot,
                 paperTitlesByID: strategyPaperTitleMap()
             )
+            obsidianStrategyNoteURLsByID[project.id] = noteURL
         } catch {
             persistenceError = "The project was saved, but its Markdown note could not be refreshed: \(error.localizedDescription)"
             logger.error("[Projects] Failed to refresh Markdown note: \(error.localizedDescription, privacy: .private)")
@@ -1349,6 +1354,7 @@ final class AppModel: ObservableObject {
         }
 
         strategyProjects.removeAll(where: { $0.id == strategyID })
+        obsidianStrategyNoteURLsByID.removeValue(forKey: strategyID)
         persistenceError = nil
         appendUserEvent(type: "strategy_project_deleted", paperID: nil, extra: ["strategy_id": strategyID.uuidString])
         return true
@@ -1537,7 +1543,25 @@ final class AppModel: ObservableObject {
     func reloadAnalyticsSummary() {
         let url = outputRoot.appendingPathComponent("analytics", isDirectory: true).appendingPathComponent("analytics.json")
         do {
-            analyticsSummary = try AnalyticsStore.loadSummary(from: url)
+            let loadedSummary = try AnalyticsStore.loadSummary(from: url)
+            if let loadedSummary {
+                let canonicalPaperCount = papers.count
+                if (canonicalPaperCount > 0 || loadedSummary.paperCount > 0),
+                   loadedSummary.paperCount != canonicalPaperCount {
+                    analyticsSummary = nil
+                    analyticsLoadError = "Analytics are stale: they describe \(loadedSummary.paperCount) papers, but the current library contains \(canonicalPaperCount). Rebuild analytics."
+                    return
+                }
+
+                let canonicalIDs = Set(papers.map(\.id))
+                let unknownCount = loadedSummary.referencedPaperIDs.subtracting(canonicalIDs).count
+                if unknownCount > 0 {
+                    analyticsSummary = nil
+                    analyticsLoadError = "Analytics are stale: \(unknownCount) paper identifier(s) are not in the current library. Rebuild analytics."
+                    return
+                }
+            }
+            analyticsSummary = loadedSummary
             #if DISTRIBUTED_APP_BUILD
             analyticsLoadError = analyticsSummary == nil ? "Analytics data is not available yet." : nil
             #else
@@ -1999,6 +2023,8 @@ final class AppModel: ObservableObject {
 
     func performClustering(k: Int) {
         clusteringTask?.cancel()
+        multiScaleComputeTask?.cancel()
+        multiScaleComputeTask = nil
         let runID = UUID()
         activeClusteringRunID = runID
         clusteringTask = Task { await runClustering(k: k, runID: runID) }
@@ -2007,6 +2033,8 @@ final class AppModel: ObservableObject {
     func cancelClustering() {
         clusteringTask?.cancel()
         clusteringTask = nil
+        multiScaleComputeTask?.cancel()
+        multiScaleComputeTask = nil
         activeClusteringRunID = nil
         clusteringCancellationRequested = true
         isClustering = false
@@ -2054,12 +2082,29 @@ final class AppModel: ObservableObject {
         let kClamped = min(max(1, k), embeddings.count)
         ingestionLog += "\n\n[cluster] Clustering into \(kClamped) clusters..."
 
-        let compute = await Task.detached(priority: .userInitiated) { () -> (assignments: [Int], centroids: [[Float]], positions: [Point2D]) in
-            let (assignments, centroids) = KMeans.cluster(vectors: embeddings, k: kClamped, iterations: 25)
-            let positions = ForceLayout.compute(for: centroids)
+        let computeTask = Task.detached(priority: .userInitiated) { () -> (assignments: [Int], centroids: [[Float]], positions: [Point2D])? in
+            guard let (assignments, centroids) = KMeans.cluster(
+                vectors: embeddings,
+                k: kClamped,
+                iterations: 25,
+                shouldCancel: { Task.isCancelled }
+            ), let positions = ForceLayout.compute(
+                for: centroids,
+                shouldCancel: { Task.isCancelled }
+            ) else {
+                return nil
+            }
             return (assignments, centroids, positions)
-        }.value
-        guard activeClusteringRunID == runID, !clusteringCancellationRequested, !Task.isCancelled else {
+        }
+        let compute = await withTaskCancellationHandler {
+            await computeTask.value
+        } onCancel: {
+            computeTask.cancel()
+        }
+        guard let compute,
+              activeClusteringRunID == runID,
+              !clusteringCancellationRequested,
+              !Task.isCancelled else {
             return
         }
         let assignments = compute.assignments
@@ -2143,6 +2188,8 @@ final class AppModel: ObservableObject {
     /// - Level 2: individual papers within subtopics (paper nodes are shown at high zoom).
     func buildMultiScaleGalaxy(level0Range: ClosedRange<Int> = 5...8, level1Range: ClosedRange<Int> = 10...20) async {
         clusteringTask?.cancel()
+        multiScaleComputeTask?.cancel()
+        multiScaleComputeTask = nil
         let runID = UUID()
         activeClusteringRunID = runID
         await runMultiScaleGalaxy(level0Range: level0Range, level1Range: level1Range, runID: runID)
@@ -2170,7 +2217,8 @@ final class AppModel: ObservableObject {
         let corpusVersion = currentCorpusVersion()
         let inputs: [(id: UUID, embedding: [Float])] = validPapers.map { ($0.id, $0.embedding) }
 
-        let compute = await Task.detached(priority: .utility) { () -> GalaxyComputeResult in
+        let computeTask = Task.detached(priority: .utility) { () -> GalaxyComputeResult? in
+            guard !Task.isCancelled else { return nil }
             let count = inputs.count
             let kMega = min(
                 max(level0Range.lowerBound, count / max(1, count / 6)),
@@ -2178,13 +2226,21 @@ final class AppModel: ObservableObject {
             )
 
             let embeddings = inputs.map { $0.embedding }
-            let (megaAssignments, megaCentroids) = KMeans.cluster(vectors: embeddings, k: kMega, iterations: 30)
+            guard let (megaAssignments, megaCentroids) = KMeans.cluster(
+                vectors: embeddings,
+                k: kMega,
+                iterations: 30,
+                shouldCancel: { Task.isCancelled }
+            ) else {
+                return nil
+            }
 
             var megaInfos: [GalaxyClusterInfo] = []
             var subInfos: [GalaxyClusterInfo] = []
             var assignmentsByID: [UUID: Int] = [:]
 
             for megaID in 0..<kMega {
+                guard !Task.isCancelled else { return nil }
                 let memberIndices = megaAssignments.enumerated().filter { $0.element == megaID }.map { $0.offset }
                 guard !memberIndices.isEmpty else { continue }
                 let members = memberIndices.map { inputs[$0] }
@@ -2204,8 +2260,16 @@ final class AppModel: ObservableObject {
 
                 if members.count >= 2 && desiredSubK > 1 {
                     let memberEmbeddings = members.map { $0.embedding }
-                    let (subAssign, subCentroids) = KMeans.cluster(vectors: memberEmbeddings, k: desiredSubK, iterations: 20)
+                    guard let (subAssign, subCentroids) = KMeans.cluster(
+                        vectors: memberEmbeddings,
+                        k: desiredSubK,
+                        iterations: 20,
+                        shouldCancel: { Task.isCancelled }
+                    ) else {
+                        return nil
+                    }
                     for subID in 0..<desiredSubK {
+                        guard !Task.isCancelled else { return nil }
                         let localIdxs = subAssign.enumerated().filter { $0.element == subID }.map { $0.offset }
                         guard !localIdxs.isEmpty else { continue }
                         let subMembers = localIdxs.map { members[$0] }
@@ -2230,7 +2294,12 @@ final class AppModel: ObservableObject {
                     }
                 }
 
-                let subPositions = ForceLayout.compute(for: localSubInfos.map { $0.centroid })
+                guard let subPositions = ForceLayout.compute(
+                    for: localSubInfos.map { $0.centroid },
+                    shouldCancel: { Task.isCancelled }
+                ) else {
+                    return nil
+                }
                 for i in localSubInfos.indices {
                     localSubInfos[i].layoutPosition = subPositions.indices.contains(i) ? subPositions[i] : nil
                 }
@@ -2250,15 +2319,32 @@ final class AppModel: ObservableObject {
                 megaInfos.append(megaInfo)
             }
 
-            let megaPositions = ForceLayout.compute(for: megaInfos.map { $0.centroid })
+            guard let megaPositions = ForceLayout.compute(
+                for: megaInfos.map { $0.centroid },
+                shouldCancel: { Task.isCancelled }
+            ) else {
+                return nil
+            }
             for i in megaInfos.indices {
                 megaInfos[i].layoutPosition = megaPositions.indices.contains(i) ? megaPositions[i] : nil
             }
 
             return GalaxyComputeResult(megaClusters: megaInfos, subclusters: subInfos, assignmentsByID: assignmentsByID)
-        }.value
+        }
+        multiScaleComputeTask = computeTask
+        let compute = await withTaskCancellationHandler {
+            await computeTask.value
+        } onCancel: {
+            computeTask.cancel()
+        }
+        if activeClusteringRunID == runID {
+            multiScaleComputeTask = nil
+        }
 
-        guard activeClusteringRunID == runID, !clusteringCancellationRequested, !Task.isCancelled else {
+        guard let compute,
+              activeClusteringRunID == runID,
+              !clusteringCancellationRequested,
+              !Task.isCancelled else {
             return
         }
 
@@ -2381,13 +2467,29 @@ final class AppModel: ObservableObject {
 
     // MARK: - Galaxy glossary helpers
 
-    func toggleGalaxyPin(clusterID: Int) {
-        if pinnedClusterIDs.contains(clusterID) {
-            pinnedClusterIDs.remove(clusterID)
+    @discardableResult
+    func toggleGalaxyPin(clusterID: Int) -> Bool {
+        var proposedPins = pinnedClusterIDs
+        if proposedPins.contains(clusterID) {
+            proposedPins.remove(clusterID)
         } else {
-            pinnedClusterIDs.insert(clusterID)
+            proposedPins.insert(clusterID)
         }
-        persistGalaxySnapshot(version: currentCorpusVersion(), megaClusters: megaClusters)
+        do {
+            try writeGalaxySnapshot(
+                version: currentCorpusVersion(),
+                megaClusters: megaClusters,
+                pinnedClusterIDs: proposedPins,
+                clusterNameSources: clusterNameSources
+            )
+        } catch {
+            persistenceError = "The topic pin was not saved: \(error.localizedDescription)"
+            logger.error("Failed to persist topic pin: \(error.localizedDescription, privacy: .private)")
+            return false
+        }
+        pinnedClusterIDs = proposedPins
+        persistenceError = nil
+        return true
     }
 
     func isGalaxyPinned(clusterID: Int) -> Bool {
@@ -2481,13 +2583,33 @@ final class AppModel: ObservableObject {
         }
     }
 
-    func renameGalaxyCluster(clusterID: Int, name: String, metaSummary: String?) {
+    @discardableResult
+    func renameGalaxyCluster(clusterID: Int, name: String, metaSummary: String?) -> Bool {
         let trimmedName = name.trimmingCharacters(in: .whitespacesAndNewlines)
-        guard !trimmedName.isEmpty else { return }
+        guard !trimmedName.isEmpty else { return false }
+        let previousMegaClusters = megaClusters
+        let previousClusters = clusters
+        let previousNameSources = clusterNameSources
         setGalaxyClusterFields(clusterID: clusterID, name: trimmedName, metaSummary: metaSummary)
 
         clusterNameSources[clusterID] = .manual
-        persistGalaxySnapshot(version: currentCorpusVersion(), megaClusters: megaClusters)
+        do {
+            try writeGalaxySnapshot(
+                version: currentCorpusVersion(),
+                megaClusters: megaClusters,
+                pinnedClusterIDs: pinnedClusterIDs,
+                clusterNameSources: clusterNameSources
+            )
+        } catch {
+            megaClusters = previousMegaClusters
+            clusters = previousClusters
+            clusterNameSources = previousNameSources
+            persistenceError = "The topic name was not saved: \(error.localizedDescription)"
+            logger.error("Failed to persist topic rename: \(error.localizedDescription, privacy: .private)")
+            return false
+        }
+        persistenceError = nil
+        return true
     }
 
     func autoNameGalaxyCluster(clusterID: Int, force: Bool = false) async {
@@ -2610,22 +2732,36 @@ final class AppModel: ObservableObject {
     }
 
     private func persistGalaxySnapshot(version: String, megaClusters: [Cluster]) {
-        let folder = outputRoot.appendingPathComponent("clusters", isDirectory: true)
-        let url = folder.appendingPathComponent("galaxy_\(version).json")
-        let encoder = JSONEncoder()
         do {
-            let data = try encoder.encode(
-                GalaxySnapshot(
-                    version: version,
-                    megaClusters: megaClusters,
-                    pinnedClusterIDs: Array(pinnedClusterIDs).sorted(),
-                    clusterNameSources: clusterNameSources
-                )
+            try writeGalaxySnapshot(
+                version: version,
+                megaClusters: megaClusters,
+                pinnedClusterIDs: pinnedClusterIDs,
+                clusterNameSources: clusterNameSources
             )
-            try data.write(to: url, options: .atomic)
         } catch {
             logger.error("Failed to persist galaxy snapshot: \(error.localizedDescription, privacy: .private)")
         }
+    }
+
+    private func writeGalaxySnapshot(
+        version: String,
+        megaClusters: [Cluster],
+        pinnedClusterIDs: Set<Int>,
+        clusterNameSources: [Int: ClusterNameSource]
+    ) throws {
+        let folder = outputRoot.appendingPathComponent("clusters", isDirectory: true)
+        let url = folder.appendingPathComponent("galaxy_\(version).json")
+        let encoder = JSONEncoder()
+        let data = try encoder.encode(
+            GalaxySnapshot(
+                version: version,
+                megaClusters: megaClusters,
+                pinnedClusterIDs: Array(pinnedClusterIDs).sorted(),
+                clusterNameSources: clusterNameSources
+            )
+        )
+        try data.write(to: url, options: .atomic)
     }
 
     func exportGalaxyArtifacts() -> (jsonURL: URL, reportURL: URL)? {
@@ -2747,27 +2883,42 @@ final class AppModel: ObservableObject {
     }
 
     func obsidianNoteURL(for paperID: UUID) -> URL? {
-        let folder = outputRoot
-            .appendingPathComponent("obsidian", isDirectory: true)
-            .appendingPathComponent("papers", isDirectory: true)
-
-        let token = paperID.uuidString.uppercased()
-        let files = (try? FileManager.default.contentsOfDirectory(at: folder, includingPropertiesForKeys: [.isRegularFileKey], options: [.skipsHiddenFiles])) ?? []
-        return files.first(where: { url in
-            url.pathExtension.lowercased() == "md" && url.lastPathComponent.uppercased().contains(token)
-        })
+        obsidianPaperNoteURLsByID[paperID]
     }
 
     func obsidianStrategyNoteURL(for strategyID: UUID) -> URL? {
-        let folder = outputRoot
-            .appendingPathComponent("obsidian", isDirectory: true)
-            .appendingPathComponent("strategies", isDirectory: true)
+        obsidianStrategyNoteURLsByID[strategyID]
+    }
 
-        let token = strategyID.uuidString.uppercased()
-        let files = (try? FileManager.default.contentsOfDirectory(at: folder, includingPropertiesForKeys: [.isRegularFileKey], options: [.skipsHiddenFiles])) ?? []
-        return files.first(where: { url in
-            url.pathExtension.lowercased() == "md" && url.lastPathComponent.uppercased().contains(token)
-        })
+    private func refreshObsidianNoteIndexes() {
+        let obsidianRoot = outputRoot.appendingPathComponent("obsidian", isDirectory: true)
+        obsidianPaperNoteURLsByID = Self.indexedObsidianNotes(
+            in: obsidianRoot.appendingPathComponent("papers", isDirectory: true)
+        )
+        obsidianStrategyNoteURLsByID = Self.indexedObsidianNotes(
+            in: obsidianRoot.appendingPathComponent("strategies", isDirectory: true)
+        )
+    }
+
+    private static func indexedObsidianNotes(in folder: URL) -> [UUID: URL] {
+        let files = (try? FileManager.default.contentsOfDirectory(
+            at: folder,
+            includingPropertiesForKeys: [.isRegularFileKey],
+            options: [.skipsHiddenFiles]
+        )) ?? []
+
+        var notesByID: [UUID: URL] = [:]
+        for url in files.sorted(by: { $0.lastPathComponent < $1.lastPathComponent }) where url.pathExtension.lowercased() == "md" {
+            let fileName = url.deletingPathExtension().lastPathComponent
+            guard let start = fileName.lastIndex(of: "["),
+                  let end = fileName.lastIndex(of: "]"),
+                  start < end,
+                  let id = UUID(uuidString: String(fileName[fileName.index(after: start)..<end])) else {
+                continue
+            }
+            notesByID[id] = url
+        }
+        return notesByID
     }
 
     private func exportObsidianVaultArtifacts(force: Bool) {
@@ -2784,7 +2935,7 @@ final class AppModel: ObservableObject {
         let paperContextSnapshot = PaperMarkdownExporter.Context(allPapers: papersSnapshot, clusters: allClustersSnapshot, clusterNameSources: sourcesSnapshot)
         let claimsSnapshot = papersSnapshot.flatMap { $0.claims ?? [] }
 
-        Task.detached(priority: .utility) {
+        Task.detached(priority: .utility) { [weak self] in
             let fm = FileManager.default
             let papersByID = papersByIDSnapshot
             let allClusters = allClustersSnapshot
@@ -2907,6 +3058,7 @@ final class AppModel: ObservableObject {
                 }
                 _ = try? StrategyMarkdownExporter.write(project: project, outputRoot: root, paperTitlesByID: titleMap)
             }
+            await self?.refreshObsidianNoteIndexes()
         }
     }
 
@@ -4071,16 +4223,27 @@ final class AppModel: ObservableObject {
         return Array(sorted.prefix(limit).map { ($0.0, $0.1) })
     }
 
-    func markFlashcardReviewed(paperID: UUID, cardID: UUID) {
-        guard let pIdx = papers.firstIndex(where: { $0.id == paperID }) else { return }
+    @discardableResult
+    func markFlashcardReviewed(paperID: UUID, cardID: UUID) -> Bool {
+        guard let pIdx = papers.firstIndex(where: { $0.id == paperID }) else { return false }
         guard var flashcards = papers[pIdx].flashcards,
-              let cIdx = flashcards.firstIndex(where: { $0.id == cardID }) else { return }
+              let cIdx = flashcards.firstIndex(where: { $0.id == cardID }) else { return false }
         flashcards[cIdx].lastReviewedAt = Date()
         flashcards[cIdx].reviewCount = (flashcards[cIdx].reviewCount ?? 0) + 1
-        papers[pIdx].flashcards = flashcards
-        _ = try? savePaperJSON(papers[pIdx])
-        _ = try? PaperMarkdownExporter.write(paper: papers[pIdx], outputRoot: outputRoot, context: paperObsidianContextSnapshot())
+        var updatedPaper = papers[pIdx]
+        updatedPaper.flashcards = flashcards
+        do {
+            _ = try savePaperJSON(updatedPaper)
+        } catch {
+            persistenceError = "Flashcard progress was not saved: \(error.localizedDescription)"
+            logger.error("Failed to persist flashcard review: \(error.localizedDescription, privacy: .private)")
+            return false
+        }
+        papers[pIdx] = updatedPaper
+        persistenceError = nil
+        refreshPaperMarkdownAfterSave(updatedPaper)
         appendUserEvent(type: "flashcard_reviewed", paperID: paperID, extra: ["card_id": cardID.uuidString])
+        return true
     }
 
     private func recomputeReadingProfile(extra: [Float]?) {
@@ -5112,8 +5275,16 @@ private struct GalaxyComputeResult: Sendable {
     let assignmentsByID: [UUID: Int]
 }
 
-private enum ForceLayout {
+enum ForceLayout {
     static func compute(for vectors: [[Float]]) -> [Point2D] {
+        compute(for: vectors, shouldCancel: { false }) ?? []
+    }
+
+    static func compute(
+        for vectors: [[Float]],
+        shouldCancel: () -> Bool
+    ) -> [Point2D]? {
+        guard !shouldCancel() else { return nil }
         let count = vectors.count
         guard count > 0 else { return [] }
 
@@ -5121,12 +5292,19 @@ private enum ForceLayout {
         guard dim > 0 else {
             return Array(repeating: Point2D(x: 0.5, y: 0.5), count: count)
         }
-        let normalizedVectors: [[Float]] = vectors.map { v in
-            if v.count == dim { return v }
-            if v.count > dim { return Array(v.prefix(dim)) }
-            var vv = v
-            vv.append(contentsOf: repeatElement(0, count: dim - v.count))
-            return vv
+        var normalizedVectors: [[Float]] = []
+        normalizedVectors.reserveCapacity(vectors.count)
+        for vector in vectors {
+            guard !shouldCancel() else { return nil }
+            if vector.count == dim {
+                normalizedVectors.append(vector)
+            } else if vector.count > dim {
+                normalizedVectors.append(Array(vector.prefix(dim)))
+            } else {
+                var padded = vector
+                padded.append(contentsOf: repeatElement(0, count: dim - vector.count))
+                normalizedVectors.append(padded)
+            }
         }
 
         var positions: [CGPoint] = (0..<count).map { idx in
@@ -5140,9 +5318,12 @@ private enum ForceLayout {
         let step: Double = 0.5
 
         for _ in 0..<iterations {
+            guard !shouldCancel() else { return nil }
             var forces = Array(repeating: CGPoint.zero, count: count)
             for i in 0..<count {
+                guard !shouldCancel() else { return nil }
                 for j in (i + 1)..<count {
+                    guard !shouldCancel() else { return nil }
                     let dx = positions[i].x - positions[j].x
                     let dy = positions[i].y - positions[j].y
                     var dist = sqrt(dx*dx + dy*dy)
@@ -5166,6 +5347,7 @@ private enum ForceLayout {
             }
 
             for i in 0..<count {
+                guard !shouldCancel() else { return nil }
                 positions[i].x += CGFloat(step * forces[i].x)
                 positions[i].y += CGFloat(step * forces[i].y)
                 positions[i].x = min(max(positions[i].x, -2), 2)

@@ -114,6 +114,16 @@ private struct SeededGenerator: RandomNumberGenerator {
 
 struct KMeans {
     static func cluster(vectors: [[Float]], k: Int, iterations: Int = 25) -> (assignments: [Int], centroids: [[Float]]) {
+        cluster(vectors: vectors, k: k, iterations: iterations, shouldCancel: { false }) ?? ([], [])
+    }
+
+    static func cluster(
+        vectors: [[Float]],
+        k: Int,
+        iterations: Int = 25,
+        shouldCancel: () -> Bool
+    ) -> (assignments: [Int], centroids: [[Float]])? {
+        guard !shouldCancel() else { return nil }
         let n = vectors.count
         guard n > 0 else { return ([], []) }
         let dim = vectors[0].count
@@ -121,12 +131,19 @@ struct KMeans {
             return (Array(repeating: 0, count: n), Array(repeating: [Float](), count: max(1, k)))
         }
 
-        let normalizedVectors: [[Float]] = vectors.map { v in
-            if v.count == dim { return v }
-            if v.count > dim { return Array(v.prefix(dim)) }
-            var vv = v
-            vv.append(contentsOf: repeatElement(0, count: dim - v.count))
-            return vv
+        var normalizedVectors: [[Float]] = []
+        normalizedVectors.reserveCapacity(vectors.count)
+        for vector in vectors {
+            guard !shouldCancel() else { return nil }
+            if vector.count == dim {
+                normalizedVectors.append(vector)
+            } else if vector.count > dim {
+                normalizedVectors.append(Array(vector.prefix(dim)))
+            } else {
+                var padded = vector
+                padded.append(contentsOf: repeatElement(0, count: dim - vector.count))
+                normalizedVectors.append(padded)
+            }
         }
 
         let kClamped = min(max(1, k), n)
@@ -141,8 +158,10 @@ struct KMeans {
         var assignments = Array(repeating: 0, count: n)
 
         for _ in 0..<iterations {
+            guard !shouldCancel() else { return nil }
             // Assignment step
             for i in 0..<n {
+                guard !shouldCancel() else { return nil }
                 var bestIndex = 0
                 var bestDist = squaredDistance(normalizedVectors[i], centroids[0])
                 if kClamped > 1 {
@@ -162,6 +181,7 @@ struct KMeans {
             var counts = Array(repeating: 0, count: kClamped)
 
             for i in 0..<n {
+                guard !shouldCancel() else { return nil }
                 let cid = assignments[i]
                 counts[cid] += 1
                 let vector = normalizedVectors[i]
@@ -171,6 +191,7 @@ struct KMeans {
             }
 
             for c in 0..<kClamped {
+                guard !shouldCancel() else { return nil }
                 if counts[c] > 0 {
                     let inv = 1 / Float(counts[c])
                     vDSP.multiply(inv, newCentroids[c], result: &newCentroids[c])

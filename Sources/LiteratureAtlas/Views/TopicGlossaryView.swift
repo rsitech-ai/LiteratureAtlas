@@ -30,6 +30,9 @@ struct TopicGlossaryView: View {
 
                 ScrollView {
                     VStack(alignment: .leading, spacing: 14) {
+                        Text("Keyword-based names are suggestions derived from member-paper keywords. Review the listed papers and rename any topic that does not fit.")
+                            .font(.caption)
+                            .foregroundStyle(.white.opacity(0.76))
                         if model.megaClusters.isEmpty {
                             Text("Run clustering to generate a galaxy.")
                                 .foregroundStyle(.white.opacity(0.75))
@@ -111,6 +114,8 @@ struct TopicGlossaryView: View {
                         }
                         .buttonStyle(.borderless)
                         .foregroundStyle(.white.opacity(0.85))
+                        .accessibilityLabel("Open topic in Knowledge Universe")
+                        .help("Open topic in Knowledge Universe")
                     }
 
                     rowActions(for: mega)
@@ -125,7 +130,7 @@ struct TopicGlossaryView: View {
                         Text("Top papers")
                             .font(.caption.bold())
                             .foregroundStyle(.white.opacity(0.85))
-                        ForEach(insights.topTitles, id: \.self) { title in
+                        ForEach(Array(insights.topTitles.enumerated()), id: \.offset) { _, title in
                             Text("• \(title)")
                                 .font(.caption2)
                                 .foregroundStyle(.white.opacity(0.85))
@@ -189,6 +194,8 @@ struct TopicGlossaryView: View {
                     }
                     .buttonStyle(.borderless)
                     .foregroundStyle(.white.opacity(0.85))
+                    .accessibilityLabel("Open subtopic in Knowledge Universe")
+                    .help("Open subtopic in Knowledge Universe")
                 }
 
                 rowActions(for: sub, compact: true)
@@ -199,7 +206,7 @@ struct TopicGlossaryView: View {
             }
 
             if !insights.topTitles.isEmpty {
-                ForEach(insights.topTitles, id: \.self) { title in
+                ForEach(Array(insights.topTitles.enumerated()), id: \.offset) { _, title in
                     Text("• \(title)")
                         .font(.caption2)
                         .foregroundStyle(.white.opacity(0.85))
@@ -224,6 +231,8 @@ struct TopicGlossaryView: View {
             }
             .buttonStyle(.borderless)
             .foregroundStyle(.white.opacity(0.85))
+            .accessibilityLabel(model.isGalaxyPinned(clusterID: cluster.id) ? "Unpin topic" : "Pin topic")
+            .help(model.isGalaxyPinned(clusterID: cluster.id) ? "Unpin topic" : "Pin topic")
 
             Button {
                 renameClusterID = cluster.id
@@ -234,6 +243,8 @@ struct TopicGlossaryView: View {
             }
             .buttonStyle(.borderless)
             .foregroundStyle(.white.opacity(0.85))
+            .accessibilityLabel("Rename topic")
+            .help("Rename topic")
 
             Button {
                 guard !namingInFlight.contains(cluster.id) else { return }
@@ -252,6 +263,8 @@ struct TopicGlossaryView: View {
             }
             .buttonStyle(.borderless)
             .foregroundStyle(.white.opacity(0.85))
+            .accessibilityLabel(namingInFlight.contains(cluster.id) ? "Naming topic" : "Generate topic name")
+            .help(namingInFlight.contains(cluster.id) ? "Naming topic" : "Generate topic name")
             .contextMenu {
                 Button("Force AI re-name") {
                     guard !namingInFlight.contains(cluster.id) else { return }
@@ -284,7 +297,7 @@ private struct KeywordChips: View {
 
     var body: some View {
         LazyVGrid(columns: [GridItem(.adaptive(minimum: 76), spacing: 6)], alignment: .leading, spacing: 6) {
-            ForEach(keywords, id: \.self) { kw in
+            ForEach(Array(keywords.enumerated()), id: \.offset) { _, kw in
                 Text(kw.capitalized)
                     .font(.caption2.bold())
                     .padding(.horizontal, 8)

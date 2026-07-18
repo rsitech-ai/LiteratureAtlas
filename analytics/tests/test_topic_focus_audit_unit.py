@@ -7,6 +7,7 @@ import tempfile
 import unittest
 import uuid
 from pathlib import Path
+from unittest.mock import patch
 
 import numpy as np
 
@@ -135,6 +136,38 @@ class TopicFocusAuditUnitTests(unittest.TestCase):
             code, message = self.mod.run_audit(args)
             self.assertEqual(code, 1, message)
             self.assertIn("FAIL", message)
+
+    def test_run_audit_fails_closed_when_silhouette_computation_errors(self):
+        with tempfile.TemporaryDirectory() as tmpdir:
+            root = Path(tmpdir)
+            papers_dir = root / "Output" / "papers"
+            notes_dir = root / "Output" / "obsidian" / "papers"
+            papers_dir.mkdir(parents=True, exist_ok=True)
+            notes_dir.mkdir(parents=True, exist_ok=True)
+
+            for index in range(8):
+                center = np.array([2.0, 0.0, 0.0, 0.0]) if index < 4 else np.array([0.0, 2.0, 0.0, 0.0])
+                paper_id = _write_paper(
+                    papers_dir / f"paper_{index}.paper.json",
+                    title=f"Topic Paper {index}",
+                    summary="coherent alpha beta gamma topic",
+                    keywords=["alpha", "beta", "gamma"],
+                    embedding=(center + (index * 0.01)).tolist(),
+                    year=2024,
+                )
+                (notes_dir / f"Paper [{paper_id}].md").write_text(
+                    "obsidian_format_version: 2\n",
+                    encoding="utf-8",
+                )
+
+            args = _args(root)
+            args.kmeans_min_k = 2
+            args.kmeans_max_k = 2
+            with patch.object(self.mod, "silhouette_score", side_effect=RuntimeError("metric failed")):
+                code, message = self.mod.run_audit(args)
+
+            self.assertEqual(code, 2, message)
+            self.assertIn("silhouette", message.lower())
 
     def test_load_papers_rejects_malformed_json(self):
         with tempfile.TemporaryDirectory() as tmpdir:

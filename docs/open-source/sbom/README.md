@@ -1,16 +1,22 @@
 # SBOM evidence
 
-The source and dependency inventories cover the current audited worktree. The
-two app inventories are exact historical local evidence built from commit
+The source inventory was refreshed from the finalized PR source tree on
+2026-07-18; dependency inventories were refreshed from the frozen environments
+on 2026-07-17. They describe repository
+and dependency state, not a signed release artifact. The two app inventories are
+exact historical local evidence built from commit
 `647911aa3093a9df56f48a048a002e5db458794a`; they are not an attestation for a
-future Developer ID-signed artifact.
+future Developer ID-signed artifact. The exact app directories used for those
+two inventories are no longer retained, so the commands below are rebuild
+recipes rather than evidence that the historical artifacts can be regenerated
+from the current worktree.
 
 | File | Scope | Generator | Records |
 |---|---|---|---|
-| `source.spdx.json` | Tracked/unignored repository source excluding Git, generated outputs, and this SBOM directory | `scripts/generate_spdx_sbom.py`, SPDX 2.3 JSON | 1 package, 248 regular files |
+| `source.spdx.json` | Current audited follow-up source snapshot; tracked/unignored source excluding Git, generated outputs, and this SBOM directory | `scripts/generate_spdx_sbom.py`, SPDX 2.3 JSON | 1 package, 248 regular files |
 | `community-app.spdx.json` | Exact ad-hoc signed `LiteratureAtlasCommunity.app` built from `647911a` | `scripts/generate_spdx_sbom.py`, SPDX 2.3 JSON | 1 package, 40 regular files |
 | `official-unsigned-app.spdx.json` | Exact signature-free official pre-sign app built from `647911a` | `scripts/generate_spdx_sbom.py`, SPDX 2.3 JSON | 1 package, 39 regular files |
-| `python-environment.cdx.json` | Locked analytics Python 3.12 environment | cyclonedx-bom 7.2.1, CycloneDX 1.6 | 19 dependency components plus the project root; 0 missing licenses |
+| `python-environment.cdx.json` | Locked analytics Python 3.12 environment | cyclonedx-bom 7.2.1, CycloneDX 1.6 | 46 dependency components plus the project root; 0 missing licenses |
 | `rust-source.cdx.json` | Rust FFI for `aarch64-apple-darwin` | cargo-cyclonedx 0.5.9, CycloneDX 1.5 | 72 dependency components plus the project root; 0 missing licenses |
 
 The repository generator hashes every regular file with SHA-256, binds paths,
@@ -64,12 +70,12 @@ An official release must generate a new SBOM from the exact Developer ID-signed
 candidate and reconcile its hashes, source commit, signature/notary evidence,
 notices, and provenance attestation after stapling.
 
-Current SHA-256 values:
+SHA-256 values of the committed snapshot files:
 
 ```text
 1c8dc2d061b7b7dfe58695a4bff38df8fa89548eada54d0d60c86a4a43105c68  community-app.spdx.json
 65657374f17e19d5f82fc69567396e062d0a4ee8361bf5bf010ae91a0c1e0132  official-unsigned-app.spdx.json
-0049bf307f177b07b163fd7e77867586b3db6ea8d40316fd307c95034abd04f5  source.spdx.json
-d7943ff10cf724feb301131fd39e1b60be057dad70f696e9187be9e6b3dc81a8  python-environment.cdx.json
+382c0d03bbfbbf6f8c2130a5e2eb9bfa215b07b05304a56b225465bcb91b0ad8  source.spdx.json
+8bf9f5ce21e191edfb83400b6a57629c09464b2dd07b548fcbc2c9c32fb9a119  python-environment.cdx.json
 651d595003f87f5883d42bd59ca3e3a5426dddd5c5f035e3e1af9cb9608d861d  rust-source.cdx.json
 ```

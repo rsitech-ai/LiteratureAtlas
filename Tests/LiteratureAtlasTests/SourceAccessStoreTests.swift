@@ -2,8 +2,7 @@ import Foundation
 import Testing
 @testable import LiteratureAtlas
 
-#if os(macOS)
-private final class FakeSecurityScopedBookmarkProvider: SecurityScopedBookmarkProviding {
+final class FakeSecurityScopedBookmarkProvider: SecurityScopedBookmarkProviding, @unchecked Sendable {
     var stalePaths: Set<String> = []
     var allowsAccess = true
     private(set) var bookmarkCreationCount = 0
@@ -122,4 +121,3 @@ struct SourceAccessStoreTests {
         #expect(provider.stopCount == 2)
     }
 }
-#endif

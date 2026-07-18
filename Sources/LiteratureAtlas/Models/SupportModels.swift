@@ -70,7 +70,7 @@ enum ClusterNameSource: String, Codable, CaseIterable, Equatable {
 
     var label: String {
         switch self {
-        case .heuristic: return "Heuristic"
+        case .heuristic: return "Keyword-based"
         case .manual: return "Manual"
         case .ai: return "AI"
         }
