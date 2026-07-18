@@ -70,8 +70,8 @@ release_write_sha256_file() {
 
     [ -f "$artifact" ] || release_die "checksum artifact not found: $artifact"
     release_require_command shasum
-    artifact_directory=$(cd "$(dirname "$artifact")" && pwd)
-    artifact_name=$(basename "$artifact")
+    artifact_directory=$(cd "$(dirname -- "$artifact")" && pwd)
+    artifact_name=$(basename -- "$artifact")
     checksum_output="$artifact_directory/$artifact_name.sha256"
     checksum_tmp=$(mktemp "$artifact_directory/.$artifact_name.sha256.XXXXXX")
 

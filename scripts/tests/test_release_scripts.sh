@@ -263,9 +263,13 @@ expect_success "verification accepts a DMG containing the exact supplied app" \
     "$ROOT/script/verify_distribution.sh" --app "$TMP/Expected.app" --dmg "$TMP/Valid.dmg" --mode community
 
 mkdir -p "$TMP/PortableChecksum/origin" "$TMP/PortableChecksum/download"
+touch "$TMP/PortableChecksum/origin/-Direct.dmg"
+expect_success "checksum helper accepts a current-directory leading-dash artifact" \
+    sh -c 'cd "$1" && . "$2/script/release_common.sh" && release_write_sha256_file -Direct.dmg' \
+    sh "$TMP/PortableChecksum/origin" "$ROOT"
 expect_success "DMG creation emits a checksum" \
-    "$ROOT/script/create_dmg.sh" --app "$TMP/Expected.app" \
-    --output "$TMP/PortableChecksum/origin/-Portable.dmg"
+    sh -c 'cd "$1" && "$2/script/create_dmg.sh" --app "$3" --output -Portable.dmg' \
+    sh "$TMP/PortableChecksum/origin" "$ROOT" "$TMP/Expected.app"
 mv "$TMP/PortableChecksum/origin/-Portable.dmg" \
     "$TMP/PortableChecksum/origin/-Portable.dmg.sha256" \
     "$TMP/PortableChecksum/download/"
