@@ -274,10 +274,14 @@ def load_papers(papers_dir: pathlib.Path) -> tuple[list[PaperRow], list[list[flo
         if not isinstance(raw_paper_id, str) or not raw_paper_id.strip():
             _logger.warning("Skipping %s because it is missing a valid 'id'", path)
             continue
+        paper_id = raw_paper_id.strip()
         try:
-            paper_id = str(uuid.UUID(raw_paper_id.strip()))
+            canonical_paper_id = str(uuid.UUID(paper_id))
         except ValueError:
             _logger.warning("Skipping %s because 'id' is not a UUID", path)
+            continue
+        if paper_id.lower() != canonical_paper_id:
+            _logger.warning("Skipping %s because 'id' is not a canonical hyphenated UUID", path)
             continue
 
         emb = data.get("embedding") or []
@@ -286,7 +290,7 @@ def load_papers(papers_dir: pathlib.Path) -> tuple[list[PaperRow], list[list[flo
             continue
         if not emb:
             continue
-        if paper_id in candidate_ids:
+        if canonical_paper_id in candidate_ids:
             _logger.warning("Skipping duplicate paper id %s from %s", paper_id, path)
             continue
         if any(isinstance(value, bool) or not isinstance(value, (int, float)) for value in emb):
@@ -296,7 +300,7 @@ def load_papers(papers_dir: pathlib.Path) -> tuple[list[PaperRow], list[list[flo
         if not all(math.isfinite(value) for value in numeric_embedding):
             _logger.warning("Skipping %s because 'embedding' contains a non-finite value", path)
             continue
-        candidate_ids.add(paper_id)
+        candidate_ids.add(canonical_paper_id)
         valid_candidates.append((path, data, paper_id, numeric_embedding))
 
     # Duplicate choice uses freshness above; output order remains lexical and stable for

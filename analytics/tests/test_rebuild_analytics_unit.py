@@ -21,6 +21,7 @@ from analytics.rebuild_analytics import (
     load_chunks,
     load_papers,
     load_user_events,
+    methods_datasets_adoption,
     paper_layout_quality_metrics,
     persist_duckdb,
     qa_gap_analytics,
@@ -332,6 +333,45 @@ class RebuildAnalyticsUnitTests(unittest.TestCase):
             self.assertEqual([row.paper_id for row in rows], [valid_id])
             self.assertEqual(embeddings, [[0.1, 0.2, 0.3]])
             self.assertEqual([row["paper_id"] for row in trading_rows], [valid_id])
+
+    def test_load_papers_preserves_swift_uuid_casing_for_chunk_joins(self):
+        with tempfile.TemporaryDirectory() as tmp:
+            root = Path(tmp)
+            papers_dir = root / "papers"
+            papers_dir.mkdir()
+            chunks_path = root / "chunks.json"
+            swift_id = "AAAAAAAA-AAAA-AAAA-AAAA-AAAAAAAAAAAA"
+            (papers_dir / "paper.paper.json").write_text(
+                json.dumps(
+                    {
+                        "id": swift_id,
+                        "title": "Cross-artifact identity",
+                        "embedding": [0.1, 0.2, 0.3],
+                    }
+                ),
+                encoding="utf-8",
+            )
+            chunks_path.write_text(
+                json.dumps(
+                    [
+                        {
+                            "id": "chunk-1",
+                            "paperID": swift_id,
+                            "embedding": [0.1, 0.2, 0.3],
+                            "order": 0,
+                            "text": "Implementation: https://github.com/example/project",
+                        }
+                    ]
+                ),
+                encoding="utf-8",
+            )
+
+            rows, _, _ = load_papers(papers_dir)
+            chunks = load_chunks(chunks_path)
+            result = methods_datasets_adoption(pd.DataFrame([row.__dict__ for row in rows]), chunks)
+
+            self.assertEqual(rows[0].paper_id, swift_id)
+            self.assertTrue(result["per_paper"][0]["has_code_link"])
 
     def test_load_papers_deduplicates_paper_and_document_exports_by_id(self):
         with tempfile.TemporaryDirectory() as tmp:

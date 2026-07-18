@@ -24,7 +24,7 @@
 
 ### Tests
 - Swift: `swift test -Xswiftc -warnings-as-errors` (83 XCTest cases, typically 1 opt-in smoke skipped, plus 4 Swift Testing bookmark cases; requires macOS 26+)
-- Python: `analytics/.venv/bin/python -m pytest analytics/tests -v` (53 tests)
+- Python: `analytics/.venv/bin/python -m pytest analytics/tests -v` (54 tests)
 - Rust FFI: `cargo test --locked --manifest-path analytics/ffi/Cargo.toml` (7 tests)
 - Release configuration: `python3 scripts/validate_release_configuration.py` (fails closed until approved AppIcon artwork is committed)
 - Known-blocker CI gate: `python3 scripts/validate_release_configuration.py --allow-blocker app_icon_artwork` (fails on every other gate)
@@ -58,7 +58,7 @@
 - **Persistent source access**: Distributed macOS ingest stores app-scoped read-only bookmarks outside exported paper JSON, activates the picker scope while creating them, resolves/refreshes them, and holds the resolved scope for the full async ingest task and later source-document opens.
 - **Cross-platform source access**: Durable source bookmarks use macOS security-scoped read-only options and iOS minimal bookmark options; resolution refreshes stale bookmarks and source-open failures remain visible to the user.
 - **Derived analytics boundary**: `AnalyticsStore` rejects duplicate identifiers, non-finite values, every decoded UUID-bearing reference to an unknown canonical paper, and summaries whose paper count differs from the canonical library. Stale analytics must remain unavailable with an actionable rebuild message rather than being partially mixed into current UI.
-- **Python paper-import boundary**: `load_papers` accepts only canonical UUID paper identifiers, normalizes nested method-pipeline steps before downstream analytics, and sizes claim-neighbor queries from the filtered valid-claim population rather than raw input rows.
+- **Python paper-import boundary**: `load_papers` validates canonical hyphenated UUID paper identifiers while preserving their Swift-exported casing for cross-artifact joins, normalizes nested method-pipeline steps before downstream analytics, and sizes claim-neighbor queries from the filtered valid-claim population rather than raw input rows.
 - **Persistence publication rule**: Pin, rename, flashcard-review, paper/chunk, and research-project state is published to memory only after the canonical write succeeds; failures preserve the previous state and expose `persistenceError`.
 - **Direct-download scope**: the first direct macOS artifact is Apple Silicon (`arm64`) on macOS 26+. The iPad-only iPadOS 26+ target remains a development/App Store lane, not part of the direct-download artifact.
 - **Immersive galaxy UI**: Shared visual styling lives in `Sources/LiteratureAtlas/Views/GalaxyTheme.swift`; prefer its backdrop, hero, metric, status pill, section header, and action helpers plus tinted `GlassCard` before adding one-off colors or custom card styles.
@@ -125,3 +125,4 @@
 - 2026-07-17: PR review aligned topic-audit duplicate resolution with canonical freshness semantics and moved source checksum I/O/hash work off the main actor (`scripts/topic_focus_audit.py`, `Sources/LiteratureAtlas/App/AppModel.swift`).
 - 2026-07-17: Full quality remediation made source bookmarks cross-platform, state mutations commit-before-publish, analytics freshness/identity fail closed, expensive layout work cooperatively cancellable, Python analytics rank/scale safe, and release verification enforce the exact read-only entitlement plus required file-timestamp reasons (`PLAN.md`, `docs/audits/release-audit-2026-07-17.md`).
 - 2026-07-18: Independent PR review expanded stale-analytics rejection to every UUID-bearing summary section, made Python paper import UUID- and method-pipeline-safe, and fixed claim-neighbor sizing after invalid rows are filtered (`Sources/LiteratureAtlas/Services/AnalyticsStore.swift`, `analytics/rebuild_analytics.py`).
+- 2026-07-18: UUID validation must not change persisted Swift identifier casing unless every cross-artifact foreign key is normalized together; paper import now preserves canonical source casing so chunk, event, claim-edge, and cluster joins remain consistent (`analytics/rebuild_analytics.py`).
