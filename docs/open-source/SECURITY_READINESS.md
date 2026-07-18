@@ -1,8 +1,10 @@
 # Security readiness
 
 No credential leak or critical/high exploitable source vulnerability was
-validated in the code-level audit. Codex Security was explicitly deferred and
-was not run. The distributed runtime boundary, persistent security-scoped source
+validated. The release-hardening diff received a complete Codex Security scan;
+the final exact PR head also passed Swift and Python CodeQL, dependency review,
+an independent review, and GitHub Codex review with no remaining actionable
+finding. The distributed runtime boundary, persistent security-scoped source
 bookmarks, sandbox, private logging, raw-question minimization, release-script
 separation, locked developer environments, and exact artifact checks are
 positive controls.

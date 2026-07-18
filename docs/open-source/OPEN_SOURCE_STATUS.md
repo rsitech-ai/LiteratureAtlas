@@ -1,7 +1,9 @@
 # Open-source status
 
 **Publication verdict: BLOCKED.** The source repository is already public under
-MIT, but it is not ready for an official source release or notarized binary.
+MIT, but it is not ready for an official source release or notarized binary. A
+separately labeled ad-hoc/not-notarized community prerelease was explicitly
+authorized and published on 2026-07-18; it does not clear the official gates.
 
 ## Verified current repository state
 
@@ -14,8 +16,9 @@ MIT, but it is not ready for an official source release or notarized binary.
 - Swift, Python, Rust, release-script, and Xcode Release gates pass except the
   intentional approved-AppIcon release blocker. Release compilation treats
   Swift warnings as errors.
-- Codex Security was explicitly deferred and was not run; the code-level audit
-  found no unresolved critical/high implementation issue.
+- The release-hardening diff received a complete Codex Security scan; the final
+  exact PR head passed Swift/Python CodeQL, dependency review, independent
+  review, and GitHub Codex review with no unresolved actionable finding.
 
 ## Historical artifact evidence
 
@@ -40,7 +43,9 @@ MIT, but it is not ready for an official source release or notarized binary.
   governance roster, DCO/CLA choice, or private security/conduct route exists.
 - The installed Developer ID private key requires owner keychain authorization;
   no official signed artifact exists.
-- No notarization upload, quarantined-download proof, physical macOS 26 acceptance,
-  public tag, or GitHub Release has been authorized or performed.
+- No notarization upload, quarantined official-download proof, or physical
+  macOS 26 acceptance has been performed. Community tag
+  `v1.0.0-community.1` and its GitHub prerelease are explicit non-official
+  exceptions, not evidence for Developer ID/notarized publication.
 
 See [the gate matrix](PUBLICATION_GATE_MATRIX.md) and [blockers](BLOCKERS.md).
