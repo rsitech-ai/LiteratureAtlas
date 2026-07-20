@@ -2,7 +2,7 @@ import Foundation
 import CryptoKit
 import PDFKit
 
-struct PDFExtractionResult: Equatable {
+struct PDFExtractionResult: Equatable, Sendable {
     let title: String
     let text: String
     let sections: [DocumentSection]
@@ -13,7 +13,35 @@ struct PDFExtractionResult: Equatable {
     let keywords: [String]
 }
 
-struct PDFProcessor {
+struct PDFProcessor: Sendable {
+    private static let checksumReadSize = 1_048_576
+
+    static func performCancellableDetachedExtraction(
+        priority: TaskPriority = .utility,
+        operation: @escaping @Sendable () throws -> PDFExtractionResult
+    ) async throws -> PDFExtractionResult {
+        let extraction = Task.detached(priority: priority, operation: operation)
+        return try await withTaskCancellationHandler {
+            try await extraction.value
+        } onCancel: {
+            extraction.cancel()
+        }
+    }
+
+    private static func checksum(for url: URL) throws -> String {
+        try Task.checkCancellation()
+        let handle = try FileHandle(forReadingFrom: url)
+        defer { try? handle.close() }
+
+        var hasher = SHA256()
+        while true {
+            try Task.checkCancellation()
+            guard let chunk = try handle.read(upToCount: checksumReadSize), !chunk.isEmpty else { break }
+            hasher.update(data: chunk)
+        }
+        return hasher.finalize().map { String(format: "%02x", $0) }.joined()
+    }
+
     private static func plausibleYear(_ year: Int) -> Int? {
         let current = Calendar.current.component(.year, from: Date())
         // Allow a small future buffer for preprints; reject obviously-wrong matches like "2039" from arXiv IDs.
@@ -123,11 +151,12 @@ struct PDFProcessor {
     }
 
     func extractDocument(from url: URL, documentID: UUID, maxPages: Int? = nil) throws -> PDFExtractionResult {
-        let data = try Data(contentsOf: url)
-        let checksum = SHA256.hash(data: data).compactMap { String(format: "%02x", $0) }.joined()
+        try Task.checkCancellation()
+        let checksum = try Self.checksum(for: url)
         let attrs = try? FileManager.default.attributesOfItem(atPath: url.path)
         let modifiedAt = attrs?[.modificationDate] as? Date
 
+        try Task.checkCancellation()
         guard let doc = PDFDocument(url: url) else {
             throw PDFError.failedToOpen
         }
@@ -141,6 +170,7 @@ struct PDFProcessor {
         var sections: [DocumentSection] = []
         var combined: [String] = []
         for index in 0..<pagesToRead {
+            try Task.checkCancellation()
             guard let page = doc.page(at: index),
                   let pageText = page.string?.trimmingCharacters(in: .whitespacesAndNewlines),
                   !pageText.isEmpty else {

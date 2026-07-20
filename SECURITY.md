@@ -1,16 +1,16 @@
 # Security policy
 
-No supported public release exists yet. The default branch is pre-release source
-and an official notarized download has not been published.
+No supported official release exists yet. The default branch is pre-release
+source and an official notarized download has not been published. The existing
+community prerelease is ad-hoc signed, not notarized, and unsupported.
 
 ## Reporting
 
 Do not disclose vulnerabilities, private documents, credentials, document
 paths, signing material, or exploit details in a public issue or pull request.
-GitHub private vulnerability reporting is currently disabled and no alternative
-monitored private channel has been approved. Safe private reporting is therefore
-a release blocker; retain the details until the repository owner enables and
-publishes a real route.
+Use [GitHub private vulnerability reporting](https://github.com/s1korrrr/LiteratureAtlas/security/advisories/new)
+for security reports. This route is enabled for the repository; do not open a
+public issue for a suspected vulnerability.
 
 No bug bounty, response-time promise, or embargo SLA is offered.
 
