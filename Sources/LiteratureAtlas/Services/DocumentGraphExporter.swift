@@ -27,9 +27,9 @@ enum DocumentGraphExporter {
         clusters: [Cluster],
         claimEdges: [ClaimEdge],
         outputRoot: URL
-    ) {
+    ) throws {
         let folder = outputRoot.appendingPathComponent("graph", isDirectory: true)
-        try? FileManager.default.createDirectory(at: folder, withIntermediateDirectories: true)
+        try FileManager.default.createDirectory(at: folder, withIntermediateDirectories: true)
 
         let snapshot = buildSnapshot(papers: papers, clusters: clusters, claimEdges: claimEdges)
         let encoder = JSONEncoder()
@@ -37,8 +37,8 @@ enum DocumentGraphExporter {
         encoder.dateEncodingStrategy = .iso8601
 
         let url = folder.appendingPathComponent("corpus_graph.json")
-        guard let data = try? encoder.encode(snapshot) else { return }
-        try? data.write(to: url, options: .atomic)
+        let data = try encoder.encode(snapshot)
+        try data.write(to: url, options: .atomic)
     }
 
     static func buildSnapshot(

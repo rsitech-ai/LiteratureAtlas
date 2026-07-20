@@ -12,10 +12,13 @@ import pandas as pd
 
 import analytics.rebuild_analytics as rebuild_analytics
 from analytics.rebuild_analytics import (
+    artifact_flags,
     build_knn,
+    claim_controversy_and_maturity,
     claim_similarity_edges,
     cluster_stability_multi_seed_kmeans,
     combinational_novelty,
+    compute_corpus_version,
     compute_factor_loadings,
     drift_contribution,
     load_chunks,
@@ -37,6 +40,20 @@ PAPER_ID_4 = "00000000-0000-0000-0000-000000000004"
 
 
 class RebuildAnalyticsUnitTests(unittest.TestCase):
+    def test_artifact_flags_reject_deceptive_hosts(self):
+        urls = [
+            "https://github.com.evil.example/project",
+            "https://zenodo.org.evil.example/record/1",
+            "https://huggingface.co.evil.example/model",
+        ]
+
+        flags = artifact_flags(urls, "")
+
+        self.assertFalse(flags["has_code_link"])
+        self.assertFalse(flags["has_data_link"])
+        self.assertFalse(flags["has_model_link"])
+        self.assertEqual(flags["openness_score"], 0.0)
+
     def test_claim_similarity_edges_bounds_neighbors_and_preserves_time_direction(self):
         claims = [
             {
@@ -89,6 +106,35 @@ class RebuildAnalyticsUnitTests(unittest.TestCase):
         self.assertEqual(len(edges), 1)
         self.assertEqual(edges[0]["from_year"], 2020)
         self.assertEqual(edges[0]["to_year"], 2021)
+
+    def test_claim_controversy_avoids_dense_similarity_matrix(self):
+        with tempfile.TemporaryDirectory() as tmp:
+            papers_dir = Path(tmp)
+            for index in range(64):
+                paper_id = f"00000000-0000-0000-0000-{index + 1:012d}"
+                payload = {
+                    "id": paper_id,
+                    "title": f"Paper {index}",
+                    "summary": "Evaluation limitations and reproducibility evidence.",
+                    "embedding": [1.0, float(index % 3)],
+                    "clusterIndex": 0,
+                    "claims": [
+                        {
+                            "statement": f"Method family {index % 8} improves evaluation reliability",
+                            "strength": 0.7,
+                        }
+                    ],
+                }
+                (papers_dir / f"{index:03d}.paper.json").write_text(json.dumps(payload), encoding="utf-8")
+
+            rows, _, _ = load_papers(papers_dir)
+            frame = pd.DataFrame([row.__dict__ for row in rows])
+
+            with patch.object(rebuild_analytics.np, "fill_diagonal", side_effect=AssertionError("dense matrix")):
+                result = claim_controversy_and_maturity(frame, rows)
+
+            self.assertTrue(result["available"])
+            self.assertEqual(result["controversy_by_cluster"][0]["cluster_id"], 0)
 
     def test_compute_factor_loadings_single_sample_emits_no_runtime_warning(self):
         with warnings.catch_warnings(record=True) as captured:
@@ -316,6 +362,84 @@ class RebuildAnalyticsUnitTests(unittest.TestCase):
             self.assertEqual(len(embeddings), 1)
             self.assertEqual(len(trading_rows), 1)
             self.assertEqual(rows[0].paper_id, PAPER_ID_1)
+
+    def test_corpus_version_changes_with_source_checksum_and_embedding(self):
+        with tempfile.TemporaryDirectory() as tmp:
+            papers_dir = Path(tmp)
+            paper_path = papers_dir / "paper.paper.json"
+            payload = {
+                "id": PAPER_ID_1,
+                "version": 2,
+                "filePath": "/same/source.pdf",
+                "sourceChecksum": "checksum-a",
+                "embedding": [0.1, 0.2, 0.3],
+            }
+            paper_path.write_text(json.dumps(payload), encoding="utf-8")
+            rows, _, _ = load_papers(papers_dir)
+            initial_version = compute_corpus_version(rows)
+
+            paper_path.write_text(json.dumps({**payload, "sourceChecksum": "checksum-b"}), encoding="utf-8")
+            changed_checksum_rows, _, _ = load_papers(papers_dir)
+            changed_checksum_version = compute_corpus_version(changed_checksum_rows)
+
+            paper_path.write_text(json.dumps({**payload, "embedding": [0.3, 0.2, 0.1]}), encoding="utf-8")
+            changed_embedding_rows, _, _ = load_papers(papers_dir)
+            changed_embedding_version = compute_corpus_version(changed_embedding_rows)
+
+            self.assertNotEqual(initial_version, changed_checksum_version)
+            self.assertNotEqual(initial_version, changed_embedding_version)
+
+    def test_corpus_version_changes_with_analytics_metadata_and_claims(self):
+        with tempfile.TemporaryDirectory() as tmp:
+            papers_dir = Path(tmp)
+            paper_path = papers_dir / "paper.paper.json"
+            payload = {
+                "id": PAPER_ID_1,
+                "version": 1,
+                "title": "Initial title",
+                "summary": "Initial summary",
+                "embedding": [1.0, 0.0],
+                "claims": [{"statement": "Initial claim", "strength": 0.5}],
+            }
+            paper_path.write_text(json.dumps(payload), encoding="utf-8")
+            initial_rows, _, _ = load_papers(papers_dir)
+            initial_version = compute_corpus_version(initial_rows)
+
+            changed_payload = {
+                **payload,
+                "title": "Changed title",
+                "summary": "Changed summary",
+                "claims": [{"statement": "Changed claim", "strength": 0.75}],
+            }
+            paper_path.write_text(json.dumps(changed_payload), encoding="utf-8")
+            changed_rows, _, _ = load_papers(papers_dir)
+
+            self.assertNotEqual(initial_version, compute_corpus_version(changed_rows))
+
+    def test_corpus_version_matches_swift_fingerprint_contract(self):
+        with tempfile.TemporaryDirectory() as tmp:
+            papers_dir = Path(tmp)
+            (papers_dir / "paper.paper.json").write_text(
+                json.dumps(
+                    {
+                        "id": PAPER_ID_1,
+                        "version": 1,
+                        "sourceKind": "pdf",
+                        "filePath": f"/tmp/{PAPER_ID_1}.pdf",
+                        "originalFilename": "paper.pdf",
+                        "title": "Paper",
+                        "summary": "Summary",
+                        "embedding": [1.0, 0.0],
+                    }
+                ),
+                encoding="utf-8",
+            )
+            rows, _, _ = load_papers(papers_dir)
+
+            self.assertEqual(
+                compute_corpus_version(rows),
+                "dcd15b3cf3aa5e8fc0de2117787ee44f7a31b08adc6f6089fe0d095edb6de37c",
+            )
 
     def test_load_papers_skips_non_uuid_paper_ids(self):
         with tempfile.TemporaryDirectory() as tmp:

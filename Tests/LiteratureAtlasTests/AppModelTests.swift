@@ -478,6 +478,39 @@ final class AppModelTests: XCTestCase {
         }
     }
 
+    func testLoadingSavedPapersPrefersCanonicalPaperOverNewerCompatibilityDocument() async throws {
+        let tmp = FileManager.default.temporaryDirectory.appendingPathComponent(UUID().uuidString)
+        let model = await MainActor.run { AppModel(skipInitialLoad: true, customOutputRoot: tmp) }
+        let papersDirectory = tmp.appendingPathComponent("papers", isDirectory: true)
+        let documentsDirectory = tmp.appendingPathComponent("documents", isDirectory: true)
+        try FileManager.default.createDirectory(at: documentsDirectory, withIntermediateDirectories: true)
+        let sharedID = UUID()
+        let canonical = Paper(
+            filePath: "/tmp/shared.pdf", id: sharedID, originalFilename: "shared.pdf", title: "Canonical",
+            introSummary: nil, summary: "canonical", methodSummary: nil, resultsSummary: nil,
+            takeaways: nil, keywords: nil, userNotes: nil, userTags: nil, readingStatus: nil,
+            noteEmbedding: nil, userQuestions: nil, flashcards: nil, year: nil,
+            embedding: [1, 0], clusterIndex: nil
+        )
+        var compatibility = canonical
+        compatibility.title = "Compatibility"
+        compatibility.summary = "compatibility"
+        let encoder = JSONEncoder()
+        let canonicalURL = papersDirectory.appendingPathComponent("shared.paper.json")
+        let compatibilityURL = documentsDirectory.appendingPathComponent("shared.document.json")
+        try encoder.encode(canonical).write(to: canonicalURL)
+        try encoder.encode(compatibility).write(to: compatibilityURL)
+        try FileManager.default.setAttributes([.modificationDate: Date(timeIntervalSince1970: 1)], ofItemAtPath: canonicalURL.path)
+        try FileManager.default.setAttributes([.modificationDate: Date(timeIntervalSince1970: 2)], ofItemAtPath: compatibilityURL.path)
+
+        await model.testLoadSavedPapers()
+
+        await MainActor.run {
+            XCTAssertEqual(model.papers.count, 1)
+            XCTAssertEqual(model.papers.first?.title, "Canonical")
+        }
+    }
+
     func testLoadingSavedPapersDerivesDimensionAfterDiscardingStaleDuplicate() async throws {
         let tmp = FileManager.default.temporaryDirectory.appendingPathComponent(UUID().uuidString)
         let model = await MainActor.run { AppModel(skipInitialLoad: true, customOutputRoot: tmp) }
@@ -678,6 +711,52 @@ final class AppModelTests: XCTestCase {
             XCTAssertNil(model.analyticsSummary)
             XCTAssertTrue(model.analyticsLoadError?.localizedCaseInsensitiveContains("stale") == true)
             XCTAssertTrue(model.analyticsLoadError?.localizedCaseInsensitiveContains("rebuild") == true)
+        }
+    }
+
+    func testReloadAnalyticsRejectsMismatchedCorpusVersion() async throws {
+        let tmp = FileManager.default.temporaryDirectory.appendingPathComponent(UUID().uuidString)
+        let model = await MainActor.run { AppModel(skipInitialLoad: true, customOutputRoot: tmp) }
+        let paper = makeAnalyticsTestPaper(id: UUID())
+        try writeAnalyticsPayload(
+            [
+                "generated_at": "2025-01-02T03:04:05Z",
+                "paper_count": 1,
+                "vector_dim": 2,
+                "corpus_version": "stale-corpus",
+            ],
+            to: tmp
+        )
+
+        await MainActor.run {
+            model.papers = [paper]
+            model.reloadAnalyticsSummary()
+            XCTAssertNil(model.analyticsSummary)
+            XCTAssertTrue(model.analyticsLoadError?.localizedCaseInsensitiveContains("stale") == true)
+            XCTAssertTrue(model.analyticsLoadError?.localizedCaseInsensitiveContains("rebuild") == true)
+        }
+    }
+
+    func testReloadAnalyticsAcceptsMatchingCrossLanguageCorpusVersion() async throws {
+        let tmp = FileManager.default.temporaryDirectory.appendingPathComponent(UUID().uuidString)
+        let model = await MainActor.run { AppModel(skipInitialLoad: true, customOutputRoot: tmp) }
+        let paperID = UUID(uuidString: "00000000-0000-0000-0000-000000000001")!
+        let paper = makeAnalyticsTestPaper(id: paperID)
+        try writeAnalyticsPayload(
+            [
+                "generated_at": "2025-01-02T03:04:05Z",
+                "paper_count": 1,
+                "vector_dim": 2,
+                "corpus_version": "dcd15b3cf3aa5e8fc0de2117787ee44f7a31b08adc6f6089fe0d095edb6de37c",
+            ],
+            to: tmp
+        )
+
+        await MainActor.run {
+            model.papers = [paper]
+            model.reloadAnalyticsSummary()
+            XCTAssertNotNil(model.analyticsSummary)
+            XCTAssertNil(model.analyticsLoadError)
         }
     }
 

@@ -1,6 +1,6 @@
 {
   "schema_version": 2,
-  "generated_on": "2026-07-18",
+  "generated_on": "2026-07-20",
   "scope": "the Git commit containing this manifest",
   "publication_verdict": "BLOCKED",
   "app_store_verdict": "BLOCKED",
@@ -31,6 +31,19 @@
   "swift_remote_dependency_count": 0,
   "locked_ecosystem_component_count": 150,
   "locked_ecosystem_component_count_definition": "48 package entries in analytics/uv.lock plus 102 package entries in analytics/ffi/Cargo.lock",
+  "python_direct_dependencies": [
+    "duckdb",
+    "numpy",
+    "pandas",
+    "pyarrow",
+    "scikit-learn",
+    "scipy"
+  ],
+  "rust_direct_dependencies": {
+    "hnsw_rs": "0.3.4"
+  },
+  "python_sbom_dependency_component_count": 46,
+  "rust_sbom_dependency_component_count": 72,
   "source_inventory_package_records": 1,
   "unknown_license_count": 0,
   "known_dependency_advisory_count": 0,
@@ -61,19 +74,19 @@
       "source_commit": "647911aa3093a9df56f48a048a002e5db458794a"
     }
   ],
-  "security_scan_status": "complete branch-diff review, exact-head CodeQL, dependency review, and independent review found no unresolved actionable implementation finding",
+  "security_scan_status": "the current delta excluded a formal Codex Security scan; manual redacted history checks found no credential; three deceptive-host CodeQL alerts were reproduced and fixed locally, pending exact-head hosted closure",
   "openssf_scorecard_result": "workflow configured; no public result accepted as release evidence",
-  "ci_status": "all ten hosted checks passed on reviewed PR head e0eb788b8654a18a8fef62398b87017f5b56e79a; GitHub repository controls remain external",
+  "ci_status": "local source, release-policy, macOS/iPadOS archive, and runtime gates pass; the current release-readiness candidate requires fresh hosted checks, and historical dependency review skipped before the dependency graph was enabled",
   "documentation_status": "public contract is complete for local reproduction; owner-controlled identities and channels remain blocked",
   "governance_status": "blocked pending owner-approved roster and authority",
-  "security_contact_status": "blocked; GitHub private vulnerability reporting is disabled",
+  "security_contact_status": "GitHub private vulnerability reporting is enabled; a separate private conduct route remains blocked",
   "source_release_mapping": "community prerelease v1.0.0-community.1 and its exact app SBOM map to merge commit 95d0031a0ee67a9f91cd0d915de75e1f42137daa; no official Developer ID-signed/notarized artifact exists",
   "trademark_policy_status": "technical rebrand rules exist; owner and protected marks are unconfirmed",
   "blockers": [
     "reachable third-party PDF history",
     "chain of title and licensing authority",
     "production icon and brand provenance",
-    "private security and conduct routes",
+    "private conduct route",
     "governance and DCO/CLA decision",
     "Developer ID private-key authorization",
     "notarization and quarantined-download proof",
@@ -87,7 +100,7 @@
   "residual_risks": [
     "local exported metadata can contain source paths",
     "GitHub main is unprotected",
-    "Dependabot security updates and private vulnerability reporting are disabled"
+    "secret validity and non-provider-pattern scanning remain unavailable or disabled"
   ],
   "owner_approvals_required": [
     "final software/documentation license and rights holder",
@@ -95,7 +108,7 @@
     "DCO versus CLA and governance roster",
     "history remediation strategy",
     "official bundle/signing identity and production artwork",
-    "GitHub security/governance settings",
+    "remaining GitHub governance settings",
     "each Apple notarization upload",
     "each official production tag, artifact, release, and announcement"
   ]

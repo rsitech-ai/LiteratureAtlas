@@ -853,6 +853,7 @@ struct AnalyticsSummary: Codable, Equatable {
     }
 
     let generatedAt: Date
+    let corpusVersion: String?
     let paperCount: Int
     let vectorDim: Int
     let topicTrends: [TopicTrend]
@@ -888,6 +889,7 @@ struct AnalyticsSummary: Codable, Equatable {
 
     enum CodingKeys: String, CodingKey {
         case generatedAt = "generated_at"
+        case corpusVersion = "corpus_version"
         case paperCount = "paper_count"
         case vectorDim = "vector_dim"
         case topicTrends = "topic_trends"
@@ -925,6 +927,7 @@ struct AnalyticsSummary: Codable, Equatable {
     init(from decoder: Decoder) throws {
         let container = try decoder.container(keyedBy: CodingKeys.self)
         generatedAt = try container.decode(Date.self, forKey: .generatedAt)
+        corpusVersion = try container.decodeIfPresent(String.self, forKey: .corpusVersion)
         paperCount = try container.decode(Int.self, forKey: .paperCount)
         vectorDim = try container.decode(Int.self, forKey: .vectorDim)
         topicTrends = try container.decodeIfPresent([TopicTrend].self, forKey: .topicTrends) ?? []

@@ -165,7 +165,11 @@ mount_point=
 source_manifest=
 embedded_manifest=
 cleanup() {
-    if [ -n "$mount_point" ] && mount | grep -F " on $mount_point " >/dev/null 2>&1; then
+    if [ -n "$mount_point" ]; then
+        # macOS reports /var mount points through their /private/var physical
+        # path, so a textual `mount` preflight can miss an attached image.
+        # hdiutil accepts the original mount-point spelling and is idempotent
+        # enough for best-effort EXIT cleanup.
         hdiutil detach "$mount_point" -quiet || true
     fi
     rm -f "$entitlements"

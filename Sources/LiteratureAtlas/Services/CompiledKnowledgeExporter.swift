@@ -1,29 +1,29 @@
 import Foundation
 
 enum CompiledKnowledgeExporter {
-    static func writeDocumentNotes(papers: [Paper], outputRoot: URL) {
+    static func writeDocumentNotes(papers: [Paper], outputRoot: URL) throws {
         let folder = outputRoot.appendingPathComponent("compiled/documents", isDirectory: true)
-        try? FileManager.default.createDirectory(at: folder, withIntermediateDirectories: true)
+        try FileManager.default.createDirectory(at: folder, withIntermediateDirectories: true)
         for paper in papers {
             let url = CompiledKnowledgePaths.documentURL(for: paper, outputRoot: outputRoot)
             let markdown = renderDocumentNote(for: paper)
-            try? Data(markdown.utf8).write(to: url, options: .atomic)
+            try Data(markdown.utf8).write(to: url, options: .atomic)
         }
     }
 
-    static func writeTopicBriefs(clusters: [Cluster], papersByID: [UUID: Paper], outputRoot: URL) {
+    static func writeTopicBriefs(clusters: [Cluster], papersByID: [UUID: Paper], outputRoot: URL) throws {
         let folder = outputRoot.appendingPathComponent("compiled/topics", isDirectory: true)
-        try? FileManager.default.createDirectory(at: folder, withIntermediateDirectories: true)
+        try FileManager.default.createDirectory(at: folder, withIntermediateDirectories: true)
         for cluster in clusters {
             let url = CompiledKnowledgePaths.topicURL(for: cluster, outputRoot: outputRoot)
             let markdown = renderTopicBrief(for: cluster, papersByID: papersByID)
-            try? Data(markdown.utf8).write(to: url, options: .atomic)
+            try Data(markdown.utf8).write(to: url, options: .atomic)
         }
     }
 
-    static func writeEntityNotes(papers: [Paper], outputRoot: URL) {
+    static func writeEntityNotes(papers: [Paper], outputRoot: URL) throws {
         let folder = outputRoot.appendingPathComponent("compiled/entities", isDirectory: true)
-        try? FileManager.default.createDirectory(at: folder, withIntermediateDirectories: true)
+        try FileManager.default.createDirectory(at: folder, withIntermediateDirectories: true)
 
         let grouped = Dictionary(grouping: papers.flatMap { paper in
             (paper.keywords ?? []).prefix(16).map { ($0.lowercased(), paper) }
@@ -34,7 +34,7 @@ enum CompiledKnowledgeExporter {
             guard !entityName.isEmpty else { continue }
             let url = CompiledKnowledgePaths.entityURL(for: entityName, outputRoot: outputRoot)
             let markdown = renderEntityNote(entity: entityName, papers: entries.map(\.1))
-            try? Data(markdown.utf8).write(to: url, options: .atomic)
+            try Data(markdown.utf8).write(to: url, options: .atomic)
         }
     }
 

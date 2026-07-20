@@ -6,6 +6,7 @@ LiteratureAtlas is a local-first SwiftUI app for turning research PDFs and Markd
 
 The source repository is public under the MIT License. An official notarized download has not been published yet.
 
+- The verified [`v1.0.0-community.1` community prerelease](https://github.com/s1korrrr/LiteratureAtlas/releases/tag/v1.0.0-community.1) is available for Apple Silicon Macs running macOS 26 or later. It is ad-hoc signed and not notarized.
 - Community macOS builds are credential-free, ad-hoc signed, sandboxed, and use a distinct name and bundle identifier.
 - Official macOS builds use the same self-contained runtime, then require an installed Apple Developer ID Application certificate and an explicit notarization submission.
 - The direct-download artifact is currently scoped to Apple Silicon and macOS 26 or later.
@@ -73,7 +74,7 @@ swift run LiteratureAtlas
 Contributor builds can use the repository-local analytics tools:
 
 ```bash
-uv run --project analytics python analytics/rebuild_analytics.py --base .
+uv run --project analytics --extra dev --frozen python analytics/rebuild_analytics.py --base .
 ```
 
 Select your own PDF or Markdown folder in the Ingest screen. Do not commit the generated `Output/` directory or source documents.
