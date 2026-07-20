@@ -5,7 +5,7 @@
   "publication_verdict": "BLOCKED",
   "app_store_verdict": "BLOCKED",
   "repository": "https://github.com/s1korrrr/LiteratureAtlas",
-  "implementation_baseline_commit": "95d0031a0ee67a9f91cd0d915de75e1f42137daa",
+  "implementation_baseline_commit": "88f914bf98dcd032a638d0f28c8a719170bb7352",
   "published_community_artifact": {
     "tag": "v1.0.0-community.1",
     "source_commit": "95d0031a0ee67a9f91cd0d915de75e1f42137daa",
@@ -74,9 +74,9 @@
       "source_commit": "647911aa3093a9df56f48a048a002e5db458794a"
     }
   ],
-  "security_scan_status": "the current delta excluded a formal Codex Security scan; manual redacted history checks found no credential; three deceptive-host CodeQL alerts were reproduced and fixed locally, pending exact-head hosted closure",
+  "security_scan_status": "the current delta excluded a formal Codex Security scan; manual redacted history checks found no credential; three deceptive-host CodeQL alerts were fixed and exact-head hosted CodeQL passed with zero open alerts on the reviewed branch",
   "openssf_scorecard_result": "workflow configured; no public result accepted as release evidence",
-  "ci_status": "local source, release-policy, macOS/iPadOS archive, and runtime gates pass; the current release-readiness candidate requires fresh hosted checks, and historical dependency review skipped before the dependency graph was enabled",
+  "ci_status": "local source, release-policy, macOS/iPadOS archive, runtime, and clean-room gates pass; all substantive PR #11 checks passed, including an executed dependency review and Swift/Python CodeQL",
   "documentation_status": "public contract is complete for local reproduction; owner-controlled identities and channels remain blocked",
   "governance_status": "blocked pending owner-approved roster and authority",
   "security_contact_status": "GitHub private vulnerability reporting is enabled; a separate private conduct route remains blocked",
@@ -99,7 +99,6 @@
   ],
   "residual_risks": [
     "local exported metadata can contain source paths",
-    "GitHub main is unprotected",
     "secret validity and non-provider-pattern scanning remain unavailable or disabled"
   ],
   "owner_approvals_required": [
@@ -108,7 +107,7 @@
     "DCO versus CLA and governance roster",
     "history remediation strategy",
     "official bundle/signing identity and production artwork",
-    "remaining GitHub governance settings",
+    "optional Action allowlisting and public Scorecard publication",
     "each Apple notarization upload",
     "each official production tag, artifact, release, and announcement"
   ]

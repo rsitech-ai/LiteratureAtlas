@@ -17,14 +17,16 @@ authorized and published on 2026-07-18; it does not clear the official gates.
   dependency-audit, source-SBOM, and launch gates pass except the intentional
   approved-AppIcon release blocker. Release compilation treats Swift warnings
   as errors. The supported direct-download lane is Apple Silicon.
-- The prior release-hardening diff received a complete Codex Security scan. A
-  scheduled scan later opened three deceptive-host CodeQL alerts on current
-  `main`; the candidate fixes them and requires exact-head hosted revalidation.
-  The dependency-review action was skipped because GitHub's dependency graph
-  was disabled at the time, so the historical green workflow alone is not
-  evidence that review ran. Dependency alerts/security updates and private
-  vulnerability reporting are now enabled; the candidate still requires a
-  fresh pull-request run and exact-head closure.
+- The prior release-hardening diff received a complete Codex Security scan; the
+  current delta did not. Three later deceptive-host CodeQL alerts were fixed.
+  PR #11 passed exact-head Swift/Python CodeQL with no open branch alerts, and
+  dependency review executed successfully after the dependency graph was
+  enabled. Dependency alerts/security updates, private vulnerability reporting,
+  strict required checks, pull-request review flow, and default-branch
+  protection are enabled.
+- Reviewed head `9b62c14` passed a clean-room frozen restore, Python/Rust/Swift
+  suites, credential-free community build, mounted DMG byte comparison, and a
+  relocated launch smoke. PR #11 merged that tree as `88f914b`.
 
 ## Historical artifact evidence
 

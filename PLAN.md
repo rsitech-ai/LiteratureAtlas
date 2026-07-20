@@ -56,13 +56,29 @@ Chosen: option 2 because the repository already contains extensive release, prov
 - Changes: hardened URL trust parsing; cross-language corpus freshness; PDF
   extraction/hash cancellation and actor isolation; derived-export ordering and
   error reporting; bounded claim controversy analysis; deterministic saved-paper
-  compatibility; DMG cleanup; notices, SBOM, public docs, and GitHub metadata.
+  compatibility; DMG cleanup; notices, SBOM, public docs, GitHub metadata, and
+  protected-main governance with nine required checks.
 - Tests run: Python Ruff + 61 tests; Swift warnings-as-errors + 90 XCTest and 4
   Swift Testing cases; Rust fmt/strict Clippy/7 tests/release build; Python/Rust
   advisory audits; REUSE 3.3; release-script suite; release validator; XcodeGen
   parity; arm64 macOS and iPadOS Release archives; canonical app launch/log smoke;
-  manual redacted reachable-history scan. Fresh-clone/package and hosted checks
-  remain before integration.
+  manual redacted reachable-history scan. Reviewed head `9b62c14` also passed a
+  frozen clean-room restore, full language suites, credential-free community
+  build, mounted DMG byte comparison, portable checksum verification, and
+  relocated launch smoke. PR #11 passed all substantive hosted checks, including
+  executed dependency review and Swift/Python CodeQL, then merged as `88f914b`.
 - Tradeoffs: formal Codex Security scan excluded by explicit user direction;
-  repository-native checks remain in scope. The macOS archive is intentionally
-  Apple Silicon to match the supported direct-download lane and local disk budget.
+  repository-native checks remain scoped evidence, not an exhaustive substitute.
+  The macOS archive is intentionally Apple Silicon to match the supported
+  direct-download lane and local disk budget. Branch protection requires no
+  approval for the solo-owner workflow but does require an up-to-date pull
+  request, nine checks, and resolved conversations; administrators are not
+  enforced so the explicitly authorized closeout commit can land directly.
+- Cleanup: removed only ignored/generated Swift, Rust, Ruff, pytest,
+  distribution, and exact temporary rehearsal outputs. Preserved `Output/`,
+  `analytics/.venv`, examples, user data, and release evidence.
+- Final readiness: the community lane is repo-ready, package-ready, and
+  runtime-proven for the reviewed Apple Silicon candidate. Official source or
+  Apple distribution remains blocked externally by reachable PDF history,
+  chain of title, production artwork/brand authority, governance/conduct routing,
+  Developer ID/notarization proof, and an exact signed-artifact SBOM/attestation.
