@@ -1,23 +1,21 @@
 # Security readiness
 
-No credential leak was validated in the current tracked tree or reachable
-history. A prior release-hardening diff received a complete Codex Security scan;
-the current release-readiness delta explicitly did not. Manual redacted history
-inspection found no credential, while scheduled CodeQL identified three
-high-severity deceptive-host alerts in analytics URL classification. The code
-and regressions were repaired; PR #11 passed exact-head Swift/Python CodeQL and
-reported zero open alerts on the reviewed branch. Dependency review also
-executed successfully after the dependency graph was enabled. Dependency
-alerts, automated security fixes, private vulnerability reporting, full-length
-Action SHA enforcement, strict required checks, and default-branch protection
-are enabled. The distributed runtime boundary, persistent security-scoped source
-bookmarks, sandbox, private logging, raw-question minimization, release-script
-separation, locked developer environments, and exact artifact checks are
-positive controls.
+The Apache/organization migration intentionally excludes a formal Codex
+Security scan at maintainer direction. That exclusion is recorded rather than
+being presented as completed evidence. The protected pull request still runs
+the repository's automated Swift/Python CodeQL, dependency review, lockfile
+audit, REUSE, build, and test checks. Dependency alerts, automated security
+fixes, private vulnerability reporting, full-length Action SHA enforcement,
+strict required checks, and default-branch protection are enabled. The
+distributed runtime boundary, persistent security-scoped source bookmarks,
+sandbox, private logging, raw-question minimization, release-script separation,
+locked developer environments, and exact artifact checks remain positive
+controls.
 
-Release security remains blocked until the incomplete signed-artifact
-SBOM/provenance evidence, absent production icon provenance, unperformed
-Developer ID/notary/quarantine proof, and historical IP-bearing objects.
+Release publication remains blocked only until the exact merged-source app has
+been built, Developer ID signed, notarized, stapled, quarantine tested, given an
+artifact-specific SPDX SBOM, and remotely verified. Production icon provenance
+and canonical-history sanitization are complete.
 
 See [the technical boundary](../security/README.md) and
 [SECURITY.md](../../SECURITY.md).

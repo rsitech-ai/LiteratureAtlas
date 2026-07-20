@@ -32,10 +32,20 @@ environments. License metadata includes permissive licenses and MPL-2.0 for
 XcodeGen, uv, Ruff, pytest, cargo-audit, and GitHub Actions are build or
 validation tools, not app runtime components. Each retains its upstream terms.
 
+## Developer Certificate of Origin
+
+`DCO.txt` is the verbatim Developer Certificate of Origin 1.1, copyright 2004
+and 2006 The Linux Foundation and its contributors. It permits copying and
+distribution of verbatim copies but does not permit changes. The same text is
+stored as `LICENSES/LicenseRef-DCO-1.1.txt` for REUSE/SPDX tooling. It is not
+relicensed under Apache-2.0.
+
 ## Assets and source documents
 
-Production AppIcon artwork has not been approved. Release-evidence screenshots
-remain provenance-review items. No third-party sample research PDFs are present
-in the current tree or permitted in release artifacts. Historical PDF blobs in
-reachable Git history are a publication blocker documented in
-`docs/open-source/IP_INVENTORY.md`.
+The production AppIcon was generated specifically for this project without
+external reference artwork. Its complete asset catalog compiles and passes the
+release validator. No release-evidence screenshots or third-party sample
+research PDFs are tracked in the canonical repository. The canonical
+organization history was sanitized before publication; the superseded personal
+repository is retained only as a temporary legacy boundary until the RSI Tech
+replacement release is remotely verified.

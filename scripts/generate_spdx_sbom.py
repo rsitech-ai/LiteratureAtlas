@@ -14,8 +14,10 @@ import tempfile
 from typing import Any, Iterable
 
 
-REPOSITORY = "https://github.com/s1korrrr/LiteratureAtlas"
+REPOSITORY = "https://github.com/rsitech-ai/LiteratureAtlas"
 GENERATOR = "Tool: LiteratureAtlas generate_spdx_sbom.py"
+PROJECT_LICENSE = "Apache-2.0"
+PROJECT_COPYRIGHT = "Copyright 2025-2026 Rafal Sikora"
 
 
 def sha256(path: pathlib.Path) -> str:
@@ -65,9 +67,9 @@ def add_package_and_relationships(
             "versionInfo": version,
             "downloadLocation": "NOASSERTION",
             "filesAnalyzed": True,
-            "licenseConcluded": "MIT",
-            "licenseDeclared": "MIT",
-            "copyrightText": "NOASSERTION",
+            "licenseConcluded": PROJECT_LICENSE,
+            "licenseDeclared": PROJECT_LICENSE,
+            "copyrightText": PROJECT_COPYRIGHT,
         }
     ]
     document["files"] = files

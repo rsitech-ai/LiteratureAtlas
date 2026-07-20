@@ -26,9 +26,10 @@ follow [analytics/README.md](analytics/README.md).
 
 ## Contribution certification
 
-DCO versus a lawyer-reviewed CLA has not been selected. Do not represent commit
-sign-off as an enforced acceptance policy until the owner chooses a mechanism
-and CI enforces it.
+Contributions use the [Developer Certificate of Origin 1.1](DCO.txt). Add a
+sign-off to every commit with `git commit -s` to certify that you have the right
+to submit the work under the repository license. GitHub web commits require a
+sign-off and maintainers will not merge unsigned contributions.
 
 Release signing, notarization, tags, and official publication remain
 maintainer-only operations requiring explicit approval.

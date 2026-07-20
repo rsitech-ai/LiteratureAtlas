@@ -1,10 +1,17 @@
 # Governance review
 
-Contribution, support, role-model, and release-boundary documents exist, but the
-maintainer roster, approval counts, release authority, security responder,
-conduct responder, tie-breaker, and DCO-versus-CLA choice remain unapproved.
+Governance is ready for a single-maintainer public project:
 
-Private security and conduct reporting are unavailable. Governance readiness is
-therefore **blocked**, not merely undocumented. See
-[GOVERNANCE.md](../../GOVERNANCE.md), [MAINTAINERS.md](../../MAINTAINERS.md), and
+- RSI Tech is the public maintainer and brand.
+- Rafal Sikora is copyright owner and release authority.
+- `@s1korrrr` is the active GitHub reviewer/CODEOWNER.
+- `info@rsitech.ai` is the public and confidential project, conduct, and
+  security contact.
+- GitHub private vulnerability reporting is enabled.
+- Contributions require DCO 1.1 sign-off and Apache-2.0 inbound terms.
+- Protected `main` requires an up-to-date PR, named checks, and resolved
+  conversations; force pushes and deletion are disabled.
+
+See [GOVERNANCE.md](../../GOVERNANCE.md),
+[MAINTAINERS.md](../../MAINTAINERS.md), and
 [CONTRIBUTING.md](../../CONTRIBUTING.md).

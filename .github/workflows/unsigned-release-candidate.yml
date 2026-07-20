@@ -1,0 +1,76 @@
+name: Unsigned release candidate
+
+on:
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+concurrency:
+  group: unsigned-release-candidate-${{ github.ref }}
+  cancel-in-progress: false
+
+jobs:
+  build:
+    name: Unsigned macOS candidate
+    if: github.ref == 'refs/heads/main'
+    runs-on: macos-26
+    timeout-minutes: 45
+    env:
+      DEVELOPER_DIR: /Applications/Xcode_26.6.app/Contents/Developer
+    steps:
+      - uses: actions/checkout@9c091bb21b7c1c1d1991bb908d89e4e9dddfe3e0 # v7.0.0
+        with:
+          persist-credentials: false
+          fetch-depth: 1
+      - name: Install pinned XcodeGen
+        run: |
+          curl --fail --location --silent --show-error \
+            --output "$RUNNER_TEMP/xcodegen.zip" \
+            https://github.com/yonaskolb/XcodeGen/releases/download/2.45.4/xcodegen.zip
+          echo "090ec29491aad50aec10631bf6e62253fed733c50f3aab0f5ffc86bc170bdbef  $RUNNER_TEMP/xcodegen.zip" | shasum -a 256 --check
+          ditto -x -k "$RUNNER_TEMP/xcodegen.zip" "$RUNNER_TEMP/xcodegen"
+          echo "$RUNNER_TEMP/xcodegen/xcodegen/bin" >> "$GITHUB_PATH"
+      - name: Verify exact source and release configuration
+        run: |
+          test "$(git rev-parse HEAD)" = "$GITHUB_SHA"
+          test -z "$(git status --porcelain --untracked-files=normal)"
+          xcodegen generate --spec project.yml
+          git diff --exit-code -- LiteratureAtlas.xcodeproj
+          scripts/validate_release_configuration.py
+      - name: Build signature-free official candidate
+        run: |
+          script/build_official.sh \
+            --product-name LiteratureAtlas \
+            --bundle-id ai.rsitech.LiteratureAtlas \
+            --version 1.0.0 \
+            --build 1 \
+            --output "$RUNNER_TEMP/official"
+          embedded_revision="$(/usr/libexec/PlistBuddy -c 'Print :LiteratureAtlasSourceRevision' "$RUNNER_TEMP/official/LiteratureAtlas.app/Contents/Info.plist")"
+          test "$embedded_revision" = "$GITHUB_SHA"
+          test "$(/usr/libexec/PlistBuddy -c 'Print :CFBundleIdentifier' "$RUNNER_TEMP/official/LiteratureAtlas.app/Contents/Info.plist")" = ai.rsitech.LiteratureAtlas
+          test "$(/usr/libexec/PlistBuddy -c 'Print :CFBundleShortVersionString' "$RUNNER_TEMP/official/LiteratureAtlas.app/Contents/Info.plist")" = 1.0.0
+          test "$(/usr/libexec/PlistBuddy -c 'Print :CFBundleVersion' "$RUNNER_TEMP/official/LiteratureAtlas.app/Contents/Info.plist")" = 1
+          test "$(lipo -archs "$RUNNER_TEMP/official/LiteratureAtlas.app/Contents/MacOS/LiteratureAtlas")" = arm64
+      - name: Seal transport archives
+        run: |
+          mkdir "$RUNNER_TEMP/upload"
+          ditto -c -k --sequesterRsrc --keepParent \
+            "$RUNNER_TEMP/official/LiteratureAtlas.app" \
+            "$RUNNER_TEMP/upload/LiteratureAtlas-1.0.0-unsigned-app.zip"
+          ditto -c -k --sequesterRsrc --keepParent \
+            "$RUNNER_TEMP/official/LiteratureAtlas.app.dSYM" \
+            "$RUNNER_TEMP/upload/LiteratureAtlas-1.0.0-dSYM.zip"
+          (cd "$RUNNER_TEMP/upload" && shasum -a 256 -- *.zip > SHA256SUMS)
+          printf '%s\n' "$GITHUB_SHA" > "$RUNNER_TEMP/upload/SOURCE_COMMIT"
+      - uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02 # v4.6.2
+        with:
+          name: LiteratureAtlas-1.0.0-unsigned-${{ github.sha }}
+          path: |
+            ${{ runner.temp }}/upload/LiteratureAtlas-1.0.0-unsigned-app.zip
+            ${{ runner.temp }}/upload/LiteratureAtlas-1.0.0-dSYM.zip
+            ${{ runner.temp }}/upload/SHA256SUMS
+            ${{ runner.temp }}/upload/SOURCE_COMMIT
+          if-no-files-found: error
+          retention-days: 7
+          compression-level: 0
