@@ -1,11 +1,12 @@
-# Community conduct status
+# Community conduct
 
 Be respectful, constructive, and specific. Harassment, discrimination, threats,
 doxxing, and publication of another person's private material are not accepted
 in project spaces.
 
-A named conduct standard, authorized enforcement role, private reporting
-channel, appeal owner, and response process have not yet been approved. This
-file therefore records minimum participation expectations without claiming a
-complete enforceable moderation program. Do not submit sensitive conduct reports
-through public issues while that blocker remains.
+Report conduct concerns privately to `info@rsitech.ai`; do not use a public
+issue. RSI Tech coordinates review and may remove content, restrict
+participation, or ban participants when necessary to protect the community.
+Reports and appeals are handled confidentially on a best-effort basis. A
+conflicted responder must recuse and seek an uninvolved reviewer where one is
+available.

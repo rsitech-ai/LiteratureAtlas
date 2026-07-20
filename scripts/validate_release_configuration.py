@@ -108,9 +108,9 @@ def validate(root: Path) -> dict[str, Any]:
     for platform, resource_root in platform_paths.items():
         info = read_plist(resource_root / "Info.plist")
         expected_bundle = (
-            "com.literatureatlas.app"
+            "ai.rsitech.LiteratureAtlas"
             if platform == "macOS"
-            else "com.literatureatlas.app.ios"
+            else "ai.rsitech.LiteratureAtlas.iOS"
         )
         info_ok = (
             info.get("CFBundleIdentifier") == "$(PRODUCT_BUNDLE_IDENTIFIER)"

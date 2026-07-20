@@ -3,7 +3,7 @@ set -euo pipefail
 
 MODE="${1:-run}"
 APP_NAME="LiteratureAtlas"
-BUNDLE_ID="com.literatureatlas.app"
+BUNDLE_ID="ai.rsitech.LiteratureAtlas"
 MIN_SYSTEM_VERSION="26.0"
 
 ROOT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)"

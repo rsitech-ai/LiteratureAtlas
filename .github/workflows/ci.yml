@@ -36,9 +36,8 @@ jobs:
       - uses: actions/setup-python@ece7cb06caefa5fff74198d8649806c4678c61a1 # v6.3.0
         with:
           python-version: ${{ matrix.python-version }}
-      - uses: astral-sh/setup-uv@11f9893b081a58869d3b5fccaea48c9e9e46f990 # v8.3.2
-        with:
-          version: "0.5.23"
+      - name: Install pinned uv
+        run: python -m pip install --disable-pip-version-check uv==0.5.23
       - name: Verify lock and install
         run: |
           uv lock --check --project analytics
@@ -117,7 +116,7 @@ jobs:
           xcodegen generate --spec project.yml
           git diff --exit-code -- LiteratureAtlas.xcodeproj
       - name: Validate release configuration
-        run: python3 scripts/validate_release_configuration.py --allow-blocker app_icon_artwork
+        run: python3 scripts/validate_release_configuration.py
       - name: Build unsigned distributed macOS target
         run: >-
           xcodebuild -project LiteratureAtlas.xcodeproj

@@ -1,8 +1,9 @@
 cff-version: 1.2.0
-message: "Citation metadata is pending confirmed public author or organization attribution."
+message: "If you use LiteratureAtlas, cite this software and its canonical RSI Tech repository."
 title: "LiteratureAtlas"
 type: software
-repository-code: "https://github.com/s1korrrr/LiteratureAtlas"
-license: MIT
+repository-code: "https://github.com/rsitech-ai/LiteratureAtlas"
+url: "https://rsitech.ai"
+license: Apache-2.0
 authors:
-  - name: "LiteratureAtlas contributors"
+  - name: "Rafal Sikora"

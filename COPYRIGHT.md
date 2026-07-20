@@ -1,11 +1,12 @@
-# Copyright evidence
+# Copyright and licensing
 
-The repository's current license notice reads:
+Copyright 2025-2026 Rafal Sikora.
 
-> Copyright (c) 2025 LiteratureAtlas contributors
+Rafal Sikora has confirmed copyright and licensing authority for the
+project-authored source and documentation in the current sanitized repository.
+That work is offered under Apache-2.0. RSI Tech is the public project brand and
+maintainer; it is not presented as a separate copyright owner.
 
-That wording is retained from [LICENSE](LICENSE). Git author metadata records
-contributions; it is not proof of copyright ownership or authority to relicense.
-The exact rights holder and chain of title require owner confirmation before any
-license change or official public release. See
-[IP_INVENTORY.md](docs/open-source/IP_INVENTORY.md).
+Historical snapshots previously published under MIT remain usable under those
+grants. Upstream dependencies and third-party tools retain their own licenses;
+see [THIRD_PARTY_NOTICES.md](THIRD_PARTY_NOTICES.md).

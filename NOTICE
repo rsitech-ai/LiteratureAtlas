@@ -1,4 +1,8 @@
-LiteratureAtlas is distributed under the MIT License. See LICENSE.
+LiteratureAtlas
+Copyright 2025-2026 Rafal Sikora
+
+Licensed under the Apache License, Version 2.0. See LICENSE.
+Publicly maintained by RSI Tech: https://rsitech.ai
 
 Third-party software and build tools retain their upstream terms. See
 THIRD_PARTY_NOTICES.md.
@@ -6,5 +10,5 @@ THIRD_PARTY_NOTICES.md.
 Apple platform names and SDKs belong to their respective owners. This project
 does not claim affiliation with or endorsement by Apple Inc.
 
-Community builds are independently produced and are not official signed or
-notarized LiteratureAtlas releases. See BRANDING.md and TRADEMARKS.md.
+Modified distributions must not imply endorsement by Rafal Sikora or RSI Tech.
+See BRANDING.md and TRADEMARKS.md.

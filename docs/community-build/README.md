@@ -9,7 +9,7 @@ The repository's published community build uses this distinct identity:
 ```bash
 script/build_community.sh \
   --product-name LiteratureAtlasCommunity \
-  --bundle-id io.github.s1korrrr.LiteratureAtlasCommunity \
+  --bundle-id ai.rsitech.LiteratureAtlasCommunity \
   --version 1.0.0 \
   --build 1 \
   --output dist/community
