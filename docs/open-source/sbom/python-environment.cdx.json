@@ -1838,11 +1838,28 @@
     "component": {
       "bom-ref": "root-component",
       "description": "Local analytics pipeline for LiteratureAtlas",
+      "externalReferences": [
+        {
+          "comment": "from pyproject urls: Issues",
+          "type": "issue-tracker",
+          "url": "https://github.com/rsitech-ai/LiteratureAtlas/issues"
+        },
+        {
+          "comment": "from pyproject urls: Repository",
+          "type": "vcs",
+          "url": "https://github.com/rsitech-ai/LiteratureAtlas"
+        },
+        {
+          "comment": "from pyproject urls: Homepage",
+          "type": "website",
+          "url": "https://rsitech.ai"
+        }
+      ],
       "licenses": [
         {
           "license": {
             "acknowledgement": "declared",
-            "id": "MIT"
+            "id": "Apache-2.0"
           }
         }
       ],

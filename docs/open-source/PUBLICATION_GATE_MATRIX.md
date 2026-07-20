@@ -2,28 +2,23 @@
 
 | Gate | State | Evidence / next action |
 |---|---|---|
-| Effective OSI license | Pass | Existing MIT `LICENSE`; no restrictive terms |
-| Authority to relicense | Blocked | Confirm rights holders before MPL/CC proposal |
-| Current-tree third-party content | Pass with review | No bundled PDFs; notices and current source ecosystems inventoried |
-| Reachable history IP | Blocked | Four third-party PDFs; clean-history or approved rewrite decision |
-| Secret/history scan | Warning | Manual redacted worktree/history scan found no credential; formal Codex Security scan excluded for this delta; repeat repository-native checks on final commit |
-| Distributed privacy/runtime boundary | Pass | Tests and artifact marker checks |
-| Community build | Current pass / published prerelease | Merge commit `95d0031a`: exact ad-hoc app/DMG verification, mounted-content comparison, relocated launch/log smoke, checksum, exact-app SBOM, and remote byte-for-byte download verification; not notarized |
-| Official pre-sign build | Historical pass only | Commit `647911a`: signature-free arm64 app, exact identity/version/source mapping, 35 prompts, dSYM, no checkout-only markers; rebuild from approved current source before release |
-| Official Developer ID signature | Blocked external | Owner must authorize the installed private key for the exact pre-sign candidate |
-| Notarization/stapling/Gatekeeper | Blocked external | No Apple upload authorized or performed |
-| Production artwork | Blocked | Release validator: `app_icon_artwork` |
-| Source tests/builds | Pass locally | Python format/lint and 61 tests, Swift warnings-as-errors and 90 XCTest/4 Swift Testing cases, Rust format/strict Clippy/7 tests/release build, macOS and iPadOS arm64 Release archives, release-policy suite, and canonical launch smoke passed; the corpus ingest smoke remains intentionally gated on an authorized user corpus |
-| CI workflow hardening | Pass | PR #11 passed Apple/Swift/distribution, macOS/Linux Python, Rust, release policy, REUSE, dependency review, and Swift/Python CodeQL. Workflows are SHA-pinned and read-only; strict required checks, pull-request flow, conversation resolution, alerts/security updates, private reporting, full-length Action SHA enforcement, and merged-branch cleanup are enabled on protected `main` |
-| Source/dependency SBOM | Pass locally | Current follow-up source and frozen Python/Rust dependency inventories are under `sbom/`; regenerate after any later source or lock change |
-| Community/pre-sign app SBOM | Current community pass; pre-sign historical | The `v1.0.0-community.1` release includes a 40-file exact-app SPDX SBOM; commit-`647911a` tracked app inventories remain historical snapshots |
-| Official artifact SBOM/provenance | Blocked | Generate from exact signed candidate and attest source mapping |
-| Private security contact | Pass | GitHub private vulnerability reporting is enabled and linked from `SECURITY.md`; a separate private conduct route remains a governance blocker |
-| Governance/DCO | Blocked owner | Approve roster, authority, DCO versus CLA |
-| Trademark/branding authority | Blocked owner | Confirm owner and marks; technical rebrand policy exists |
-| Fresh clone | Pass on reviewed head | Commit `9b62c14`: frozen restore, Python/Rust/Swift suites, credential-free community build, mounted DMG byte comparison, portable checksum verification, and relocated launch smoke passed before PR #11 merged the same tree |
-| macOS 26 local hardware | Historical pass only | The commit-`647911a` relocated community app launched, navigated, ingested, and relaunched cleanly |
-| Download quarantine acceptance | Blocked external | Test the future downloaded and notarized DMG on supported hardware |
-| Tag/release/public announcement | Community exception published | `v1.0.0-community.1` is explicitly labeled ad-hoc/not notarized; official production tag/release/announcement still requires separate approval |
+| Effective OSI license | Pass | Apache-2.0 `LICENSE`, `NOTICE`, package metadata, and REUSE annotation |
+| Copyright/licensing authority | Pass | Rafal Sikora confirmed owner and licensing authority; prior MIT grants preserved |
+| Canonical history IP | Pass | Fresh org clone has no PDF path or audited PDF blob; only rewritten `main` published |
+| Public maintainer/contact | Pass | RSI Tech; `https://rsitech.ai`; `info@rsitech.ai` |
+| Governance/DCO | Pass | Single-maintainer governance, CODEOWNERS, DCO 1.1, web sign-off required |
+| Private security/conduct route | Pass | GitHub PVR plus `info@rsitech.ai` |
+| Distributed privacy/runtime boundary | Pass, reverify | Existing tests and artifact marker checks; rerun on exact PR/release source |
+| Source tests/builds | Pass locally, pending exact head | Python, Swift, Rust, release policy, validator, and runtime smoke pass; hosted archive proof remains exact-PR-head work |
+| CI workflow policy | Pass configuration, pending hosted run | Only org-allowed GitHub actions remain; tools are pinned and release-candidate build is credential-free |
+| Source/dependency SBOM | Pass, reverify exact head | Deterministic source SPDX covers all 252 in-scope files; frozen Python/Rust inventories retain upstream licenses |
+| Production artwork | Pass | Complete opaque RSI Tech/LiteratureAtlas AppIcon catalog passes validation and standalone asset compilation |
+| Developer ID identity | Pass prerequisite | Valid installed Developer ID Application identity for Team `2NY8A789TN` |
+| Notary credentials | Pass prerequisite | Authenticated read-only notary history succeeded with external keychain profile |
+| Exact signed/notarized artifact | Pending | Build only after PR merge; verify signature, notarization, staple, Gatekeeper, DMG equality |
+| Release checksum/SBOM/provenance | Pending | Generate from exact signed/stapled artifact and reconcile source mapping |
+| Download availability | Pending | Publish org release and verify remote bytes before retiring personal prerelease |
+| Formal Codex Security scan | Excluded | Explicit user direction; do not translate scoped repository checks into exhaustive proof |
+| iPad App Store | Blocked external | Separate identifiers, profiles, metadata, device, and upload gates |
 
-Overall verdict: **BLOCKED**.
+Overall direct-download verdict: **RELEASE CANDIDATE**.

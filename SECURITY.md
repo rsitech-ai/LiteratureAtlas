@@ -1,15 +1,15 @@
 # Security policy
 
-No supported official release exists yet. The default branch is pre-release
-source and an official notarized download has not been published. The existing
-community prerelease is ad-hoc signed, not notarized, and unsupported.
+The default branch is the current development line. Supported release versions
+and their Apple trust state are stated explicitly on the GitHub Releases page;
+do not infer support or notarization from a tag alone.
 
 ## Reporting
 
 Do not disclose vulnerabilities, private documents, credentials, document
 paths, signing material, or exploit details in a public issue or pull request.
-Use [GitHub private vulnerability reporting](https://github.com/s1korrrr/LiteratureAtlas/security/advisories/new)
-for security reports. This route is enabled for the repository; do not open a
+Use [GitHub private vulnerability reporting](https://github.com/rsitech-ai/LiteratureAtlas/security/advisories/new)
+or email `info@rsitech.ai` for confidential security reports. Do not open a
 public issue for a suspected vulnerability.
 
 No bug bounty, response-time promise, or embargo SLA is offered.

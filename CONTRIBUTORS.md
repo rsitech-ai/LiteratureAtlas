@@ -1,9 +1,8 @@
 # Contributors
 
-Git history currently contains human contributions under the author names
-`Rafal`, `Rafał Sikora`, and `s1korrrr`, plus automated Dependabot commits.
-Alias reconciliation and preferred public attribution require the human
-contributors' confirmation.
+The sanitized Git history records Rafal Sikora under the canonical no-reply
+GitHub email and includes automated GitHub/Dependabot activity where applicable.
 
-Commit metadata is a contribution record, not proof of legal identity,
-copyright ownership, employment clearance, or authority to relicense.
+New contributors retain attribution for accepted work and certify submissions
+under the Developer Certificate of Origin 1.1. See `CONTRIBUTING.md` and
+`DCO.txt`.

@@ -2,9 +2,9 @@
 
 ## Product boundary
 
-The App Store build is designed as a local research workspace. It accepts documents selected by the user, processes them with Apple's on-device Foundation Models APIs and local algorithms, and stores derived artifacts inside the application container. No network document compiler is present. The runtime Python pipeline and repository-relative Rust loader are excluded at compile time from `APP_STORE_BUILD`.
+The distributed build is designed as a local research workspace. It accepts documents selected by the user, processes them with Apple's on-device Foundation Models APIs and local algorithms, and stores derived artifacts inside the application container. No network document compiler is present. The runtime Python pipeline and repository-relative Rust loader are excluded at compile time from `DISTRIBUTED_APP_BUILD`.
 
-This map describes verified code and packaged behavior. It does not replace the product owner's App Store Connect privacy attestation or privacy policy.
+This map describes verified code and packaged behavior. It does not replace the published privacy policy or any future App Store Connect privacy attestation.
 
 ## Data flow
 
@@ -20,8 +20,8 @@ This map describes verified code and packaged behavior. It does not replace the 
 ## Network and SDK inventory
 
 - Document compilation is on-device in every build; the repository contains no OpenAI compiler endpoint or API-key path.
-- App Store compilation excludes the Python analytics launcher and dependency installer.
-- App Store compilation disables the relative `dlopen` Rust FFI path and uses the pure-Swift fallback.
+- Distributed compilation excludes the Python analytics launcher and dependency installer.
+- Distributed compilation disables the relative `dlopen` Rust FFI path and uses the pure-Swift fallback.
 - No third-party runtime SDK is linked by either application target.
 - Apple's Foundation Models framework is the model-processing boundary. The release owner must confirm Apple's current platform behavior and reflect it accurately in the privacy policy.
 

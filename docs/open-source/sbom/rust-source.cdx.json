@@ -2613,7 +2613,14 @@
     }
   ],
   "metadata": {
+    "authors": [
+      {
+        "email": "info@rsitech.ai",
+        "name": "Rafal Sikora"
+      }
+    ],
     "component": {
+      "author": "Rafal Sikora <info@rsitech.ai>",
       "bom-ref": "path+file:///workspace/LiteratureAtlas/analytics/ffi#atlas_ffi@0.1.0",
       "components": [
         {
@@ -2624,9 +2631,19 @@
           "version": "0.1.0"
         }
       ],
+      "externalReferences": [
+        {
+          "type": "website",
+          "url": "https://rsitech.ai"
+        },
+        {
+          "type": "vcs",
+          "url": "https://github.com/rsitech-ai/LiteratureAtlas"
+        }
+      ],
       "licenses": [
         {
-          "expression": "MIT"
+          "expression": "Apache-2.0"
         }
       ],
       "name": "atlas_ffi",
