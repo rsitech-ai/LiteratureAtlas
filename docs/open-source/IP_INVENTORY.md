@@ -27,7 +27,8 @@ obtained. No history rewrite was performed.
 
 ## Contributors and ownership
 
-Git history contains two author-name forms, `Rafal` and `s1korrrr`. No DCO, CLA,
-mailmap, employer release, contractor assignment, or rights attestation was
-found. Git metadata is not chain-of-title evidence. Exact copyright holder and
-authority to relicense remain owner/legal-review blockers.
+Git history contains three human author-name forms, `Rafal`, `Rafał Sikora`, and
+`s1korrrr`, plus automated Dependabot commits. No DCO, CLA, mailmap, employer
+release, contractor assignment, or rights attestation was found. Git metadata
+is not chain-of-title evidence. Exact copyright holder and authority to
+relicense remain owner/legal-review blockers.

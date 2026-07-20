@@ -10,17 +10,18 @@ project resources. Artifact string inspection found no checkout Python,
 ## Contributor source closure
 
 - SwiftPM remote dependencies: 0.
-- Rust direct dependencies: `hnsw_rs 0.3.3`; the exact transitive graph is
+- Rust direct dependencies: `hnsw_rs 0.3.4`; the exact transitive graph is
   resolved in `analytics/ffi/Cargo.lock`.
-- Python direct dependencies: DuckDB, NumPy, pandas, scikit-learn, PyArrow.
-- Python dev dependencies: pytest and Ruff; exact versions and transitives are
+- Python direct dependencies: DuckDB, NumPy, pandas, scikit-learn, SciPy, PyArrow.
+- Python dev dependencies: pip-audit, pytest, and Ruff; exact versions and transitives are
   resolved in `analytics/uv.lock`.
 
 For the supported Apple Silicon contributor target, the Rust CycloneDX inventory
-contains 72 components including the project root (71 third-party components),
-and the Python inventory contains 18 components. Every component in those two
-ecosystem SBOMs has license metadata; all observed expressions are permissive
-open-source licenses. Unknown third-party licenses: 0.
+contains 72 dependency components plus the project root, and the Python
+inventory contains 46 dependency components plus the project root. Every
+component in those two ecosystem SBOMs has license metadata. Most observed
+licenses are permissive; `certifi` declares MPL-2.0, a weak-copyleft license.
+Unknown third-party licenses: 0.
 
 Current Rust advisory review found no known vulnerability and one unmaintained
 crate warning for `bincode 1.3.3`. The Python environment is locked and tested;

@@ -20,9 +20,11 @@ This directory houses the fully local analytics pipeline that the SwiftUI app ca
 ## Quick start
 ```bash
 # from repo root
-python analytics/rebuild_analytics.py
+uv sync --project analytics --extra dev --frozen
+uv run --project analytics --extra dev --frozen python analytics/rebuild_analytics.py
 # or if running from elsewhere
-python analytics/rebuild_analytics.py --base /path/to/LiteratureAtlas
+uv run --project analytics --extra dev --frozen \
+  python analytics/rebuild_analytics.py --base /path/to/LiteratureAtlas
 ```
 
 Key outputs

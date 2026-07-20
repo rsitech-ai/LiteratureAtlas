@@ -65,10 +65,11 @@ final class AnalyticsStoreTests: XCTestCase {
         try FileManager.default.createDirectory(at: tmp.appendingPathComponent("analytics"), withIntermediateDirectories: true)
         let file = tmp.appendingPathComponent("analytics/analytics.json")
 
-        let paperID = UUID()
+        let paperID = try XCTUnwrap(UUID(uuidString: "00000000-0000-0000-0000-000000000001"))
         let payload: [String: Any] = [
             "generated_at": "2025-01-02T03:04:05Z",
             "paper_count": 1,
+            "corpus_version": "dcd15b3cf3aa5e8fc0de2117787ee44f7a31b08adc6f6089fe0d095edb6de37c",
             "vector_dim": 128,
             "topic_trends": [["cluster_id": 0, "year": 2024, "count": 1]],
             "novelty": [["paper_id": paperID.uuidString, "cluster_id": 0, "novelty": 0.9]],
@@ -85,7 +86,7 @@ final class AnalyticsStoreTests: XCTestCase {
                 summary: "Summary", methodSummary: nil, resultsSummary: nil,
                 takeaways: nil, keywords: nil, userNotes: nil, userTags: nil,
                 readingStatus: nil, noteEmbedding: nil, userQuestions: nil,
-                flashcards: nil, year: 2024, embedding: [1, 0], clusterIndex: 0
+                flashcards: nil, year: nil, embedding: [1, 0], clusterIndex: nil
             )]
             model.reloadAnalyticsSummary()
             XCTAssertNotNil(model.analyticsSummary)

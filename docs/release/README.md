@@ -6,4 +6,6 @@
   universal-binary, iPad submission, TestFlight, and App Store assumptions are
   not authoritative for the current Apple Silicon direct-download lane.
 
-No release tag or official notarized artifact has been published.
+The `v1.0.0-community.1` ad-hoc/not-notarized prerelease is published. No
+official production tag or Developer ID-signed/notarized artifact has been
+published.

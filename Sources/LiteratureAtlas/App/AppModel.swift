@@ -71,6 +71,7 @@ final class AppModel: ObservableObject {
     @Published var ingestionTotalCount: Int = 0
     @Published var sourceAccessError: String? = nil
     @Published var persistenceError: String? = nil
+    @Published private(set) var derivedExportError: String? = nil
     @Published private(set) var sourceKindCounts: [SourceKind: Int] = [:]
 
     @Published var tradingLensBackfillInFlight: Bool = false
@@ -138,6 +139,8 @@ final class AppModel: ObservableObject {
         case backtestAudit(UUID)
     }
     private var paperAsyncTasks: [PaperAsyncOperation: Task<Void, Never>] = [:]
+    private var derivedExportTask: Task<Void, Never>?
+    private var derivedExportGeneration = 0
     private var canonicalEmbeddingDim: Int?
     private var clusterCache: [ClusterCacheKey: [Cluster]] = [:]
     private var subclusterCache: [Int: [Cluster]] = [:]
@@ -727,7 +730,10 @@ final class AppModel: ObservableObject {
     private func extractDocument(at sourceURL: URL, documentID: UUID, sourceKind: SourceKind) async throws -> PDFExtractionResult {
         switch sourceKind {
         case .pdf:
-            return try pdfProcessor.extractDocument(from: sourceURL, documentID: documentID)
+            let processor = pdfProcessor
+            return try await PDFProcessor.performCancellableDetachedExtraction {
+                try processor.extractDocument(from: sourceURL, documentID: documentID)
+            }
         case .markdown:
             let extraction = try markdownProcessor.extract(from: sourceURL, documentID: documentID)
             return PDFExtractionResult(
@@ -1002,16 +1008,38 @@ final class AppModel: ObservableObject {
 #endif
 
     private func upsertPaper(_ paper: Paper) {
+        let previousCorpusVersion = currentCorpusVersion()
         if let idx = papers.firstIndex(where: { $0.id == paper.id || $0.filePath == paper.filePath }) {
             papers[idx] = paper
         } else {
             papers.append(paper)
         }
+        if currentCorpusVersion() != previousCorpusVersion {
+            clusterCache.removeAll(keepingCapacity: true)
+            subclusterCache.removeAll(keepingCapacity: true)
+            paperANNCache = nil
+        }
     }
 
     private func loadSavedPapersIfNeeded() async {
         let decoder = JSONDecoder()
-        var newestByPath: [String: (paper: Paper, date: Date?, url: URL, needsRewrite: Bool)] = [:]
+        typealias SavedPaperCandidate = (paper: Paper, date: Date?, url: URL, needsRewrite: Bool)
+        var newestByPath: [String: SavedPaperCandidate] = [:]
+
+        func isPreferred(_ candidate: SavedPaperCandidate, over existing: SavedPaperCandidate) -> Bool {
+            let candidatePriority = candidate.url.lastPathComponent.hasSuffix(".paper.json") ? 0 : 1
+            let existingPriority = existing.url.lastPathComponent.hasSuffix(".paper.json") ? 0 : 1
+            if candidatePriority != existingPriority {
+                return candidatePriority < existingPriority
+            }
+
+            let candidateDate = candidate.date ?? .distantPast
+            let existingDate = existing.date ?? .distantPast
+            if candidateDate != existingDate {
+                return candidateDate > existingDate
+            }
+            return candidate.url.path < existing.url.path
+        }
 
         let candidates = listPaperJSONCandidates()
         guard !candidates.isEmpty else { return }
@@ -1055,21 +1083,18 @@ final class AppModel: ObservableObject {
             }
             let values = try? url.resourceValues(forKeys: [.contentModificationDateKey])
             let modDate = values?.contentModificationDate
+            let candidate: SavedPaperCandidate = (paper, modDate, url, normalized.changed)
 
             if let existing = newestByPath[paper.filePath] {
-                // Prefer the most recently modified JSON if duplicates exist.
-                if let modDate = modDate, let existingDate = existing.date, modDate < existingDate { continue }
+                guard isPreferred(candidate, over: existing) else { continue }
             }
-            newestByPath[paper.filePath] = (paper, modDate, url, normalized.changed)
+            newestByPath[paper.filePath] = candidate
         }
 
-        var newestByID: [UUID: (paper: Paper, date: Date?, url: URL, needsRewrite: Bool)] = [:]
+        var newestByID: [UUID: SavedPaperCandidate] = [:]
         for candidate in newestByPath.values {
-            if let existing = newestByID[candidate.paper.id],
-               let existingDate = existing.date,
-               let candidateDate = candidate.date,
-               candidateDate <= existingDate {
-                continue
+            if let existing = newestByID[candidate.paper.id] {
+                guard isPreferred(candidate, over: existing) else { continue }
             }
             newestByID[candidate.paper.id] = candidate
         }
@@ -1551,6 +1576,15 @@ final class AppModel: ObservableObject {
                     analyticsSummary = nil
                     analyticsLoadError = "Analytics are stale: they describe \(loadedSummary.paperCount) papers, but the current library contains \(canonicalPaperCount). Rebuild analytics."
                     return
+                }
+
+                if canonicalPaperCount > 0 || loadedSummary.paperCount > 0 {
+                    let canonicalCorpusVersion = currentCorpusVersion()
+                    guard loadedSummary.corpusVersion == canonicalCorpusVersion else {
+                        analyticsSummary = nil
+                        analyticsLoadError = "Analytics are stale: their corpus fingerprint does not match the current library. Rebuild analytics."
+                        return
+                    }
                 }
 
                 let canonicalIDs = Set(papers.map(\.id))
@@ -2922,6 +2956,9 @@ final class AppModel: ObservableObject {
     }
 
     private func exportObsidianVaultArtifacts(force: Bool) {
+        derivedExportGeneration += 1
+        let generation = derivedExportGeneration
+        let previousExport = derivedExportTask
         let root = outputRoot
         let papersSnapshot = papers
         let clustersSnapshot = clusters
@@ -2935,8 +2972,12 @@ final class AppModel: ObservableObject {
         let paperContextSnapshot = PaperMarkdownExporter.Context(allPapers: papersSnapshot, clusters: allClustersSnapshot, clusterNameSources: sourcesSnapshot)
         let claimsSnapshot = papersSnapshot.flatMap { $0.claims ?? [] }
 
-        Task.detached(priority: .utility) { [weak self] in
+        let exportTask = Task.detached(priority: .utility) { [weak self] in
+            await previousExport?.value
+            guard !Task.isCancelled else { return }
+
             let fm = FileManager.default
+            var failures: [String] = []
             let papersByID = papersByIDSnapshot
             let allClusters = allClustersSnapshot
             let paperContext = paperContextSnapshot
@@ -2954,39 +2995,67 @@ final class AppModel: ObservableObject {
 
             // Clusters
             for cluster in allClusters {
-                _ = try? ClusterMarkdownExporter.write(
-                    cluster: cluster,
-                    outputRoot: root,
-                    papersByID: papersByID,
-                    nameSource: sourcesSnapshot[cluster.id]
-                )
+                do {
+                    _ = try ClusterMarkdownExporter.write(
+                        cluster: cluster,
+                        outputRoot: root,
+                        papersByID: papersByID,
+                        nameSource: sourcesSnapshot[cluster.id]
+                    )
+                } catch {
+                    failures.append("cluster \(cluster.id): \(error.localizedDescription)")
+                }
             }
 
             // Atlas dashboard
-            _ = try? AtlasMarkdownExporter.write(
-                outputRoot: root,
-                corpusVersion: corpusVersion,
-                papers: papersSnapshot,
-                clusters: clustersSnapshot,
-                megaClusters: megaClustersSnapshot,
-                clusterNameSources: sourcesSnapshot,
-                pinnedClusterIDs: pinnedSnapshot,
-                strategyProjects: strategySnapshot
-            )
+            do {
+                _ = try AtlasMarkdownExporter.write(
+                    outputRoot: root,
+                    corpusVersion: corpusVersion,
+                    papers: papersSnapshot,
+                    clusters: clustersSnapshot,
+                    megaClusters: megaClustersSnapshot,
+                    clusterNameSources: sourcesSnapshot,
+                    pinnedClusterIDs: pinnedSnapshot,
+                    strategyProjects: strategySnapshot
+                )
+            } catch {
+                failures.append("atlas dashboard: \(error.localizedDescription)")
+            }
 
             // Vault assets (CSS snippet + setup note)
-            _ = try? ObsidianVaultAssetsExporter.write(outputRoot: root)
+            do {
+                _ = try ObsidianVaultAssetsExporter.write(outputRoot: root)
+            } catch {
+                failures.append("vault assets: \(error.localizedDescription)")
+            }
 
             // Compiled knowledge artifacts
-            CompiledKnowledgeExporter.writeDocumentNotes(papers: papersSnapshot, outputRoot: root)
-            CompiledKnowledgeExporter.writeTopicBriefs(clusters: allClusters, papersByID: papersByID, outputRoot: root)
-            CompiledKnowledgeExporter.writeEntityNotes(papers: papersSnapshot, outputRoot: root)
-            DocumentGraphExporter.write(
-                papers: papersSnapshot,
-                clusters: allClusters,
-                claimEdges: claimEdgesSnapshot,
-                outputRoot: root
-            )
+            do {
+                try CompiledKnowledgeExporter.writeDocumentNotes(papers: papersSnapshot, outputRoot: root)
+            } catch {
+                failures.append("compiled documents: \(error.localizedDescription)")
+            }
+            do {
+                try CompiledKnowledgeExporter.writeTopicBriefs(clusters: allClusters, papersByID: papersByID, outputRoot: root)
+            } catch {
+                failures.append("compiled topics: \(error.localizedDescription)")
+            }
+            do {
+                try CompiledKnowledgeExporter.writeEntityNotes(papers: papersSnapshot, outputRoot: root)
+            } catch {
+                failures.append("compiled entities: \(error.localizedDescription)")
+            }
+            do {
+                try DocumentGraphExporter.write(
+                    papers: papersSnapshot,
+                    clusters: allClusters,
+                    claimEdges: claimEdgesSnapshot,
+                    outputRoot: root
+                )
+            } catch {
+                failures.append("document graph: \(error.localizedDescription)")
+            }
 
             // Papers (upgrade old format or regenerate on force)
             let paperFolder = root.appendingPathComponent("obsidian", isDirectory: true).appendingPathComponent("papers", isDirectory: true)
@@ -3024,7 +3093,11 @@ final class AppModel: ObservableObject {
                 } else if !force {
                     // File missing.
                 }
-                _ = try? PaperMarkdownExporter.write(paper: paper, outputRoot: root, context: paperContext)
+                do {
+                    _ = try PaperMarkdownExporter.write(paper: paper, outputRoot: root, context: paperContext)
+                } catch {
+                    failures.append("paper \(paper.id.uuidString): \(error.localizedDescription)")
+                }
             }
 
             // Strategies (upgrade old format or regenerate on force)
@@ -3056,9 +3129,28 @@ final class AppModel: ObservableObject {
                 } else if !force {
                     // File missing.
                 }
-                _ = try? StrategyMarkdownExporter.write(project: project, outputRoot: root, paperTitlesByID: titleMap)
+                do {
+                    _ = try StrategyMarkdownExporter.write(project: project, outputRoot: root, paperTitlesByID: titleMap)
+                } catch {
+                    failures.append("project \(project.id.uuidString): \(error.localizedDescription)")
+                }
             }
-            await self?.refreshObsidianNoteIndexes()
+            await self?.finishDerivedExport(generation: generation, failures: failures)
+        }
+        derivedExportTask = exportTask
+    }
+
+    private func finishDerivedExport(generation: Int, failures: [String]) {
+        guard generation == derivedExportGeneration else { return }
+        derivedExportTask = nil
+        refreshObsidianNoteIndexes()
+        if failures.isEmpty {
+            derivedExportError = nil
+        } else {
+            let message = "Derived export completed with \(failures.count) failure(s): \(failures.joined(separator: "; "))"
+            derivedExportError = message
+            ingestionLog += "\n\(message)"
+            logger.error("[Export] \(message, privacy: .private)")
         }
     }
 
@@ -3599,14 +3691,106 @@ final class AppModel: ObservableObject {
     }
 
     private func currentCorpusVersion() -> String {
-        let signature = papers.sorted { $0.filePath < $1.filePath }
-            .map { "\($0.filePath)|v\($0.version)" }
-            .joined(separator: "||")
-        var hash: UInt64 = 5381
-        for byte in signature.utf8 {
-            hash = ((hash << 5) &+ hash) &+ UInt64(byte)
+        var digest = SHA256()
+
+        func add(_ value: String?) {
+            let data = Data((value ?? "").utf8)
+            var length = UInt64(data.count).bigEndian
+            withUnsafeBytes(of: &length) { bytes in
+                digest.update(data: Data(bytes))
+            }
+            digest.update(data: data)
         }
-        return String(hash)
+
+        func add(_ value: Int?) {
+            add(value.map(String.init))
+        }
+
+        func add(_ values: [String]?) {
+            let normalized = values ?? []
+            add(normalized.count)
+            normalized.forEach { add($0) }
+        }
+
+        func paddedHex<T: FixedWidthInteger>(_ value: T, width: Int) -> String {
+            let raw = String(value, radix: 16)
+            return String(repeating: "0", count: max(0, width - raw.count)) + raw
+        }
+
+        func float32Fingerprint(_ value: Float?) -> String {
+            value.map { paddedHex($0.bitPattern, width: 8) } ?? ""
+        }
+
+        func float64Fingerprint(_ value: Double?) -> String {
+            value.map { paddedHex($0.bitPattern, width: 16) } ?? ""
+        }
+
+        for paper in papers.sorted(by: { $0.id.uuidString.lowercased() < $1.id.uuidString.lowercased() }) {
+            add(paper.id.uuidString.lowercased())
+            add(paper.version)
+            add(paper.sourceKind.rawValue)
+            add(paper.title)
+            add(paper.originalFilename)
+            add(paper.filePath)
+            add((paper.sourceChecksum ?? "").lowercased())
+            add(float64Fingerprint(paper.firstReadAt?.timeIntervalSinceReferenceDate))
+            add(float64Fingerprint(paper.ingestedAt?.timeIntervalSinceReferenceDate))
+            add(paper.year)
+            add(paper.summary)
+            add(paper.introSummary)
+            add(paper.methodSummary)
+            add(paper.resultsSummary)
+            add(paper.clusterIndex)
+            // Python's current multi-scale compatibility field defaults k=10 to clusterIndex.
+            add(paper.clusterIndex)
+            add(nil as Int?)
+            add((paper.userTags?.isEmpty == false) ? paper.userTags : paper.keywords)
+
+            let claims = paper.claims ?? []
+            add(claims.count)
+            for claim in claims {
+                add(claim.id.uuidString.lowercased())
+                add(claim.paperID.uuidString.lowercased())
+                add(claim.statement.trimmingCharacters(in: .whitespacesAndNewlines))
+                add(claim.assumptions)
+                add(claim.evaluation?.dataset)
+                add(claim.evaluation?.period)
+                add(claim.evaluation?.metrics)
+                add(claim.year)
+                add(float32Fingerprint(claim.strength))
+            }
+
+            let steps = paper.methodPipeline?.steps ?? []
+            add(steps.count)
+            for step in steps {
+                add(step.stage.rawValue.trimmingCharacters(in: .whitespacesAndNewlines))
+                add(step.label.trimmingCharacters(in: .whitespacesAndNewlines))
+                let detail = step.detail?.trimmingCharacters(in: .whitespacesAndNewlines)
+                add(detail?.isEmpty == false ? detail : nil)
+            }
+
+            add(paper.assumptions)
+            add(paper.pageCount)
+            add(paper.tradingLens?.tradingTags)
+            add(paper.tradingLens?.assetClasses)
+            add(paper.tradingLens?.horizons)
+            add(paper.tradingLens?.signalArchetypes)
+            add(paper.tradingLens?.riskFlags)
+
+            let scores = paper.tradingScores ?? paper.tradingLens?.scores
+            add(float64Fingerprint(scores?.novelty))
+            add(float64Fingerprint(scores?.usability))
+            add(float64Fingerprint(scores?.strategyImpact))
+            add(float64Fingerprint(scores?.confidence))
+            add(paper.tradingLens?.oneLineVerdict)
+            add(paper.strategyBlueprint?.isEmpty == false ? 1 : 0)
+            add(paper.backtestAudit?.isEmpty == false ? 1 : 0)
+            add(paper.citationAnchors?.count ?? 0)
+            add(paper.compiledArtifacts?.count ?? 0)
+            add(paper.embedding.map { float32Fingerprint($0) }.joined(separator: ","))
+        }
+
+        return digest.finalize().map { String(format: "%02x", $0) }.joined()
     }
 
     func loadSubclusters(for clusterID: Int, desiredK: Int = 4) async -> [Cluster] {

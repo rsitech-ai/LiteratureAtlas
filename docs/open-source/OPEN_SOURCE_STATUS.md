@@ -12,13 +12,19 @@ authorized and published on 2026-07-18; it does not clear the official gates.
   checkout-only Python, environment-key, remote-provider, and relative-Rust paths.
 - Developer ID, DMG, explicit notarization, retained Apple evidence, stapling,
   Gatekeeper, and artifact-verification scripts fail closed.
-- Current-tree and reachable-history scans found no credential material.
-- Swift, Python, Rust, release-script, and Xcode Release gates pass except the
-  intentional approved-AppIcon release blocker. Release compilation treats
-  Swift warnings as errors.
-- The release-hardening diff received a complete Codex Security scan; the final
-  exact PR head passed Swift/Python CodeQL, dependency review, independent
-  review, and GitHub Codex review with no unresolved actionable finding.
+- Manual redacted current-tree and reachable-history scans found no credential material; the formal Codex Security scan was excluded for the current delta.
+- Swift, Python, Rust, release-script, macOS/iPadOS Release archive, REUSE,
+  dependency-audit, source-SBOM, and launch gates pass except the intentional
+  approved-AppIcon release blocker. Release compilation treats Swift warnings
+  as errors. The supported direct-download lane is Apple Silicon.
+- The prior release-hardening diff received a complete Codex Security scan. A
+  scheduled scan later opened three deceptive-host CodeQL alerts on current
+  `main`; the candidate fixes them and requires exact-head hosted revalidation.
+  The dependency-review action was skipped because GitHub's dependency graph
+  was disabled at the time, so the historical green workflow alone is not
+  evidence that review ran. Dependency alerts/security updates and private
+  vulnerability reporting are now enabled; the candidate still requires a
+  fresh pull-request run and exact-head closure.
 
 ## Historical artifact evidence
 
@@ -40,7 +46,7 @@ authorized and published on 2026-07-18; it does not clear the official gates.
 - Contributor/employer/contractor/AI provenance and exact rights-holder authority
   are not established, so MPL relicensing is not authorized.
 - No approved production icon, trademark owner, official bundle identifier,
-  governance roster, DCO/CLA choice, or private security/conduct route exists.
+  governance roster, DCO/CLA choice, or private conduct-reporting route exists.
 - The installed Developer ID private key requires owner keychain authorization;
   no official signed artifact exists.
 - No notarization upload, quarantined official-download proof, or physical

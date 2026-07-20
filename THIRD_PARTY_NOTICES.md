@@ -16,15 +16,16 @@ relicensed by this repository.
 
 ## Contributor-only dependencies
 
-- Python direct dependencies: DuckDB, NumPy, pandas, scikit-learn, and PyArrow.
-- Python development dependencies: pytest and Ruff.
-- Rust direct dependency: `hnsw_rs`; transitive versions are resolved in
+- Python direct dependencies: DuckDB, NumPy, pandas, scikit-learn, SciPy, and PyArrow.
+- Python development dependencies: pip-audit, pytest, and Ruff.
+- Rust direct dependency: `hnsw_rs 0.3.4`; transitive versions are resolved in
   `analytics/ffi/Cargo.lock`.
 
 Resolved Python versions are recorded in `analytics/uv.lock`. These components
 are not included in the first distributed app. Their upstream licenses must be
 reviewed from the exact locks before redistributing contributor-tool binaries or
-environments.
+environments. License metadata includes permissive licenses and MPL-2.0 for
+`certifi`; upstream terms remain controlling.
 
 ## Build and CI tools
 
