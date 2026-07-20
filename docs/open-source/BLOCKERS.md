@@ -16,21 +16,23 @@
 6. Choose DCO 1.1 versus a lawyer-reviewed CLA and enable its enforcement.
 7. Enable a monitored private conduct route. GitHub private vulnerability
    reporting is enabled for security reports.
-8. Complete GitHub default-branch protection and required checks; decide whether
-   to restrict the Action allowlist and publish Scorecard results. Dependency
-   alerts/security updates and full-length Action SHA enforcement are enabled.
+Default-branch protection, strict required checks, conversation resolution,
+dependency alerts/security updates, private vulnerability reporting, and
+full-length Action SHA enforcement are enabled. Restricted Action allowlisting
+and public Scorecard publication remain optional owner decisions, not evidence
+for the official release gates below.
 
 ## Apple release
 
-9. Confirm official bundle ID, Developer ID identity, release owner, and support
+8. Confirm official bundle ID, Developer ID identity, release owner, and support
    metadata.
-10. Approve exact source commit `647911a` (or rebuild from the approved successor)
+9. Approve exact source commit `647911a` (or rebuild from the approved successor)
     and authorize its Developer ID private key in the keychain. The local
     signature-free pre-sign candidate is verified; no signing was attempted in
     this audit pass.
-11. Explicitly approve the exact notarization upload, then retain submission/log,
+10. Explicitly approve the exact notarization upload, then retain submission/log,
     staple, Gatekeeper, quarantine, and supported-hardware evidence.
-12. Generate and reconcile the exact future signed/stapled-artifact SBOM,
+11. Generate and reconcile the exact future signed/stapled-artifact SBOM,
     notices, hashes, signature/notary evidence, and source-release mapping.
 
 No notarization upload, official production tag/release, visibility mutation,
