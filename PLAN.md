@@ -1,57 +1,68 @@
 # Plan
 
 ## Context
-- Complete the already-validated full-quality remediation through cleanup, hosted review, merge to `main`, and a downloadable macOS release artifact.
-- The user explicitly authorized repository cleanup, PR creation, hosted review, merge/push to `main`, and publication of the latest downloadable app.
+- Perform a delta production-readiness and public open-source release pass from clean `main` commit `2ee1adf6c7204f3bb4524c2c1a2d872fe8bc9e83`.
+- The repository is already public, MIT-licensed, and has a published `v1.0.0-community.1` prerelease. This task must improve and verify the current state without rewriting already-proven work.
+- The user explicitly opted out of the formal Codex Security scan and authorized safe local changes, cleanup, commits, integration, and pushing the completed result to `main`.
 
 ## Assumptions
-- The primary download target is the documented Apple Silicon macOS 26+ direct-download app.
-- `Output/`, the active analytics environment, working corpus data, and validated release evidence are not irrelevant files and must be preserved.
-- A public community prerelease is acceptable only when it is labeled truthfully as ad-hoc signed/not notarized; it must not be represented as the official Developer ID release.
+- Intended users are researchers who want a local-first macOS or iPadOS workspace for ingesting papers, exploring relationships, and producing evidence-linked research artifacts.
+- The supported downloadable artifact remains the Apple Silicon macOS 26+ community build unless official signing/notarization and artwork gates become provably available.
+- Existing MIT licensing and repository copyright/provenance records are owner-selected project facts; this pass will not relicense or invent ownership.
 
 ## Constraints
-- Preserve all user data and unrelated work; remove only exact, reproducible generated artifacts or stale remote release assets proven superseded.
-- Merge only through a reviewed PR with passing hosted checks and no unresolved actionable review findings.
-- Build the downloadable artifact from the exact merged `main` commit, then verify the bundle, signature mode, mounted DMG contents, checksums, and launch behavior.
-- Do not bypass the fail-closed app-icon, Developer ID, notarization, legal-provenance, or GitHub-policy gates.
+- Exclude the formal Codex Security scan and label that coverage `unverified`; still run existing local dependency, secret-pattern, workflow, license, and release-policy checks where available.
+- Preserve public APIs, persisted formats, compatibility keys, user data, `Output/`, active environments, release evidence, and ambiguous artifacts.
+- Remove only exact generated/cache outputs that are reproducible and ignored; use recoverable cleanup where practical.
+- Do not claim Developer ID signing, notarization, App Store readiness, or redistribution clearance without direct evidence.
+- Keep one writer in this worktree; parallel agents are read-only auditors.
 
 ## Options considered
-1. Publish an official Developer ID-signed and Apple-notarized release after all release-configuration, identity, and notary gates pass.
-2. If an official release remains externally blocked, publish a clearly labeled community prerelease built from merged `main`, with exact limitations and verification evidence.
-3. Stop after merging the PR and leave the binary local-only.
+1. Rebuild the repository's open-source surface broadly from the master prompt.
+2. Run an evidence-driven delta audit against the already-hardened public repository and remediate only validated gaps.
+3. Perform a report-only review and leave all gaps for a later task.
 
-Chosen: attempt 1 first and fall back to 2 only for verified external blockers. Option 3 does not satisfy the requested downloadable release.
+Chosen: option 2 because the repository already contains extensive release, provenance, CI, and community infrastructure. A broad rewrite would add risk and churn, while report-only work would not satisfy the requested completion and push.
 
 ## Execution plan
-1. Inventory Git state, hosted repository state, existing releases/tags/assets, signing/notary prerequisites, and exact cleanup candidates.
-2. Remove only approved generated clutter using recoverable deletion where practical; preserve working data and evidence.
-3. Run a fresh pre-push verification matrix and inspect the complete `origin/main...HEAD` diff.
-4. Commit any closeout documentation changes, push the feature branch, create a ready-for-review PR, and inspect the rendered PR/diff.
-5. Wait for hosted checks, review comments, and an independent exact-head review; repair and re-verify any actionable issue.
-6. Merge through the PR only when all gates pass, synchronize local `main`, and verify exact local/remote/merge parity.
-7. Build the latest macOS app from merged `main`, create and verify the distributable, publish the truthful GitHub release, and verify its downloadable asset metadata.
-8. Update PLAN/TODO/MEMORY with exact final evidence and run final post-release cleanliness checks.
+1. Refresh local and GitHub state, capture tool versions, and record clean-baseline verification results.
+2. Audit privacy/provenance/workflows, code and tests, documentation/community files, release packaging, and live GitHub metadata in independent read-only lanes.
+3. Consolidate findings by public-exposure severity and remediate the smallest coherent set of validated gaps.
+4. Run format, lint, test, build, license, dependency, release-policy, runtime, documentation, and artifact verification.
+5. Rehearse documented setup/build/use from a fresh temporary clone and inspect the distributable as an unauthenticated user where practical.
+6. Review the complete diff, commit only intentional files, integrate to `main`, push, and verify hosted checks and public repository state.
+7. Remove only proven generated/cache clutter, then close PLAN/TODO/MEMORY with exact evidence and remaining blockers.
 
 ## Test plan
-- Pre-PR: warning-free Swift tests, Python Ruff/tests/audit, Rust fmt/Clippy/tests/audit, release policy/configuration, privacy/entitlement validation, and canonical bundle runtime smoke.
-- Hosted: all required GitHub Actions checks green on the exact PR head; no unresolved actionable review threads or comments.
-- Post-merge: local `main` equals `origin/main`; repeat the strongest relevant release/build/runtime checks on the merge commit.
-- Distribution: verify app structure, architecture, bundle metadata, signature mode, DMG mount/content equality, checksum, source revision, and launch/log behavior.
+- Baseline and final: `swift test -Xswiftc -warnings-as-errors`.
+- Python: frozen `uv sync`, Ruff format/check, and all `analytics/tests`.
+- Rust FFI: fmt, strict Clippy, tests, release build, and advisory audit where available.
+- Release: release-script regression suite, configuration/privacy/entitlement validation, deterministic project generation, package/build verification, SBOM/checksum checks, and `./script/build_and_run.sh --verify`.
+- Documentation/community: validate README commands and links, community-file manifests, GitHub Actions syntax/policy, and `git diff --check`.
+- Clean-room: fresh clone/copy using only tracked files, documented setup, tests, build, community artifact verification, and launch smoke.
+- Hosted: verify exact pushed `main` SHA, required GitHub Actions checks, repository metadata, release assets, and remaining external settings.
 
 ## Risks and rollback
-- Cleanup could remove user data -> restrict targets to enumerated generated files and use Trash for material local artifacts.
-- Hosted review could expose a regression -> keep the branch alive, fix on the branch, and require fresh checks before merge.
-- Official distribution may be blocked by owner/Apple prerequisites -> publish only the explicitly labeled community prerelease and retain the exact official blocker.
-- A release asset could be built from the wrong commit -> embed and verify the merged source revision before upload; delete/replace only the newly created incorrect release if verification fails.
+- A broad cleanup could remove user data -> restrict cleanup to enumerated ignored build/cache paths and preserve all ambiguous content.
+- Documentation could overstate readiness -> qualify claims and preserve explicit legal, signing, runtime, and security limitations.
+- New CI could be noisy or unsafe -> modify only validated existing workflows, keep permissions read-only, pin actions, and test locally where possible.
+- Direct integration could regress `main` -> keep reviewable commits on `chore/oss-release-readiness`, run the full matrix before fast-forwarding or merging, and push only a verified `main` result.
+- Formal security coverage is omitted -> retain an explicit `unverified` entry in the final gate matrix rather than translating local checks into exhaustive proof.
 
 ## Memory impact
-- Record the exact merged commit, PR/release URLs, verified release command, artifact labeling, and durable cleanup boundary if any changed.
+- Record any newly verified canonical commands, durable public-release boundaries, GitHub configuration decisions, and final integrated commit/release state.
 
 ## Notes / Results
-- Changes: Full review remediation closed persistence, cancellation, analytics-freshness, Python input/numerical, Rust FFI, SwiftUI accessibility/performance, distributed-runtime, setup-documentation, and artifact-verification gaps. Independent and hosted review then found and closed five additional analytics contract defects before merge.
-- Cleanup: No old GitHub Releases/tags or repo-local DMGs/archives existed. Stopped the stale development app and moved 12 exact generated/cache targets (about 1.39 GiB) to Trash; preserved `Output/`, `examples/`, `analytics/.venv`, release/audit evidence, user configuration, and unmerged work.
-- Tests run: Cold-cache Swift warning-as-error suite (84 XCTest, one opt-in corpus smoke skipped, plus four Swift Testing bookmark cases); Python Ruff format/check, 54 pytest cases at application merge and 55 after the closeout manifest regression, plus pip-audit; Rust fmt/strict Clippy, seven tests, Release build, and RustSec (only the documented allowed unmaintained `bincode 1.3.3` warning); release-script policy including the downloader-relocation regression, configuration with only `app_icon_artwork` allowed, privacy manifests, CI YAML, deterministic XcodeGen parity, macOS and generic iPadOS Release builds; canonical app-bundle rebuild/launch and process-specific log inspection.
-- PR and merge: [PR #9](https://github.com/s1korrrr/LiteratureAtlas/pull/9) merged only after independent exact-head GO, GitHub Codex found no major issue, all three review threads were resolved, and all ten hosted checks passed on reviewed head `e0eb788b8654a18a8fef62398b87017f5b56e79a`. Merge commit `95d0031a0ee67a9f91cd0d915de75e1f42137daa` matched the reviewed tree; local `main` and `origin/main` matched before release construction.
-- Release: Published [v1.0.0-community.1](https://github.com/s1korrrr/LiteratureAtlas/releases/tag/v1.0.0-community.1), targeted at merge commit `95d0031a0ee67a9f91cd0d915de75e1f42137daa`. The Apple Silicon/macOS 26+ app is ad-hoc signed and not notarized. The verified 3,312,988-byte DMG SHA-256 is `3337c297f3e0f9492795f9bae395a82aad63a00613e156a948e27e04eca5a691`; the exact 40-file app SPDX SBOM SHA-256 is `78dbf5c0fbb07095d86a8a9d410a1eaf1b6240222d7b795397af9c3dda3048a9`. Published assets were downloaded and compared byte-for-byte with local evidence. PR #10 review found the original checksum file embedded its build path; the generator now emits an atomic basename-only entry, the release asset was replaced, and a fresh remote DMG/checksum download verified from one directory.
-- Distribution runtime: A copy extracted from the DMG launched from a relocated temp path, stayed stable at low CPU, and stopped cleanly. Error-level messages were limited to Apple-owned CoreSpotlight, Metal archive/cache, and CoreFSCache diagnostics; no app-owned error, SwiftUI fault, or crash was observed.
-- Tradeoffs/blockers: Official distribution is currently blocked by `app_icon_artwork` and unproven noninteractive notary credentials. A valid Developer ID Application certificate is installed, but its private-key authorization and a `LiteratureAtlasNotary` profile have not been proven; fall back only to a clearly labeled ad-hoc/not-notarized community prerelease.
+- Changes: hardened URL trust parsing; cross-language corpus freshness; PDF
+  extraction/hash cancellation and actor isolation; derived-export ordering and
+  error reporting; bounded claim controversy analysis; deterministic saved-paper
+  compatibility; DMG cleanup; notices, SBOM, public docs, and GitHub metadata.
+- Tests run: Python Ruff + 61 tests; Swift warnings-as-errors + 90 XCTest and 4
+  Swift Testing cases; Rust fmt/strict Clippy/7 tests/release build; Python/Rust
+  advisory audits; REUSE 3.3; release-script suite; release validator; XcodeGen
+  parity; arm64 macOS and iPadOS Release archives; canonical app launch/log smoke;
+  manual redacted reachable-history scan. Fresh-clone/package and hosted checks
+  remain before integration.
+- Tradeoffs: formal Codex Security scan excluded by explicit user direction;
+  repository-native checks remain in scope. The macOS archive is intentionally
+  Apple Silicon to match the supported direct-download lane and local disk budget.

@@ -18,15 +18,18 @@ from __future__ import annotations
 import argparse
 import datetime as dt
 import difflib
+import hashlib
 import json
 import logging
 import math
 import pathlib
 import re
+import struct
 import uuid
 from collections import Counter, defaultdict
 from dataclasses import dataclass
 from typing import Any
+from urllib.parse import urlsplit
 
 # Configure module-level logger
 _logger = logging.getLogger(__name__)
@@ -100,6 +103,10 @@ class PaperRow:
     title: str
     original_filename: str
     file_path: str
+    source_checksum: str | None
+    embedding_fingerprint: str
+    first_read_fingerprint: str
+    ingested_fingerprint: str
     version: int | None
     year: int | None
     first_read_at: str | None
@@ -120,6 +127,7 @@ class PaperRow:
     asset_classes: list[str] | None
     horizons: list[str] | None
     signal_archetypes: list[str] | None
+    risk_flags: list[str] | None
     trading_novelty: float | None
     trading_usability: float | None
     trading_strategy_impact: float | None
@@ -239,6 +247,15 @@ def _normalized_method_pipeline(value: Any, source_path: pathlib.Path) -> dict[s
         )
 
     return {"steps": normalized_steps} if normalized_steps else None
+
+
+def _date_fingerprint(value: Any) -> str:
+    if isinstance(value, bool):
+        return ""
+    if isinstance(value, (int, float)):
+        normalized = float(value)
+        return struct.pack(">d", normalized).hex() if math.isfinite(normalized) else ""
+    return value if isinstance(value, str) else ""
 
 
 def load_papers(papers_dir: pathlib.Path) -> tuple[list[PaperRow], list[list[float]], list[dict[str, Any]]]:
@@ -375,10 +392,14 @@ def load_papers(papers_dir: pathlib.Path) -> tuple[list[PaperRow], list[list[flo
         rows.append(
             PaperRow(
                 paper_id=paper_id,
-                source_kind=_optional_text(data.get("sourceKind")),
+                source_kind=_optional_text(data.get("sourceKind"), "pdf") or "pdf",
                 title=_optional_text(data.get("title"), "") or "",
                 original_filename=_optional_text(data.get("originalFilename"), path.name) or path.name,
                 file_path=_optional_text(data.get("filePath"), str(path)) or str(path),
+                source_checksum=_optional_text(data.get("sourceChecksum")),
+                embedding_fingerprint=",".join(struct.pack(">f", value).hex() for value in emb),
+                first_read_fingerprint=_date_fingerprint(data.get("firstReadAt")),
+                ingested_fingerprint=_date_fingerprint(data.get("ingestedAt")),
                 version=_optional_int(data.get("version")),
                 year=year,
                 first_read_at=_optional_text(data.get("firstReadAt")),
@@ -399,6 +420,7 @@ def load_papers(papers_dir: pathlib.Path) -> tuple[list[PaperRow], list[list[flo
                 asset_classes=asset_classes,
                 horizons=horizons,
                 signal_archetypes=signal_archetypes,
+                risk_flags=risk_flags,
                 trading_novelty=novelty_f,
                 trading_usability=usability_f,
                 trading_strategy_impact=impact_f,
@@ -588,18 +610,90 @@ def _jaccard(a: set[str], b: set[str]) -> float:
 
 def compute_corpus_version(rows: list[PaperRow]) -> str:
     """
-    Match Swift's AppModel.currentCorpusVersion() hash: djb2 over "filePath|v<version>" joined by "||", mod 2^64.
+    Match Swift's AppModel.currentCorpusVersion() SHA-256 over the normalized
+    analytics inputs consumed from every canonical paper.
     """
-    parts: list[str] = []
-    for row in sorted(rows, key=lambda r: r.file_path or ""):
-        v = row.version if isinstance(row.version, int) else 0
-        parts.append(f"{row.file_path}|v{v}")
-    signature = "||".join(parts)
-    h: int = 5381
-    mask = (1 << 64) - 1
-    for b in signature.encode("utf-8", errors="ignore"):
-        h = ((h << 5) + h + b) & mask
-    return str(h)
+    digest = hashlib.sha256()
+
+    def add(value: Any) -> None:
+        raw = str(value if value is not None else "").encode("utf-8")
+        digest.update(len(raw).to_bytes(8, "big"))
+        digest.update(raw)
+
+    def add_list(values: list[Any] | None) -> None:
+        normalized = values or []
+        add(len(normalized))
+        for value in normalized:
+            add(value)
+
+    def add_float32(value: Any) -> None:
+        normalized = _optional_float(value)
+        add(struct.pack(">f", normalized).hex() if normalized is not None else "")
+
+    def add_float64(value: Any) -> None:
+        normalized = _optional_float(value)
+        add(struct.pack(">d", normalized).hex() if normalized is not None else "")
+
+    for row in sorted(rows, key=lambda candidate: candidate.paper_id.lower()):
+        add(row.paper_id.lower())
+        add(row.version if isinstance(row.version, int) else 1)
+        add(row.source_kind or "")
+        add(row.title)
+        add(row.original_filename)
+        add(row.file_path)
+        add((row.source_checksum or "").lower())
+        add(row.first_read_fingerprint)
+        add(row.ingested_fingerprint)
+        add(row.year)
+        add(row.summary)
+        add(row.intro_summary)
+        add(row.method_summary)
+        add(row.results_summary)
+        add(row.cluster_id)
+        add(row.primary_cluster_k10)
+        add(row.primary_cluster_k50)
+        add_list(row.tags)
+
+        claims = row.claims or []
+        add(len(claims))
+        for claim in claims:
+            add(str(claim.get("id") or "").lower())
+            add(str(claim.get("paperID") or "").lower())
+            add(claim.get("statement"))
+            add_list(_string_list(claim.get("assumptions")))
+            evaluation = claim.get("evaluation") if isinstance(claim.get("evaluation"), dict) else {}
+            add(evaluation.get("dataset"))
+            add(evaluation.get("period"))
+            add_list(_string_list(evaluation.get("metrics")))
+            add(_optional_int(claim.get("year")))
+            add_float32(claim.get("strength"))
+
+        steps = (row.method_pipeline or {}).get("steps") or []
+        add(len(steps))
+        for step in steps:
+            add(step.get("stage"))
+            add(step.get("label"))
+            add(step.get("detail"))
+
+        add_list(row.assumptions)
+        add(row.page_count)
+        add_list(row.trading_tags)
+        add_list(row.asset_classes)
+        add_list(row.horizons)
+        add_list(row.signal_archetypes)
+        add_list(row.risk_flags)
+        add_float64(row.trading_novelty)
+        add_float64(row.trading_usability)
+        add_float64(row.trading_strategy_impact)
+        add_float64(row.trading_confidence)
+        add(row.one_line_verdict)
+        add(1 if row.has_strategy_blueprint else 0)
+        add(1 if row.has_backtest_audit else 0)
+        add(row.citation_anchor_count or 0)
+        add(row.compiled_artifact_count or 0)
+        add(row.embedding_fingerprint)
+
+    return digest.hexdigest()
 
 
 def tag_text_for_row(row: PaperRow) -> str:
@@ -2922,17 +3016,46 @@ def claim_controversy_and_maturity(df_papers: pd.DataFrame, paper_rows: list[Pap
         if len(texts) < 2:
             continue
         tfidf = TfidfVectorizer(max_features=1200, ngram_range=(1, 2))
-        mat = normalize(tfidf.fit_transform(texts))
-        sims = (mat @ mat.T).toarray()
-        np.fill_diagonal(sims, 0.0)
-        # Edges for controversy: similarity > thr
+        try:
+            mat = normalize(tfidf.fit_transform(texts))
+        except ValueError:
+            continue
+
+        # Bound the similarity graph so a claim-heavy cluster cannot allocate an
+        # O(n²) dense matrix. The graph is symmetric and each undirected edge is
+        # counted once even when both endpoint queries return it.
         thr = 0.22 if len(texts) < 120 else 0.28
+        max_neighbors = 24
+        queried_neighbors = min(len(texts), max_neighbors + 1)
+        distances, neighbor_indices = (
+            NearestNeighbors(
+                n_neighbors=queried_neighbors,
+                metric="cosine",
+            )
+            .fit(mat)
+            .kneighbors(mat, return_distance=True)
+        )
+        adjacency: list[set[int]] = [set() for _ in texts]
+        similarity_weight = [0.0] * len(texts)
+        observed_edges: set[tuple[int, int]] = set()
         supports = 0
         contradicts = 0
-        for i in range(len(texts)):
-            for j in range(i + 1, len(texts)):
-                if sims[i, j] < thr:
+        for i, (row_distances, row_indices) in enumerate(zip(distances, neighbor_indices)):
+            for distance, raw_j in zip(row_distances, row_indices):
+                j = int(raw_j)
+                if i == j:
                     continue
+                similarity = float(1.0 - distance)
+                if similarity < thr:
+                    continue
+                edge = (min(i, j), max(i, j))
+                if edge in observed_edges:
+                    continue
+                observed_edges.add(edge)
+                adjacency[i].add(j)
+                adjacency[j].add(i)
+                similarity_weight[i] += similarity
+                similarity_weight[j] += similarity
                 if int(signs[i]) == int(signs[j]):
                     supports += 1
                 else:
@@ -2949,6 +3072,8 @@ def claim_controversy_and_maturity(df_papers: pd.DataFrame, paper_rows: list[Pap
                 "contradiction_rate": contradiction_rate,
                 "claim_diversity": claim_diversity,
                 "consensus_score": consensus_score,
+                "similarity_neighbors": int(min(max_neighbors, max(0, len(texts) - 1))),
+                "similarity_truncated": bool(len(texts) > max_neighbors + 1),
             }
         )
 
@@ -2964,11 +3089,10 @@ def claim_controversy_and_maturity(df_papers: pd.DataFrame, paper_rows: list[Pap
             while stack:
                 v = stack.pop()
                 comp.append(v)
-                neigh = np.where(sims[v] >= thr)[0]
-                for u in neigh:
-                    if not visited[int(u)]:
-                        visited[int(u)] = True
-                        stack.append(int(u))
+                for u in adjacency[v]:
+                    if not visited[u]:
+                        visited[u] = True
+                        stack.append(u)
             components.append(comp)
 
         maturity_scores: list[float] = []
@@ -2987,7 +3111,7 @@ def claim_controversy_and_maturity(df_papers: pd.DataFrame, paper_rows: list[Pap
             maturity_scores.append(float(maturity))
 
             # Representative statement
-            rep = max(comp, key=lambda i: float(np.sum(sims[i])), default=comp[0])
+            rep = max(comp, key=lambda i: similarity_weight[i], default=comp[0])
             rep_text = texts[int(rep)]
             if contradictions_present:
                 top_contested.append(
@@ -3087,6 +3211,17 @@ def extract_urls(text: str) -> list[str]:
     return out
 
 
+def _url_host_matches(url: str, trusted_hosts: tuple[str, ...]) -> bool:
+    try:
+        host = urlsplit(url).hostname
+    except ValueError:
+        return False
+    if not host:
+        return False
+    normalized = host.rstrip(".").lower()
+    return any(normalized == trusted or normalized.endswith(f".{trusted}") for trusted in trusted_hosts)
+
+
 def artifact_flags(urls: list[str], text: str) -> dict[str, Any]:
     lower = (text or "").lower()
     has_code_phrase = any(
@@ -3105,11 +3240,15 @@ def artifact_flags(urls: list[str], text: str) -> dict[str, Any]:
         p in lower
         for p in ["data available", "dataset available", "we release data", "released data", "data can be found"]
     )
-    has_code_link = any(("github.com" in u or "gitlab.com" in u or "bitbucket.org" in u) for u in urls)
+    has_code_link = any(_url_host_matches(url, ("github.com", "gitlab.com", "bitbucket.org")) for url in urls)
     has_data_link = any(
-        any(tok in u for tok in ["zenodo", "figshare", "kaggle", "osf.io", "dataverse", "data"]) for u in urls
+        _url_host_matches(
+            url,
+            ("zenodo.org", "figshare.com", "kaggle.com", "osf.io", "dataverse.org", "dataverse.harvard.edu"),
+        )
+        for url in urls
     )
-    has_model_link = any(any(tok in u for tok in ["huggingface.co", "model", "weights"]) for u in urls)
+    has_model_link = any(_url_host_matches(url, ("huggingface.co",)) for url in urls)
     openness = 0.0
     openness += 0.5 if (has_code_link or has_code_phrase) else 0.0
     openness += 0.4 if (has_data_link or has_data_phrase) else 0.0
@@ -4625,6 +4764,7 @@ def main():
 
     summary = {
         "generated_at": dt.datetime.now(dt.timezone.utc).strftime("%Y-%m-%dT%H:%M:%SZ"),
+        "corpus_version": corpus_version,
         "paper_count": len(df_papers),
         "vector_dim": int(embeddings.shape[1]),
         "topic_trends": topic_trends,

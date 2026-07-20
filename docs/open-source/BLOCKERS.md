@@ -14,9 +14,11 @@
 5. Appoint maintainers, release manager, security responder, and conduct
    responder; approve decision/appeal rules.
 6. Choose DCO 1.1 versus a lawyer-reviewed CLA and enable its enforcement.
-7. Enable a monitored private vulnerability route and a private conduct route.
-8. Approve GitHub branch protection, dependency graph/security updates, required
-   checks, SHA-pin/action restrictions, and any public Scorecard results.
+7. Enable a monitored private conduct route. GitHub private vulnerability
+   reporting is enabled for security reports.
+8. Complete GitHub default-branch protection and required checks; decide whether
+   to restrict the Action allowlist and publish Scorecard results. Dependency
+   alerts/security updates and full-length Action SHA enforcement are enabled.
 
 ## Apple release
 

@@ -59,6 +59,18 @@ assert_stdout_contains() {
     fi
 }
 
+assert_no_dmg_mounts_under() {
+    name=$1
+    root=$2
+    physical_root=$(cd "$root" && pwd -P)
+    if mount | grep -F " on $physical_root/literatureatlas-dmg-verify." >/dev/null 2>&1; then
+        fail "$name"
+        mount | grep -F " on $physical_root/literatureatlas-dmg-verify." >&2
+    else
+        pass "$name"
+    fi
+}
+
 required_scripts="
 script/build_community.sh
 script/build_official.sh
@@ -245,8 +257,9 @@ mkdir -p "$TMP/WrongDMG"
 touch "$TMP/WrongDMG/Not-The-App"
 hdiutil create -quiet -fs HFS+ -format UDZO -volname Wrong -srcfolder "$TMP/WrongDMG" "$TMP/Wrong.dmg"
 expect_failure "verification rejects a DMG that does not contain the supplied app" \
-    "$ROOT/script/verify_distribution.sh" --app "$TMP/Expected.app" --dmg "$TMP/Wrong.dmg" --mode community
+    env TMPDIR="$TMP" "$ROOT/script/verify_distribution.sh" --app "$TMP/Expected.app" --dmg "$TMP/Wrong.dmg" --mode community
 assert_stderr_contains "wrong DMG failure names missing app" "DMG does not contain Expected.app"
+assert_no_dmg_mounts_under "failed DMG verification detaches its temporary image" "$TMP"
 
 mkdir -p "$TMP/ModeMismatchDMG"
 ditto "$TMP/Expected.app" "$TMP/ModeMismatchDMG/Expected.app"

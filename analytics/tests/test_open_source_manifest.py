@@ -1,4 +1,5 @@
 import json
+import re
 import tomllib
 import unittest
 from pathlib import Path
@@ -8,6 +9,25 @@ MANIFEST_PATH = ROOT / "docs" / "open-source" / "OPEN_SOURCE_MANIFEST.json"
 
 
 class OpenSourceManifestTests(unittest.TestCase):
+    def test_dependency_inventory_matches_manifests_and_sboms(self):
+        manifest = json.loads(MANIFEST_PATH.read_text(encoding="utf-8"))
+        pyproject = tomllib.loads((ROOT / "analytics" / "pyproject.toml").read_text(encoding="utf-8"))
+        cargo = tomllib.loads((ROOT / "analytics" / "ffi" / "Cargo.toml").read_text(encoding="utf-8"))
+        python_sbom = json.loads(
+            (ROOT / "docs" / "open-source" / "sbom" / "python-environment.cdx.json").read_text(encoding="utf-8")
+        )
+        rust_sbom = json.loads(
+            (ROOT / "docs" / "open-source" / "sbom" / "rust-source.cdx.json").read_text(encoding="utf-8")
+        )
+
+        direct_python = sorted(
+            re.split(r"[<>=!~]", requirement, maxsplit=1)[0] for requirement in pyproject["project"]["dependencies"]
+        )
+        self.assertEqual(manifest["python_direct_dependencies"], direct_python)
+        self.assertEqual(manifest["rust_direct_dependencies"], cargo["dependencies"])
+        self.assertEqual(manifest["python_sbom_dependency_component_count"], len(python_sbom["components"]))
+        self.assertEqual(manifest["rust_sbom_dependency_component_count"], len(rust_sbom["components"]))
+
     def test_locked_counts_and_artifact_provenance_match_their_sources(self):
         manifest = json.loads(MANIFEST_PATH.read_text(encoding="utf-8"))
         uv_lock = tomllib.loads((ROOT / "analytics" / "uv.lock").read_text(encoding="utf-8"))

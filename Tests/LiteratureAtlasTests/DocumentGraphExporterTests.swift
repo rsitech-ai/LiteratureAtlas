@@ -4,6 +4,21 @@ import XCTest
 @available(macOS 26, iOS 26, *)
 final class DocumentGraphExporterTests: XCTestCase {
 
+    func testWritersReportFilesystemFailures() throws {
+        let root = FileManager.default.temporaryDirectory.appendingPathComponent(UUID().uuidString)
+        try Data("not a directory".utf8).write(to: root)
+
+        let graphWrite: () throws -> Void = {
+            try DocumentGraphExporter.write(papers: [], clusters: [], claimEdges: [], outputRoot: root)
+        }
+        let compiledWrite: () throws -> Void = {
+            try CompiledKnowledgeExporter.writeDocumentNotes(papers: [], outputRoot: root)
+        }
+
+        XCTAssertThrowsError(try graphWrite())
+        XCTAssertThrowsError(try compiledWrite())
+    }
+
     func testBuildSnapshotIncludesDocumentTopicEntityAndCompiledNodes() {
         let cluster = Cluster(
             id: 7,
