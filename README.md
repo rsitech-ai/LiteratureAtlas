@@ -4,9 +4,11 @@ LiteratureAtlas is a local-first SwiftUI app for turning research PDFs and Markd
 
 ## Release status
 
-The source repository is public under the MIT License. An official notarized download has not been published yet.
+The canonical source repository is maintained by RSI Tech under Apache-2.0.
+No RSI Tech binary release is published yet. When available, verified downloads
+will be published on the
+[GitHub Releases page](https://github.com/rsitech-ai/LiteratureAtlas/releases).
 
-- The verified [`v1.0.0-community.1` community prerelease](https://github.com/s1korrrr/LiteratureAtlas/releases/tag/v1.0.0-community.1) is available for Apple Silicon Macs running macOS 26 or later. It is ad-hoc signed and not notarized.
 - Community macOS builds are credential-free, ad-hoc signed, sandboxed, and use a distinct name and bundle identifier.
 - Official macOS builds use the same self-contained runtime, then require an installed Apple Developer ID Application certificate and an explicit notarization submission.
 - The direct-download artifact is currently scoped to Apple Silicon and macOS 26 or later.
@@ -48,7 +50,7 @@ SwiftPM contributor builds retain repository-local tooling and store generated f
 ## Clone and test
 
 ```bash
-git clone https://github.com/s1korrrr/LiteratureAtlas.git
+git clone https://github.com/rsitech-ai/LiteratureAtlas.git
 cd LiteratureAtlas
 
 swift test
@@ -86,7 +88,7 @@ The community build uses a non-official name and bundle identifier and needs no 
 ```bash
 script/build_community.sh \
   --product-name LiteratureAtlasCommunity \
-  --bundle-id io.github.s1korrrr.LiteratureAtlasCommunity \
+  --bundle-id ai.rsitech.LiteratureAtlasCommunity \
   --version 1.0.0 \
   --build 1 \
   --output dist/community
@@ -100,7 +102,7 @@ script/create_dmg.sh \
   --output dist/community/LiteratureAtlasCommunity-1.0.0.dmg
 ```
 
-The command above reproduces this repository's published community identity.
+The command above uses RSI Tech's community-build identity.
 Downstream distributors must replace it with a bundle namespace they control.
 Community builds must not imply that they are official or Apple-notarized. See
 [community build policy](docs/community-build/README.md) and
@@ -144,12 +146,14 @@ script/create_dmg.sh \
 # External Apple upload. Run only with release-owner approval.
 script/notarize_dmg.sh \
   --dmg dist/official/LiteratureAtlas-1.0.0.dmg \
-  --keychain-profile LiteratureAtlasNotary \
+  --keychain-profile "$NOTARY_KEYCHAIN_PROFILE" \
   --expected-sha256 "$APPROVED_DMG_SHA256" \
   --submit
 ```
 
-The repository contains no signing certificate, private key, profile, Apple credentials, or notary profile. Follow [RELEASING.md](RELEASING.md) for the complete gate sequence.
+The repository contains no signing certificate, private key, profile, Apple
+credentials, or notary profile. Follow [RELEASING.md](RELEASING.md) for the
+complete gate sequence.
 
 ## Project structure
 
@@ -171,8 +175,17 @@ git diff --exit-code -- LiteratureAtlas.xcodeproj
 
 ## Contributing and support
 
-Read [CONTRIBUTING.md](CONTRIBUTING.md) and the current [Code of Conduct status](CODE_OF_CONDUCT.md). The owner has not yet selected DCO versus CLA. General support boundaries are in [SUPPORT.md](SUPPORT.md). Do not place vulnerabilities, private documents, signing material, or personal data in public issues.
+Read [CONTRIBUTING.md](CONTRIBUTING.md), the [Developer Certificate of Origin](DCO.txt),
+and the [Code of Conduct](CODE_OF_CONDUCT.md). General support boundaries are in
+[SUPPORT.md](SUPPORT.md). Send confidential project, conduct, and security mail
+to `info@rsitech.ai`; do not place vulnerabilities, private documents, signing
+material, or personal data in public issues.
 
 ## License and attribution
 
-Project-authored source is available under the [MIT License](LICENSE). Third-party components and Apple SDKs remain under their respective terms; see [THIRD_PARTY_NOTICES.md](THIRD_PARTY_NOTICES.md). The software license does not grant rights to imply endorsement or use project branding contrary to [TRADEMARKS.md](TRADEMARKS.md).
+Copyright 2025-2026 Rafal Sikora. Project-authored source is available under the
+[Apache License 2.0](LICENSE) and publicly maintained by
+[RSI Tech](https://rsitech.ai). Third-party components and Apple SDKs remain
+under their respective terms; see [THIRD_PARTY_NOTICES.md](THIRD_PARTY_NOTICES.md).
+Apache-2.0 does not grant rights to imply endorsement or use project branding
+contrary to [TRADEMARKS.md](TRADEMARKS.md).

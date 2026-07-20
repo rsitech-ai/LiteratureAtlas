@@ -673,7 +673,7 @@
 					"@executable_path/../Frameworks",
 				);
 				MACOSX_DEPLOYMENT_TARGET = 26.0;
-				PRODUCT_BUNDLE_IDENTIFIER = com.literatureatlas.app;
+				PRODUCT_BUNDLE_IDENTIFIER = ai.rsitech.LiteratureAtlas;
 				PRODUCT_NAME = LiteratureAtlas;
 				SDKROOT = macosx;
 			};
@@ -692,7 +692,7 @@
 					"$(inherited)",
 					"@executable_path/Frameworks",
 				);
-				PRODUCT_BUNDLE_IDENTIFIER = com.literatureatlas.app.ios;
+				PRODUCT_BUNDLE_IDENTIFIER = ai.rsitech.LiteratureAtlas.iOS;
 				PRODUCT_NAME = LiteratureAtlas;
 				SDKROOT = iphoneos;
 				SUPPORTS_MACCATALYST = NO;
@@ -776,7 +776,7 @@
 					"$(inherited)",
 					"@executable_path/Frameworks",
 				);
-				PRODUCT_BUNDLE_IDENTIFIER = com.literatureatlas.app.ios;
+				PRODUCT_BUNDLE_IDENTIFIER = ai.rsitech.LiteratureAtlas.iOS;
 				PRODUCT_NAME = LiteratureAtlas;
 				SDKROOT = iphoneos;
 				SUPPORTS_MACCATALYST = NO;
@@ -799,7 +799,7 @@
 					"@executable_path/../Frameworks",
 				);
 				MACOSX_DEPLOYMENT_TARGET = 26.0;
-				PRODUCT_BUNDLE_IDENTIFIER = com.literatureatlas.app;
+				PRODUCT_BUNDLE_IDENTIFIER = ai.rsitech.LiteratureAtlas;
 				PRODUCT_NAME = LiteratureAtlas;
 				SDKROOT = macosx;
 			};

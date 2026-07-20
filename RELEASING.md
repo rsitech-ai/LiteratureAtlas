@@ -17,6 +17,16 @@ blockers.
 
 ## 3. Build without credentials
 
+The preferred release build uses the manually dispatched, credential-free
+`unsigned-release-candidate.yml` workflow on the exact merged `main` commit.
+It embeds and verifies the source SHA, produces transport archives for the app
+and dSYM, and uploads `SOURCE_COMMIT` plus `SHA256SUMS`. It has read-only
+repository permission and receives no Apple credential.
+
+After downloading the workflow artifact, verify `SOURCE_COMMIT` against the
+expected merged commit and run `shasum -a 256 --check SHA256SUMS` before
+extracting the app. A local build is equivalent when Xcode is healthy:
+
 ```bash
 script/build_official.sh \
   --product-name LiteratureAtlas \
@@ -26,8 +36,8 @@ script/build_official.sh \
   --output dist/official
 ```
 
-Inspect architecture, resources, privacy manifest, and absence of checkout-only
-runtime strings before signing.
+Inspect architecture, resources, privacy manifest, embedded source revision,
+and absence of checkout-only runtime strings before signing.
 
 ## 4. Sign with Developer ID
 

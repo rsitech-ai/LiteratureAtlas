@@ -10,5 +10,5 @@ document paths, credentials, signing/notarization material, crash logs containin
 private content, security findings, or conduct reports.
 
 Modified/community distributions, Apple signing, and notarization are the
-distributor's responsibility. Security and conduct need approved private routes
-before sensitive reports can be accepted.
+distributor's responsibility. Send security or conduct reports privately to
+`info@rsitech.ai`.

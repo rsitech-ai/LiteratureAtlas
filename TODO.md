@@ -1,27 +1,24 @@
 # TODO
 
 ## Tasks
-- [x] Baseline inventory and verification (DoD: local/remote/GitHub state, tool versions, pre-change passes/failures, and authority boundary are recorded)
-- [x] Privacy, provenance, and workflow audit (DoD: validated findings are redacted, prioritized, and either remediated or explicitly blocked)
-- [x] Code and test audit (DoD: production-impacting defects and test gaps are fixed or documented with exact evidence)
-- [x] Documentation and community audit (DoD: public claims, commands, links, templates, metadata, and contributor paths are accurate and usable)
-- [x] Release and package audit (DoD: version sources, community build, checksums, SBOM, release notes, and official blockers are internally consistent)
-- [x] GitHub configuration (DoD: authorized repository metadata/settings are improved and verified; profile-wide changes remain separate unless explicitly supported)
-- [x] Full local verification (DoD: format, lint, tests, builds, policy checks, runtime smoke, and artifact checks pass or have accepted evidence-backed limitations)
-- [x] Fresh-clone/public rehearsal (DoD: an isolated tracked-source checkout follows documented setup and validates the supported artifact path)
-- [x] Review, integrate, and push (DoD: intentional commits are reviewed, integrated into `main`, pushed, and exact hosted SHA/check state is verified)
-- [x] Safe cleanup (DoD: only proven ignored/generated caches are removed; user data, environments, and release evidence are preserved)
-- [x] Memory update and closeout (DoD: PLAN/TODO/MEMORY contain exact final evidence and no task placeholder remains)
+- [x] Complete authority, GitHub, license, history, signing, and release inventory (DoD: exact evidence and targets are recorded before mutation)
+- [x] Sanitize public history (DoD: the four third-party PDFs are absent from every pushable ref and fresh-clone history; recoverable backup retained)
+- [x] Publish sanitized canonical repository to RSI Tech (DoD: new `rsitech-ai/LiteratureAtlas` is public, contains only intended rewritten refs, and passes fresh-clone history checks)
+- [ ] Retire obsolete personal release/repository state (DoD: only after replacement verification, the old prerelease/tag is removed and the personal repository is private/archived recovery evidence)
+- [x] Adopt Apache-2.0 and public identity (DoD: owner, maintainer, website, contact, Git URLs, package metadata, REUSE, NOTICE, SBOM, and docs are internally consistent)
+- [x] Validate code and product (DoD: full local language, policy, archive, package, runtime, license, and documentation matrix is green or explicitly blocked)
+- [ ] Create and review PR (DoD: coherent org PR is independently reviewed, findings resolved, and all hosted checks pass on the exact head)
+- [ ] Merge via PR (DoD: PR merge lands on protected org `main` and exact remote SHA/settings are verified)
+- [ ] Build and publish latest app (DoD: exact merged source produces a downloadable artifact with truthful signing/notary status, checksum, SBOM, and remote byte verification)
+- [ ] Safe cleanup and closeout (DoD: only obsolete/generated artifacts are removed; PLAN/TODO/MEMORY record exact final evidence and remaining external blockers)
 
 ## In progress
-- None.
+- [ ] Create and review PR
 
 ## Done
-- [x] HQ session bootstrap and continuity check passed.
-- [x] User explicitly excluded the formal Codex Security scan and authorized push to `main` plus safe cleanup.
-- [x] Refreshed `origin`; clean local `main` matched `origin/main` at `2ee1adf6c7204f3bb4524c2c1a2d872fe8bc9e83` before branching.
-- [x] Created `chore/oss-release-readiness` from the verified baseline.
-- [x] Reviewed head `9b62c14a067d404821b9e8a03285fe6b140d660d` passed a frozen clean-room restore; Ruff and 61 Python tests; 7 Rust tests; warnings-as-errors Swift tests with 90 XCTest, 1 authorized corpus skip, and 4 Swift Testing cases; credential-free community build; mounted DMG byte comparison; portable checksum verification; and relocated launch smoke.
-- [x] PR #11 passed Apple/Swift/distribution, macOS/Linux Python, Rust, release policy, REUSE, dependency review, and Swift/Python CodeQL; zero open CodeQL alerts remained on the reviewed branch.
-- [x] PR #11 merged as `88f914bf98dcd032a638d0f28c8a719170bb7352` and protected `main` now requires current pull requests, nine named checks, and resolved conversations; force pushes and deletion are disabled.
-- [x] Removed only ignored/generated Swift, Rust, Ruff, pytest, distribution, and exact temporary rehearsal outputs; preserved `Output/`, `analytics/.venv`, examples, user data, and release evidence.
+- [x] User confirmed copyright owner Rafal Sikora, RSI Tech brand/maintainer, `https://rsitech.ai`, `info@rsitech.ai`, the no-reply Git email, Apache-2.0, history rewrite, org publication, PR/merge, release publication, and cleanup authority.
+- [x] Repository-local Git author configured as `Rafal Sikora <24563931+s1korrrr@users.noreply.github.com>`.
+- [x] Valid installed direct-download identity found: `Developer ID Application: Rafal Sikora (2NY8A789TN)`; certificate download is not currently needed.
+- [x] GitHub identity `s1korrrr` has repository admin and active `rsitech-ai` org admin access.
+- [x] Usable Apple notarization credentials found under keychain profile `codebase-combiner-notary`; the expected `LiteratureAtlasNotary` alias is absent but no credential download is needed.
+- [x] Independent history audit rejected a transfer because hidden PR refs would retain the PDFs; selected a clean rewritten org repository plus private archived personal rollback repository.
