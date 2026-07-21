@@ -41,22 +41,22 @@ analytics/rust/target/
 analytics/.venv/
 
 # Editors / local AI tooling
-.vscode/
-.cursor/
-.claude/
-.codex/
-.agents/
+/.vscode/
+/.cursor/
+/.claude/
+/.codex/
+/.agents/
 
 # Local agent operating files (not part of the public product)
-AGENTS.md
-MEMORY.md
-PLAN.md
-TODO.md
-SOUL.md
-USER.md
-memory/
-plans/
-reflections/
+/AGENTS.md
+/MEMORY.md
+/PLAN.md
+/TODO.md
+/SOUL.md
+/USER.md
+/memory/
+/plans/
+/reflections/
 
 # Local-only sample corpora (not redistributed)
-examples/
+/examples/
