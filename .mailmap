@@ -1,0 +1,4 @@
+# Map GitHub merge / account committer identities to the public noreply address.
+# Does not rewrite history; only affects git log / shortlog display.
+Rafal Sikora <24563931+s1korrrr@users.noreply.github.com> <mrsikorarafal@gmail.com>
+Rafal Sikora <24563931+s1korrrr@users.noreply.github.com> Rafal Sikora <mrsikorarafal@gmail.com>
