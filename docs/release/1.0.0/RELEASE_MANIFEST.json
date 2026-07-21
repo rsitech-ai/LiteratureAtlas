@@ -4,7 +4,7 @@
     "version": "1.0.0",
     "build": "1",
     "channel": "macos-direct",
-    "status": "release-candidate",
+    "status": "released",
     "shipping_target": "LiteratureAtlas-macOS",
     "excluded_targets": [
       "iPadOS App Store",
@@ -14,8 +14,8 @@
   "source": {
     "repository": "https://github.com/rsitech-ai/LiteratureAtlas",
     "sanitized_history_baseline": "f6ed31b36a0b2dcb2e5ff459ebda28f3d212fa45",
-    "release_commit": null,
-    "release_tag": null
+    "release_commit": "88f7d5e7c373226eb3861277ba9ca6a57f5e8774",
+    "release_tag": "v1.0.0"
   },
   "identity": {
     "copyright_owner": "Rafal Sikora",
@@ -33,16 +33,28 @@
     "developer_id_team": "2NY8A789TN"
   },
   "artifacts": {
-    "dmg": null,
-    "checksum": null,
-    "app_spdx_sbom": null,
-    "notary_submission_id": null,
-    "release_url": null,
-    "remote_bytes_verified": false
+    "dmg": {
+      "name": "LiteratureAtlas-1.0.0.dmg",
+      "pre_staple_sha256": "48d647b0595ab0554d8a1418a76ffce82b2b9fdc54512488f6325ac83d8101e9",
+      "published_sha256": "f2fc0c5ec19831213e1dcd0ea4d6fe104a890fdaae821a581e5ce5d4af108c20"
+    },
+    "checksum": {
+      "name": "LiteratureAtlas-1.0.0.dmg.sha256",
+      "sha256": "30f31497601620afaa1196feb0fb00523d4071a2b91ab35848da741dd442d5ad"
+    },
+    "app_spdx_sbom": {
+      "name": "LiteratureAtlas-1.0.0-app.spdx.json",
+      "sha256": "cd5d9b6cb620b3ec7191e3bdb9e6aba7004d35227f5230d0eb49bb9598c76440",
+      "app_tree_sha256": "21a699b74a0578cb5636513601b0cab62810e750948127203271949cca8afdaf"
+    },
+    "notary_submission_id": "68cc41be-2f44-4650-a731-ec1e5a042f3f",
+    "notary_status": "Accepted",
+    "release_url": "https://github.com/rsitech-ai/LiteratureAtlas/releases/tag/v1.0.0",
+    "remote_bytes_verified": true
   },
   "security_scan": {
     "formal_codex_scan": "excluded_by_user_direction",
     "repository_native_gates_required": true
   },
-  "verdict": "RELEASE_CANDIDATE"
+  "verdict": "RELEASED"
 }

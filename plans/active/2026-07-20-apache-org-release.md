@@ -105,7 +105,8 @@
 - 2026-07-20: Completed: Apache-2.0/RSI Tech identity migration, DCO/governance, package/SBOM roots, `ai.rsitech` bundle namespace, production AppIcon, org-compatible workflow cleanup, stale-file cleanup, focused red/green tests, and broad local gates.
 - 2026-07-20: Local Xcode archive attempts isolated a system-wide Xcode 26.6 build-service pipe deadlock also affecting unrelated workspaces; direct compiler and asset-catalog tools pass. Added a credential-free exact-SHA unsigned-candidate workflow instead of mutating or terminating other tasks.
 - 2026-07-20: Completed: final independent diff review, DCO LicenseRef correction, release-truth cleanup, main-only workflow regression, 65 Python tests, 90 XCTest plus 4 Swift Testing cases, Rust/release/license/configuration gates, exact 252-file source SBOM, and administrator-enforced protected-main policy.
-- 2026-07-20: Current: signed squash, org PR checks/merge, then hosted unsigned build, local signing/notarization, public release, legacy retirement, and closeout.
+- 2026-07-20: Began signed squash, org PR checks/merge, hosted unsigned build, local signing/notarization, public release, legacy retirement, and closeout.
+- 2026-07-21: Completed migration PR #4 and exact-main hosted build, local Developer ID signing, Apple notarization acceptance, stapling, strict distribution verification, quarantine relocation/launch proof, public `v1.0.0` publication, unauthenticated remote-byte verification, legacy personal-repository retirement, and exact recoverable cleanup. The release-evidence PR is the final protected-main landing action.
 
 ## Rollback / Recovery
 

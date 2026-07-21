@@ -2,18 +2,20 @@
 
 ## Current verdict
 
-`RELEASE CANDIDATE`
+`RELEASED`
 
 The canonical source repository is
 [`rsitech-ai/LiteratureAtlas`](https://github.com/rsitech-ai/LiteratureAtlas).
-Version `1.0.0` (build `1`) is being prepared for the first RSI Tech direct
-download. Publication remains pending until the migration PR is merged and the
-exact merged source has produced a Developer ID-signed, notarized, stapled, and
-remotely verified artifact.
+Version `1.0.0` (build `1`) is the first RSI Tech direct download. The artifact
+was built from merged source `88f7d5e7c373226eb3861277ba9ca6a57f5e8774`,
+Developer ID signed, Apple notarized, stapled, quarantine tested, and published
+with remotely verified bytes at
+[`v1.0.0`](https://github.com/rsitech-ai/LiteratureAtlas/releases/tag/v1.0.0).
 
 The earlier `v1.0.0-community.1` personal-repository prerelease was ad-hoc
-signed and not notarized. It is legacy recovery evidence only and will be
-removed after the RSI Tech replacement is verified.
+signed and not notarized. It and its tag were removed after replacement
+verification; the personal repository is private and archived recovery
+evidence.
 
 ## Direct-download target
 
@@ -40,5 +42,4 @@ direct-download artifact.
 
 `docs/release/1.0.0/TEST_EVIDENCE.md` records the exact commands and results.
 `docs/open-source/OPEN_SOURCE_MANIFEST.json` is the machine-readable source and
-release-candidate record. Neither document may claim publication before remote
-asset verification succeeds.
+release record. The iPad App Store lane remains separate and blocked external.

@@ -2,15 +2,12 @@
 
 ## Current direct-download release
 
-1. Merge the Apache/RSI Tech migration through an exact-head green org PR.
-2. Build the exact merged source through the credential-free unsigned-candidate
-   workflow, then verify its embedded source revision and transport checksum.
-3. Sign it with Developer ID Application Team
-   `2NY8A789TN`, and complete digest-bound Apple notarization.
-4. Retain signature, entitlement, hardened-runtime, notarization, staple,
-   Gatekeeper, DMG equality, checksum, SBOM, relocation, and launch/log evidence.
-5. Publish and remotely verify the org release assets before retiring the old
-   personal prerelease and making the personal repository private/archived.
+No current blocker. PR #4 merged through protected `main`; exact source
+`88f7d5e7c373226eb3861277ba9ca6a57f5e8774` produced the Developer ID-signed,
+Apple-notarized `v1.0.0` release. Signature, entitlements, hardened runtime,
+notarization, staple, Gatekeeper, DMG equality, checksum, SBOM, quarantine,
+relocated launch/log, and public remote-byte evidence all passed. The legacy
+personal prerelease was then removed and its repository made private/archived.
 
 ## Separate App Store lane
 
