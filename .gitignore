@@ -2,10 +2,17 @@
 .build/
 .DS_Store
 dist/
+DerivedData/
+*.xcuserstate
+xcuserdata/
 
 # Derived data / caches
 Output/
 .superpowers/
+.ruff_cache/
+.pytest_cache/
+.mypy_cache/
+*.xcresult
 
 # Python
 .venv/
@@ -33,9 +40,23 @@ analytics/rust/target/
 # Analytics virtualenv
 analytics/.venv/
 
-# Editors
+# Editors / local AI tooling
 .vscode/
 .cursor/
+.claude/
+.codex/
+.agents/
 
-#examples
+# Local agent operating files (not part of the public product)
+AGENTS.md
+MEMORY.md
+PLAN.md
+TODO.md
+SOUL.md
+USER.md
+memory/
+plans/
+reflections/
+
+# Local-only sample corpora (not redistributed)
 examples/
