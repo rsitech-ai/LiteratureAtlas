@@ -58,7 +58,7 @@
   "known_dependency_advisory_count": 0,
   "known_dependency_maintenance_warnings": 1,
   "third_party_notice_status": "locked source ecosystems inventoried; exact signed application SPDX reconciliation published",
-  "reuse_status": "PASS: REUSE Specification 3.3 metadata for 254 of 254 scoped files; project-authored files are Apache-2.0 and the verbatim DCO text uses LicenseRef-DCO-1.1",
+  "reuse_status": "PASS: REUSE Specification 3.3 metadata for 241 of 241 scoped files; project-authored files are Apache-2.0 and the verbatim DCO text uses LicenseRef-DCO-1.1",
   "tracked_current_source_dependency_sbom_paths": [
     "docs/open-source/sbom/source.spdx.json",
     "docs/open-source/sbom/python-environment.cdx.json",

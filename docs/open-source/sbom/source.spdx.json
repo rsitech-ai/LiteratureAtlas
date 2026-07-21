@@ -7,7 +7,7 @@
     ]
   },
   "dataLicense": "CC0-1.0",
-  "documentNamespace": "https://github.com/rsitech-ai/LiteratureAtlas/sbom/source/tracked-source-sha256-9e41046e8831e77b6b82685ee14d8d1562b2a44d96883da6c2e072df7ab4db35",
+  "documentNamespace": "https://github.com/rsitech-ai/LiteratureAtlas/sbom/source/tracked-source-sha256-588edb06e89ff3824d48bd4dd77aa7398168d038d57cdacbf5affc6e04d1030d",
   "files": [
     {
       "SPDXID": "SPDXRef-File-3d36a1bf06148bc6ba1c",
@@ -179,7 +179,7 @@
       "checksums": [
         {
           "algorithm": "SHA256",
-          "checksumValue": "4ecb7fb11b9bf395c79fb00c2654a579f2d75ba4b3cd051f6cd46a0cfbe712ab"
+          "checksumValue": "835e577fed5f3460742f8ae6f59f7b5e3af74ede9549223ae1ac578e86051191"
         }
       ],
       "copyrightText": "NOASSERTION",
@@ -3119,7 +3119,7 @@
       "checksums": [
         {
           "algorithm": "SHA256",
-          "checksumValue": "56d70071db75b73b71e30fc7d74ac6b2d6f76cbc71a819686ed18e6277977bae"
+          "checksumValue": "8d7d5020fa1560e75f98c2bff433e1d2f252bd69e833aae4d927352fdd029cc2"
         }
       ],
       "copyrightText": "NOASSERTION",
@@ -3149,7 +3149,7 @@
       "checksums": [
         {
           "algorithm": "SHA256",
-          "checksumValue": "8d60ab20a3acce1b93cd83426c4e638798b613bb2f8ba4b12120e46c4e3c6a3f"
+          "checksumValue": "affe7c50e5918048b2b54a1e8e67408ddbde74409cbe8ade2b1047b5b33c85cf"
         }
       ],
       "copyrightText": "NOASSERTION",
@@ -3650,7 +3650,7 @@
       "licenseConcluded": "Apache-2.0",
       "licenseDeclared": "Apache-2.0",
       "name": "LiteratureAtlas source",
-      "versionInfo": "tracked-source-sha256-9e41046e8831e77b6b82685ee14d8d1562b2a44d96883da6c2e072df7ab4db35"
+      "versionInfo": "tracked-source-sha256-588edb06e89ff3824d48bd4dd77aa7398168d038d57cdacbf5affc6e04d1030d"
     }
   ],
   "relationships": [
