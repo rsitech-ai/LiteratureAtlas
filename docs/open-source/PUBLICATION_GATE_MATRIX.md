@@ -11,7 +11,7 @@
 | Distributed privacy/runtime boundary | Pass | Exact release verifier passed marker, entitlement, signature, and mounted equality; separate quarantine, relocated launch, and fatal-log checks passed |
 | Source tests/builds | Pass | PR #4 required checks passed; exact-main unsigned release workflow run 29782445124 succeeded |
 | CI workflow policy | Pass | Only org-allowed GitHub actions remain; tools are pinned and the credential-free exact-main build passed |
-| Source/dependency SBOM | Pass | Deterministic source SPDX is refreshed for the evidence PR; frozen Python/Rust inventories retain upstream licenses; exact app SPDX is published |
+| Source/dependency SBOM | Pass | Deterministic source SPDX reflects the cleaned current public tree; frozen Python/Rust inventories retain upstream licenses; exact app SPDX is published |
 | Production artwork | Pass | Complete opaque RSI Tech/LiteratureAtlas AppIcon catalog passes validation and standalone asset compilation |
 | Developer ID identity | Pass | Exact app is signed by Developer ID Application Team `2NY8A789TN` with secure timestamp and hardened runtime |
 | Notary credentials | Pass | Exact request `68cc41be-2f44-4650-a731-ec1e5a042f3f` returned `Accepted` with no issues |
