@@ -14,14 +14,18 @@
 
 The canonical `rsitech-ai/LiteratureAtlas` repository was created from a
 rewritten mirror. Four previously reachable third-party PDFs and their exact
-blob IDs are absent from its only published branch. A fresh clone contains no
-PDF path, none of the four blob objects, and no legacy personal commit email.
+blob IDs are absent from its only published branch. The sanitized baseline
+contains no PDF path, none of the four blob objects, and no legacy personal
+commit email. GitHub later authored PR #4's merge commit with the account merge
+identity rather than the configured no-reply email; the reviewed project commit
+uses the requested no-reply identity.
 The sanitized `main` baseline is
 `f6ed31b36a0b2dcb2e5ff459ebda28f3d212fa45`.
 
-Rewriting cannot revoke copies obtained before migration. The superseded
-personal repository remains public only until the signed/notarized replacement
-release is remotely verified, then becomes private archived recovery evidence.
+Rewriting cannot revoke copies obtained before migration. After the
+signed/notarized replacement release was remotely verified, the superseded
+personal prerelease and tag were removed and the personal repository became
+private archived recovery evidence.
 
 ## Contributors and ownership
 

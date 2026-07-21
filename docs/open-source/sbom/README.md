@@ -2,9 +2,10 @@
 
 The canonical repository tracks one deterministic current-source SPDX inventory
 and frozen Python/Rust dependency inventories. Historical app inventories tied
-to the superseded personal prerelease were removed; the next app inventory must
-be generated from the exact Developer ID-signed/stapled release candidate and
-published beside that release.
+to the superseded personal prerelease were removed. The exact Developer
+ID-signed 1.0.0 application inventory is published beside the release as
+`LiteratureAtlas-1.0.0-app.spdx.json` with SHA-256
+`cd5d9b6cb620b3ec7191e3bdb9e6aba7004d35227f5230d0eb49bb9598c76440`.
 
 | File | Scope | Generator |
 |---|---|---|
@@ -42,5 +43,5 @@ scripts/generate_spdx_sbom.py \
   --output docs/open-source/sbom/rust-source.cdx.json
 ```
 
-Final source/dependency hashes and the exact release-app SBOM hash are recorded
-only after the release source and artifact are sealed.
+The release dossier records the source-to-artifact mapping, published DMG hash,
+application-tree digest, and exact release-app SBOM hash after sealing.

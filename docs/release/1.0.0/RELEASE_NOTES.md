@@ -22,8 +22,9 @@ and Markdown library into an explorable knowledge universe.
 
 ## Distribution
 
-No official RSI Tech binary is published yet. The release candidate will be
-Developer ID signed with the hardened runtime, Apple notarized, and published
-as a stapled DMG with a SHA-256 checksum and SPDX SBOM only after every recorded
-gate passes. Source is licensed under Apache-2.0; third-party components retain
-their own licenses.
+The official RSI Tech build is available from the
+[v1.0.0 GitHub release](https://github.com/rsitech-ai/LiteratureAtlas/releases/tag/v1.0.0).
+It is Developer ID signed with the hardened runtime, Apple notarized, and
+distributed as a stapled DMG with a SHA-256 checksum and application SPDX SBOM.
+Source is licensed under Apache-2.0; third-party components retain their own
+licenses.

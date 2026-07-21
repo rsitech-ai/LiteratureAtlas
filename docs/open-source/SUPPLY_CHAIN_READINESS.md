@@ -25,8 +25,8 @@ permission, repository-access, forbidden, or unexpected API status fails closed.
 
 A deterministic source SPDX inventory and pinned-tool Python/Rust CycloneDX
 inventories exist under `sbom/`. Historical community/unsigned-app inventories
-were removed because they did not describe the forthcoming exact merged-source
+were removed because they do not describe the official exact merged-source
 artifact. The ecosystem SBOMs contain no component with missing license
-metadata. An exact official signed-app SBOM and provenance record are still
-required; no official release may claim completion before those artifacts and
-the containing commit are reconciled.
+metadata. The exact official signed-app SPDX SBOM is published with `v1.0.0`,
+and the release dossier reconciles its application-tree digest, merged source,
+notary submission, DMG checksum, and public asset digests.

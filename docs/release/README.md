@@ -2,10 +2,12 @@
 
 - [RELEASING.md](../../RELEASING.md) is the canonical direct-download runbook.
 - [Current blockers](../open-source/BLOCKERS.md) control readiness claims.
-- [`1.0.0/`](1.0.0/) is a historical App Store preparation dossier. Its
-  universal-binary, iPad submission, TestFlight, and App Store assumptions are
-  not authoritative for the current Apple Silicon direct-download lane.
+- [`1.0.0/`](1.0.0/) is the current macOS direct-download release dossier. Its
+  older universal-binary, iPad submission, TestFlight, and App Store sections
+  remain historical and are not evidence for the Apple Silicon direct-download
+  lane.
 
-The `v1.0.0-community.1` ad-hoc/not-notarized prerelease is published. No
-official production tag or Developer ID-signed/notarized artifact has been
-published.
+The official Developer ID-signed and Apple-notarized `v1.0.0` release is
+published at `rsitech-ai/LiteratureAtlas`. The superseded
+`v1.0.0-community.1` personal-repository prerelease and tag have been removed;
+that repository is retained only as private archived recovery evidence.

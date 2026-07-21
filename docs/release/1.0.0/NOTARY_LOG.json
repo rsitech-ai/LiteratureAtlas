@@ -1,0 +1,30 @@
+{
+  "logFormatVersion": 1,
+  "jobId": "68cc41be-2f44-4650-a731-ec1e5a042f3f",
+  "status": "Accepted",
+  "statusSummary": "Ready for distribution",
+  "statusCode": 0,
+  "archiveFilename": "LiteratureAtlas-1.0.0.dmg",
+  "uploadDate": "2026-07-20T22:32:55.285Z",
+  "sha256": "48d647b0595ab0554d8a1418a76ffce82b2b9fdc54512488f6325ac83d8101e9",
+  "ticketContents": [
+    {
+      "path": "LiteratureAtlas-1.0.0.dmg/LiteratureAtlas.app",
+      "digestAlgorithm": "SHA-256",
+      "cdhash": "80b2dbbdd4714ce15cef1c739ef01724484a7eeb",
+      "arch": "arm64"
+    },
+    {
+      "path": "LiteratureAtlas-1.0.0.dmg/LiteratureAtlas.app/Contents/MacOS/LiteratureAtlas",
+      "digestAlgorithm": "SHA-256",
+      "cdhash": "80b2dbbdd4714ce15cef1c739ef01724484a7eeb",
+      "arch": "arm64"
+    },
+    {
+      "path": "LiteratureAtlas-1.0.0.dmg",
+      "digestAlgorithm": "SHA-256",
+      "cdhash": "6857560707d57127c9a82126d00748d015182428"
+    }
+  ],
+  "issues": null
+}

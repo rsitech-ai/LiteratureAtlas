@@ -90,7 +90,9 @@ script/notarize_dmg.sh \
 ```
 
 The script retains the structured submission response and full Apple log,
-requires `Accepted`, staples and validates the DMG, then checks Gatekeeper.
+requires `Accepted`, and staples and validates the exact submitted DMG. The DMG
+is an unsigned transport container; the notarized verifier below checks the
+Developer ID-signed app with Gatekeeper.
 
 ```bash
 script/verify_distribution.sh \
