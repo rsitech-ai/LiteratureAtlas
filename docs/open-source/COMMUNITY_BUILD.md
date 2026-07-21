@@ -10,6 +10,7 @@ notarized. The complete verification path mounts the DMG, compares its app
 byte-for-byte with the verified source app, checks the portable checksum, and
 launches a relocated copy.
 
-The superseded personal-repository prerelease is retained only until the new
-Developer ID-signed/notarized org release is remotely verified. It is not
-current org release evidence.
+The superseded personal-repository prerelease and tag were removed after the
+Developer ID-signed/notarized org release was remotely verified. The personal
+repository is private and archived recovery evidence, not current org release
+evidence.

@@ -5,12 +5,12 @@ LiteratureAtlas is a local-first SwiftUI app for turning research PDFs and Markd
 ## Release status
 
 The canonical source repository is maintained by RSI Tech under Apache-2.0.
-No RSI Tech binary release is published yet. When available, verified downloads
-will be published on the
-[GitHub Releases page](https://github.com/rsitech-ai/LiteratureAtlas/releases).
+The official Apple Silicon macOS 1.0.0 release is available from the
+[GitHub release](https://github.com/rsitech-ai/LiteratureAtlas/releases/tag/v1.0.0)
+with its SHA-256 checksum and application SPDX SBOM.
 
 - Community macOS builds are credential-free, ad-hoc signed, sandboxed, and use a distinct name and bundle identifier.
-- Official macOS builds use the same self-contained runtime, then require an installed Apple Developer ID Application certificate and an explicit notarization submission.
+- The official 1.0.0 macOS build is Developer ID signed, Apple notarized, stapled, and accepted by Gatekeeper as Notarized Developer ID.
 - The direct-download artifact is currently scoped to Apple Silicon and macOS 26 or later.
 - The iPadOS target remains available for development, but is not part of the direct-download release.
 

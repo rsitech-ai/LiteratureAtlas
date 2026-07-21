@@ -78,7 +78,9 @@ mv "$log_tmp" "$log_output"
 
 xcrun stapler staple "$dmg"
 xcrun stapler validate "$dmg"
-spctl -a -vv -t open --context context:primary-signature "$dmg"
+# The disk image is an unsigned transport container. Gatekeeper evaluates the
+# Developer ID-signed app in verify_distribution.sh; stapler validates the
+# notarization ticket attached to this exact submitted DMG.
 release_write_sha256_file "$dmg"
 trap - EXIT
 printf 'Notarized and stapled DMG: %s\nSubmission: %s\nResponse: %s\nLog: %s\n' \

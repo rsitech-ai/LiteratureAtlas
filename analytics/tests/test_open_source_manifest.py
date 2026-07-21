@@ -97,7 +97,7 @@ class OpenSourceManifestTests(unittest.TestCase):
         self.assertEqual(manifest["python_sbom_dependency_component_count"], len(python_sbom["components"]))
         self.assertEqual(manifest["rust_sbom_dependency_component_count"], len(rust_sbom["components"]))
 
-    def test_locked_counts_and_release_candidate_match_their_sources(self):
+    def test_locked_counts_and_published_release_match_their_sources(self):
         manifest = json.loads(MANIFEST_PATH.read_text(encoding="utf-8"))
         uv_lock = tomllib.loads((ROOT / "analytics" / "uv.lock").read_text(encoding="utf-8"))
         cargo_lock = tomllib.loads((ROOT / "analytics" / "ffi" / "Cargo.lock").read_text(encoding="utf-8"))
@@ -110,7 +110,24 @@ class OpenSourceManifestTests(unittest.TestCase):
         self.assertEqual(candidate["build"], "1")
         self.assertEqual(candidate["bundle_id"], "ai.rsitech.LiteratureAtlas")
         self.assertEqual(candidate["developer_id_team"], "2NY8A789TN")
-        self.assertFalse(candidate["published"])
+        self.assertEqual(
+            candidate["source_commit"],
+            "88f7d5e7c373226eb3861277ba9ca6a57f5e8774",
+        )
+        self.assertEqual(candidate["tag"], "v1.0.0")
+        self.assertEqual(candidate["notary_status"], "Accepted")
+        self.assertEqual(
+            candidate["notary_submission_id"],
+            "68cc41be-2f44-4650-a731-ec1e5a042f3f",
+        )
+        self.assertEqual(
+            candidate["published_dmg_sha256"],
+            "f2fc0c5ec19831213e1dcd0ea4d6fe104a890fdaae821a581e5ce5d4af108c20",
+        )
+        self.assertTrue(candidate["remote_bytes_verified"])
+        self.assertTrue(candidate["published"])
+        self.assertEqual(manifest["publication_verdict"], "RELEASED")
+        self.assertEqual(manifest["blockers"], [])
         self.assertEqual(manifest["tracked_historical_app_sboms"], [])
 
         tracked_paths = manifest["tracked_current_source_dependency_sbom_paths"]

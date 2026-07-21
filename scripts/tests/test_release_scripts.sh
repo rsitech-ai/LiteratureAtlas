@@ -310,6 +310,18 @@ else
     fail "notarization refreshes checksum after stapling"
 fi
 
+if grep -F 'spctl ' "$ROOT/script/notarize_dmg.sh" >/dev/null; then
+    fail "notarization does not Gatekeeper-assess an unsigned DMG container"
+else
+    pass "notarization does not Gatekeeper-assess an unsigned DMG container"
+fi
+
+if grep -F 'spctl -a -vv -t exec "$app"' "$ROOT/script/verify_distribution.sh" >/dev/null; then
+    pass "notarized verification Gatekeeper-assesses the signed app"
+else
+    fail "notarized verification Gatekeeper-assesses the signed app"
+fi
+
 if grep -F "grep -E 'flags=.*(runtime)'" "$ROOT/script/verify_distribution.sh" >/dev/null \
     && grep -F "grep -F 'Timestamp='" "$ROOT/script/verify_distribution.sh" >/dev/null; then
     pass "official verification requires hardened runtime and secure timestamp"

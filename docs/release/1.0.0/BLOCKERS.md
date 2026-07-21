@@ -4,16 +4,16 @@
 
 | Gate | Current state | Evidence required to close |
 | --- | --- | --- |
-| Production AppIcon | Implemented, verification pending | Complete referenced opaque asset catalog compiles for macOS and iPadOS and passes the release validator |
-| Migration PR | Pending | Reviewed org PR is green and merged through protected `main` |
-| Exact source build | Pending | Official app is built from the merged org `main` SHA |
-| Developer ID signing | Pending | Valid signature, Team `2NY8A789TN`, hardened runtime, least-privilege entitlements, and nested-code verification |
-| Apple notarization | Pending | Accepted request bound to the published DMG digest, stapled ticket, and successful `spctl`/`stapler` validation |
-| Runtime package proof | Pending | Mounted app byte equality, relocated launch, and clean launch-log inspection |
-| Public download | Pending | RSI Tech release assets, checksum, SPDX SBOM, and remote byte-for-byte verification |
+| Production AppIcon | Pass | Complete referenced opaque asset catalog compiles for macOS and iPadOS and passes the release validator |
+| Migration PR | Pass | Reviewed org PR #4 passed all required checks and merged through protected `main` |
+| Exact source build | Pass | Official app embeds merged org `main` SHA `88f7d5e7c373226eb3861277ba9ca6a57f5e8774` |
+| Developer ID signing | Pass | Team `2NY8A789TN`, hardened runtime, least-privilege entitlements, secure timestamp, and nested-code verification |
+| Apple notarization | Pass | Submission `68cc41be-2f44-4650-a731-ec1e5a042f3f` accepted with no issues; DMG ticket stapled and validated; app accepted by Gatekeeper |
+| Runtime package proof | Pass | Mounted app equality, quarantined relocation, launch, process-liveness, and clean fatal-log scan |
+| Public download | Pass | RSI Tech `v1.0.0` DMG, checksum, and SPDX SBOM match unauthenticated public downloads byte-for-byte |
 
-None of these gates may be bypassed by publishing the legacy ad-hoc community
-artifact as the official release.
+The legacy ad-hoc community prerelease and tag were removed only after all
+replacement gates passed. The personal repository is private and archived.
 
 ## Separate App Store lane
 

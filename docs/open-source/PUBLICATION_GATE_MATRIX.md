@@ -8,17 +8,17 @@
 | Public maintainer/contact | Pass | RSI Tech; `https://rsitech.ai`; `info@rsitech.ai` |
 | Governance/DCO | Pass | Single-maintainer governance, CODEOWNERS, DCO 1.1, web sign-off required |
 | Private security/conduct route | Pass | GitHub PVR plus `info@rsitech.ai` |
-| Distributed privacy/runtime boundary | Pass, reverify | Existing tests and artifact marker checks; rerun on exact PR/release source |
-| Source tests/builds | Pass locally, pending exact head | Python, Swift, Rust, release policy, validator, and runtime smoke pass; hosted archive proof remains exact-PR-head work |
-| CI workflow policy | Pass configuration, pending hosted run | Only org-allowed GitHub actions remain; tools are pinned and release-candidate build is credential-free |
-| Source/dependency SBOM | Pass, reverify exact head | Deterministic source SPDX covers all 252 in-scope files; frozen Python/Rust inventories retain upstream licenses |
+| Distributed privacy/runtime boundary | Pass | Exact release verifier passed marker, entitlement, signature, and mounted equality; separate quarantine, relocated launch, and fatal-log checks passed |
+| Source tests/builds | Pass | PR #4 required checks passed; exact-main unsigned release workflow run 29782445124 succeeded |
+| CI workflow policy | Pass | Only org-allowed GitHub actions remain; tools are pinned and the credential-free exact-main build passed |
+| Source/dependency SBOM | Pass | Deterministic source SPDX is refreshed for the evidence PR; frozen Python/Rust inventories retain upstream licenses; exact app SPDX is published |
 | Production artwork | Pass | Complete opaque RSI Tech/LiteratureAtlas AppIcon catalog passes validation and standalone asset compilation |
-| Developer ID identity | Pass prerequisite | Valid installed Developer ID Application identity for Team `2NY8A789TN` |
-| Notary credentials | Pass prerequisite | Authenticated read-only notary history succeeded with external keychain profile |
-| Exact signed/notarized artifact | Pending | Build only after PR merge; verify signature, notarization, staple, Gatekeeper, DMG equality |
-| Release checksum/SBOM/provenance | Pending | Generate from exact signed/stapled artifact and reconcile source mapping |
-| Download availability | Pending | Publish org release and verify remote bytes before retiring personal prerelease |
+| Developer ID identity | Pass | Exact app is signed by Developer ID Application Team `2NY8A789TN` with secure timestamp and hardened runtime |
+| Notary credentials | Pass | Exact request `68cc41be-2f44-4650-a731-ec1e5a042f3f` returned `Accepted` with no issues |
+| Exact signed/notarized artifact | Pass | Stapled DMG validates; embedded app equality and app Gatekeeper acceptance passed |
+| Release checksum/SBOM/provenance | Pass | Published DMG SHA-256 `f2fc0c5e…`, checksum, app SPDX, and source mapping recorded |
+| Download availability | Pass | Public `v1.0.0` assets matched local bytes; legacy prerelease/tag removed afterward |
 | Formal Codex Security scan | Excluded | Explicit user direction; do not translate scoped repository checks into exhaustive proof |
 | iPad App Store | Blocked external | Separate identifiers, profiles, metadata, device, and upload gates |
 
-Overall direct-download verdict: **RELEASE CANDIDATE**.
+Overall direct-download verdict: **RELEASED**.
