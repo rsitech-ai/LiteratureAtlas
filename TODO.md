@@ -10,11 +10,11 @@
 - [x] Create and review migration PR (DoD: coherent org PR is independently reviewed, findings resolved, and all hosted checks pass on the exact head)
 - [x] Merge migration via PR (DoD: PR merge lands on protected org `main` and exact remote SHA/settings are verified)
 - [x] Build and publish latest app (DoD: exact merged source produces a downloadable artifact with truthful signing/notary status, checksum, SBOM, and remote byte verification)
-- [ ] Create, review, and merge release-evidence PR (DoD: final evidence and script regression land through protected `main` with all required checks green)
-- [ ] Safe cleanup and closeout (DoD: only obsolete/generated artifacts are removed; PLAN/TODO/MEMORY record exact final evidence and remaining external blockers)
+- [x] Create, review, and merge release-evidence PR (DoD: final evidence and script regression land through protected `main` with all required checks green)
+- [x] Safe cleanup and closeout (DoD: only obsolete/generated artifacts are removed; PLAN/TODO/MEMORY record exact final evidence and remaining external blockers)
 
 ## In progress
-- [ ] Create, review, and merge release-evidence PR
+- None; the release migration and closeout are complete.
 
 ## Done
 - [x] User confirmed copyright owner Rafal Sikora, RSI Tech brand/maintainer, `https://rsitech.ai`, `info@rsitech.ai`, the no-reply Git email, Apache-2.0, history rewrite, org publication, PR/merge, release publication, and cleanup authority.
@@ -29,3 +29,5 @@
 - [x] Public org release `v1.0.0` maps to the exact merged source; DMG, checksum, and app SPDX SBOM matched unauthenticated public downloads byte-for-byte.
 - [x] After replacement verification, removed legacy `v1.0.0-community.1`, closed/deleted personal Dependabot PRs/branches #6 and #7, and made `s1korrrr/LiteratureAtlas` private and archived with `main` preserved.
 - [x] Moved only the enumerated obsolete archive, asset-compiler, debug-app, release, and smoke paths to Trash; preserved `Output/`, `analytics/.venv`, and the verified recovery mirror.
+- [x] Release-evidence PR #5 merged reviewed head `d9835891b7276122c45c06d27147966f810d2da9` by rebase as protected-main commit `9d14a50c7eebae61ab2511d21437ee203870f96a` after all ten hosted checks passed.
+- [x] Final closeout retained the published/notarized release provenance, preserved the recovery mirror and user-controlled outputs, and archived the completed execution plan.

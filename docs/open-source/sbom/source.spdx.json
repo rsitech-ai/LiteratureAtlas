@@ -7,7 +7,7 @@
     ]
   },
   "dataLicense": "CC0-1.0",
-  "documentNamespace": "https://github.com/rsitech-ai/LiteratureAtlas/sbom/source/tracked-source-sha256-085658d2441a4e220e5fafa125a8a71f8624ed888b5106a84364b09e22f84ca6",
+  "documentNamespace": "https://github.com/rsitech-ai/LiteratureAtlas/sbom/source/tracked-source-sha256-ce78c207bbf09d35498d74c6fc8073910d5d94dd934631fa7a3a60ecb2949ee5",
   "files": [
     {
       "SPDXID": "SPDXRef-File-cd49adffccd28c2b30a7",
@@ -539,7 +539,7 @@
       "checksums": [
         {
           "algorithm": "SHA256",
-          "checksumValue": "929b27493ae539be0da8afb502468135eebc663f363f1c7e15ca39755a7c2245"
+          "checksumValue": "f8573f738880910c10302225e7e4accad7135f464d752321d33efb0fd6623ca4"
         }
       ],
       "copyrightText": "NOASSERTION",
@@ -569,7 +569,7 @@
       "checksums": [
         {
           "algorithm": "SHA256",
-          "checksumValue": "e797c18e34e94d4407a6caa242646498c94d8a62ec16d674276936d32598627d"
+          "checksumValue": "77b904ef510f8bbf5ed09837407263ab712a20fd2be6f1db2a657489e7cbb9fc"
         }
       ],
       "copyrightText": "NOASSERTION",
@@ -2504,7 +2504,7 @@
       "checksums": [
         {
           "algorithm": "SHA256",
-          "checksumValue": "ac98d9cbf2b7621282d3f6674316ad50cec2762d5ce6532520ecc53ad5455f59"
+          "checksumValue": "ac273d616c044813fe5cc863e9504202d962a5afb77ab30e6814125f3aecb37a"
         }
       ],
       "copyrightText": "NOASSERTION",
@@ -3475,15 +3475,15 @@
       ]
     },
     {
-      "SPDXID": "SPDXRef-File-775609beefe732e2fd2b",
+      "SPDXID": "SPDXRef-File-07d20fed872934194244",
       "checksums": [
         {
           "algorithm": "SHA256",
-          "checksumValue": "372280835d06b02dce38abd25d8fce15169713d0e60964959cbe643c94ae9bff"
+          "checksumValue": "26567437a51e0808a949fcf868d228b0d4683b11bf18b87d4d22469b5fd0938a"
         }
       ],
       "copyrightText": "NOASSERTION",
-      "fileName": "plans/active/2026-07-20-apache-org-release.md",
+      "fileName": "plans/archive/2026-07-20-apache-org-release.md",
       "licenseConcluded": "NOASSERTION",
       "licenseInfoInFiles": [
         "NOASSERTION"
@@ -3845,7 +3845,7 @@
       "licenseConcluded": "Apache-2.0",
       "licenseDeclared": "Apache-2.0",
       "name": "LiteratureAtlas source",
-      "versionInfo": "tracked-source-sha256-085658d2441a4e220e5fafa125a8a71f8624ed888b5106a84364b09e22f84ca6"
+      "versionInfo": "tracked-source-sha256-ce78c207bbf09d35498d74c6fc8073910d5d94dd934631fa7a3a60ecb2949ee5"
     }
   ],
   "relationships": [
@@ -5010,7 +5010,7 @@
       "spdxElementId": "SPDXRef-Package-LiteratureAtlas"
     },
     {
-      "relatedSpdxElement": "SPDXRef-File-775609beefe732e2fd2b",
+      "relatedSpdxElement": "SPDXRef-File-07d20fed872934194244",
       "relationshipType": "CONTAINS",
       "spdxElementId": "SPDXRef-Package-LiteratureAtlas"
     },
